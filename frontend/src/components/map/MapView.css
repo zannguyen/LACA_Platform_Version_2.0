@@ -1,0 +1,189 @@
+/* MapView.css */
+
+/* Container chính - Mobile First */
+.map-view-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height cho mobile */
+  overflow: hidden;
+
+  max-width: 430px; /* Giới hạn width như iPhone */
+  margin: 0 auto; /* Center trên màn hình rộng */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Shadow cho mobile frame */
+}
+
+/* Map container */
+.map-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ✅ BẮT BUỘC: Leaflet container phải có height, tránh trắng */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Loading state */
+.map-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Map Controls */
+.map-controls {
+  position: absolute;
+  top: 16px;
+  right: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Recenter & Refresh buttons */
+.recenter-btn,
+.refresh-btn {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  color: #333;
+  touch-action: manipulation;
+}
+
+.recenter-btn:disabled,
+.refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.recenter-btn svg,
+.refresh-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.recenter-btn:hover:not(:disabled),
+.refresh-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* Notice banner (thay vì error đỏ) */
+.notice-banner {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 1000;
+  max-width: calc(100% - 24px);
+}
+
+/* Check-in count */
+.checkin-count {
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  z-index: 1000;
+}
+
+/* Responsive - Desktop */
+@media (min-width: 769px) {
+  .map-view-container {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .map-controls {
+    top: 20px;
+    right: 20px;
+    gap: 12px;
+  }
+
+  .recenter-btn,
+  .refresh-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .checkin-count {
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .notice-banner {
+    top: 80px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .recenter-btn,
+  .refresh-btn,
+  .checkin-count {
+    background: #1a1a1a;
+    color: #fff;
+  }
+}
+
+/* ✅ FIX: global img rules (Bootstrap/Tailwind) phá Leaflet tiles */
+.leaflet-container img {
+  max-width: none !important;
+}
+
+.leaflet-container .leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.leaflet-container {
+  background: #f3f4f6; /* để thấy nền trong lúc load tile */
+}

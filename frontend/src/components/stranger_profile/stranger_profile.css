@@ -1,0 +1,261 @@
+/* src/pages/stranger_profile/stranger_profile.css */
+
+/* --- CẤU HÌNH CƠ BẢN --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", sans-serif;
+}
+body {
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.mobile-wrapper {
+  width: 375px;
+  height: 800px;
+  background-color: #fff;
+  position: relative;
+  border-radius: 30px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- HEADER (Nút Back & 3 Chấm) --- */
+.top-nav {
+  padding: 15px 20px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 50;
+}
+.nav-btn {
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* Menu Dropdown góc phải (Report User) */
+.header-menu {
+  display: none;
+  position: absolute;
+  top: 50px;
+  right: 20px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  width: 160px;
+}
+.header-menu.show {
+  display: block;
+  animation: fadeIn 0.2s;
+}
+
+/* --- USER INFO --- */
+.profile-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 20px 20px;
+}
+.profile-container::-webkit-scrollbar {
+  display: none;
+}
+
+.user-details-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.avatar-large {
+  width: 80px;
+  height: 80px;
+  background-color: #d9d9d9;
+  border-radius: 50%;
+  margin-right: 20px;
+  border: 1px solid #ccc;
+  flex-shrink: 0;
+  overflow: hidden; /* Thêm cái này để ảnh avatar không bị tràn ra ngoài hình tròn */
+}
+.user-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 4px;
+}
+.user-id {
+  font-size: 14px;
+  color: #000;
+  margin-bottom: 4px;
+}
+.user-bio {
+  font-size: 14px;
+  color: #000;
+}
+
+/* --- STATS & FOLLOW BUTTON --- */
+.stats-action-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+.stat-item {
+  font-size: 13px;
+  margin-right: 15px;
+  color: #000;
+}
+
+/* Nút FOLLOW */
+.follow-btn {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  padding: 8px 25px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: 0.2s;
+  letter-spacing: 0.5px;
+}
+.follow-btn.following {
+  background: #000;
+  color: #fff;
+}
+.follow-btn:active {
+  transform: scale(0.95);
+}
+
+/* --- POSTS --- */
+.mini-post {
+  margin-bottom: 30px;
+  position: relative;
+}
+.mini-post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+}
+.mini-user {
+  display: flex;
+  align-items: center;
+}
+.mini-avatar {
+  width: 30px;
+  height: 30px;
+  background: #d9d9d9;
+  border-radius: 50%;
+  margin-right: 10px;
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+.mini-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000;
+}
+
+/* Nút Report Post (!) */
+.report-post-btn {
+  font-size: 18px;
+  color: #333;
+  cursor: pointer;
+  padding: 5px;
+}
+
+/* Menu Dropdown của Post */
+.post-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 30px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  z-index: 10;
+  border: 1px solid #eee;
+  width: 140px;
+}
+.post-menu.show {
+  display: block;
+  animation: fadeIn 0.2s;
+}
+
+.menu-item {
+  padding: 12px 15px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #f9f9f9;
+}
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+.menu-item.danger {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- [QUAN TRỌNG] SỬA PHẦN HIỂN THỊ ẢNH & VIDEO --- */
+.post-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 350px;
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Áp dụng cho cả thẻ IMG và thẻ VIDEO để nó full khung hình */
+.post-image-wrapper img,
+.post-image-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+  display: block;
+}
+
+.overlay-caption {
+  position: absolute;
+  bottom: 15px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  z-index: 5;
+}

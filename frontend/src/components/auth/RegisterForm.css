@@ -1,0 +1,115 @@
+/* CSS Variables */
+.register-form {
+  --primary-color: #4facfe;
+  --text-color: #333;
+  --text-light: #666;
+  --border-color: #333;
+  --border-radius: 25px;
+  --error-color: #ff4757;
+
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Font Family cho toàn bộ form */
+.register-form * {
+  font-family: "DynaPuff", "Dynapuff", cursive, sans-serif;
+}
+
+/* Error Message */
+.error-message {
+  color: var(--error-color);
+  background-color: #ffe5e9;
+  padding: 10px 16px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Field Row Layout - Mobile First */
+.field-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+/* Label */
+.field-label {
+  color: var(--text-color);
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+/* Input container */
+.field-control {
+  width: 100%;
+}
+
+/* Input styles */
+.register-form input[type="email"],
+.register-form input[type="password"],
+.register-form input[type="text"],
+.field-control input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.register-form input:focus,
+.field-control input:focus {
+  border-color: var(--primary-color);
+}
+
+/* Error state */
+.field-control.error input {
+  border-color: var(--error-color);
+}
+
+/* Register Actions */
+.register-actions {
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 16px;
+}
+
+/* Footer Text */
+.footer-text {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.link-bold {
+  color: var(--primary-color);
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+  padding: 4px 0;
+}
+
+.link-bold:hover,
+.link-bold:active {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* Touch device optimization */
+.link-bold {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}

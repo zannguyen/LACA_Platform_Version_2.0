@@ -1,0 +1,120 @@
+/* src/App.css */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* ✅ body KHÔNG flex-center mặc định (tránh phá Map/Leaflet) */
+body {
+  margin: 0;
+  background-color: #f5f5f5;
+  font-family: "Segoe UI", "Roboto", sans-serif;
+  min-height: 100vh;
+}
+
+/* ✅ Trang auth căn giữa */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+/* ✅ Card chung cho logo + form => hết lệch */
+.auth-form {
+  background-color: #fff;
+  padding: 40px;
+  border-radius: 30px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  width: min(520px, calc(100vw - 48px));
+  margin: 0 auto;
+}
+
+/* Phần Logo */
+.logo-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.brand-logo {
+  width: 180px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* --- STYLE CHO INPUT (GIỮ NGUYÊN) --- */
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+.rounded-input {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 50px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.rounded-input:focus {
+  border-color: #e94057;
+}
+
+/* --- STYLE CHO NÚT BẤM (GIỮ NGUYÊN) --- */
+.btn-gradient {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(to right, #e94057, #22a0c4);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.3s;
+  margin-top: 10px;
+}
+
+.btn-gradient:hover {
+  opacity: 0.9;
+}
+
+/* --- STYLE CHO FOOTER (GIỮ NGUYÊN) --- */
+.footer-text {
+  text-align: center;
+  margin-top: 25px;
+  color: #555;
+  font-size: 15px;
+}
+
+.link-bold {
+  color: #6a5acd;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.link-bold:hover {
+  text-decoration: underline;
+}
+
+/* ✅ Map/Leaflet: không ảnh hưởng */
+body:has(.leaflet-container) {
+  display: block;
+  padding: 0;
+}

@@ -1,0 +1,175 @@
+/* src/pages/CameraPost/camera_post.css */
+
+/* --- NỀN VÀ ẢNH PREVIEW --- */
+/* src/pages/CameraPost/camera_post.css */
+
+/* --- NỀN VÀ ẢNH/VIDEO PREVIEW --- */
+.photo-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Áp dụng cho cả Ảnh và Video để full màn hình */
+#preview-img,
+#preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Giữ tỷ lệ khung hình, cắt bớt phần thừa */
+}
+
+/* ... (Các phần code bên dưới giữ nguyên) ... */
+
+/* --- HEADER (Nút Back & Timer) --- */
+.review-header {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+}
+
+/* --- TIMER MENU (Đồng hồ đếm ngược) --- */
+.timer-wrapper {
+  position: relative;
+}
+
+.timer-btn {
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.timer-dropdown {
+  display: none; /* Mặc định ẩn */
+  position: absolute;
+  top: 45px;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  padding: 5px 0;
+  min-width: 140px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.timer-dropdown.show {
+  display: block;
+  animation: fadeIn 0.2s;
+}
+
+.timer-option {
+  color: white;
+  padding: 10px 15px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.timer-option:last-child {
+  border-bottom: none;
+}
+.timer-option:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.timer-option.active {
+  color: #2bd0d0;
+  font-weight: bold;
+}
+
+/* --- CAPTION INPUT (Nhập nội dung) --- */
+.caption-wrapper {
+  position: absolute;
+  bottom: 120px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+.caption-input {
+  width: 80%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 12px;
+  text-align: center;
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+  backdrop-filter: blur(2px);
+  transition: 0.3s;
+}
+.caption-input:focus {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: #2bd0d0;
+}
+.caption-input::placeholder {
+  color: #ccc;
+}
+
+/* --- FOOTER ACTION (Nút Download & Gửi) --- */
+.review-footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px 20px 40px;
+  z-index: 20;
+}
+/* Nút Gửi (Send) */
+.send-btn {
+  background: white;
+  color: black;
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  border: none;
+  font-size: 20px;
+  transition: 0.2s;
+}
+.send-btn:active {
+  transform: scale(0.9);
+}
+
+/* Nút Download */
+.btn-icon-footer {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-icon-footer:active {
+  transform: scale(0.9);
+  opacity: 0.7;
+}

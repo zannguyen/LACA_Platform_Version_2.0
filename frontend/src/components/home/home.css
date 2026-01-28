@@ -1,0 +1,339 @@
+/* src/pages/Home/home.css */
+
+/* --- CẤU HÌNH CHUNG --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+/* ✅ KHÔNG can thiệp body (tránh phá toàn app) */
+body {
+  background-color: #e9ebee;
+  min-height: 100vh;
+}
+
+/* --- KHUNG ĐIỆN THOẠI (responsive, không lệch) --- */
+.mobile-wrapper {
+  width: 100%;
+  max-width: 430px; /* giống khung mobile, nhưng không cố định 375 */
+  height: 100vh;
+  height: 100dvh; /* mobile viewport chuẩn */
+  background: #fff;
+  position: relative;
+
+  /* desktop mới bo góc + shadow */
+  border-radius: 0;
+  box-shadow: none;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  margin: 0 auto; /* căn giữa trên màn hình rộng */
+}
+
+/* ✅ Trên màn hình lớn: mới hiện “khung điện thoại” */
+@media (min-width: 768px) {
+  .mobile-wrapper {
+    height: 92vh;
+    border-radius: 30px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    margin: 20px auto;
+  }
+}
+
+/* --- HEADER (Đứng yên ở trên) --- */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+  height: 60px;
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.header-title {
+  font-weight: bold;
+  font-size: 16px;
+  text-transform: uppercase;
+
+  text-align: left;
+  margin-left: 15px;
+  margin-right: auto;
+  color: #000;
+}
+
+.icon-btn {
+  font-size: 22px;
+  cursor: pointer;
+  color: #333;
+}
+
+/* --- MAIN CONTENT --- */
+main {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #e9ebee;
+  padding-bottom: 20px;
+}
+
+/* Ẩn thanh cuộn */
+main::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+/* --- SIDEBAR (MENU) --- */
+#menu-toggle {
+  display: none;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.3s;
+}
+
+#menu-toggle:checked ~ .overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: -250px;
+  width: 250px;
+  height: 100%;
+  background: #fff;
+  z-index: 20;
+  transition: 0.3s;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+#menu-toggle:checked ~ .sidebar {
+  left: 0;
+}
+
+.sidebar-header {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+
+  color: #000 !important;
+  display: block !important;
+}
+
+.sidebar-item {
+  display: block;
+  padding: 15px 0;
+  color: #333;
+  text-decoration: none;
+  font-size: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.sidebar-item i {
+  width: 30px;
+}
+
+/* --- POST CARD (BÀI VIẾT) --- */
+.post-card {
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+/* 1. Header bài viết */
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #000;
+  cursor: pointer;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: #ccc;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+
+.user-avatar i {
+  color: #fff;
+  font-size: 14px;
+}
+
+.username {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* 2. Menu Report */
+.report-wrapper {
+  position: relative;
+}
+
+.report-btn {
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.report-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 30px;
+  background-color: #fff;
+  min-width: 150px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  z-index: 50;
+  overflow: hidden;
+  border: 1px solid #eee;
+}
+
+.report-dropdown.show {
+  display: block;
+  animation: fadeIn 0.2s;
+}
+
+.dropdown-item {
+  padding: 12px 15px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-item.warning {
+  color: #dc3545;
+}
+
+.dropdown-item.warning:hover {
+  background-color: #fff5f5;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 3. Ảnh và Caption */
+.post-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background-color: #000;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Áp dụng cho cả ảnh và video */
+.post-image,
+.post-image-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.caption-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  color: white;
+  padding: 20px 15px 10px 15px;
+  font-size: 14px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+}
+
+.left-actions {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.like-count {
+  margin-left: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #000 !important;
+  display: block;
+}
+
+.right-actions {
+  margin-left: auto;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.action-icon {
+  font-size: 24px;
+  color: #060404;
+  cursor: pointer;
+}
+
+.left-actions .action-icon:hover {
+  color: #e0245e;
+}
+
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}

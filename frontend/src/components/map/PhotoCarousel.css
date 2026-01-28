@@ -1,0 +1,240 @@
+/* Container */
+
+.photo-carousel {
+  position: relative;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* No photos state */
+
+.no-photos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  color: #999;
+}
+
+.no-photos svg {
+  margin-bottom: 12px;
+}
+
+.no-photos p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Photo counter */
+
+.photo-counter {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+/* Swiper */
+
+.photo-swiper {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Photo slide */
+
+.photo-slide {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  cursor: zoom-in;
+  transition: all 0.3s ease;
+}
+
+.photo-slide.zoomed {
+  cursor: zoom-out;
+}
+
+.carousel-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photo-slide.zoomed .carousel-photo {
+  object-fit: contain;
+  transform: scale(1.5);
+}
+
+/* Custom navigation buttons */
+
+.swiper-button-prev-custom,
+.swiper-button-next-custom {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.swiper-button-prev-custom {
+  left: 12px;
+}
+
+.swiper-button-next-custom {
+  right: 12px;
+}
+
+.swiper-button-prev-custom:hover,
+.swiper-button-next-custom:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.swiper-button-prev-custom:active,
+.swiper-button-next-custom:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.swiper-button-prev-custom svg,
+.swiper-button-next-custom svg {
+  color: #333;
+}
+
+/* Swiper pagination */
+
+.photo-swiper .swiper-pagination {
+  bottom: 12px;
+}
+
+.photo-swiper .swiper-pagination-bullet {
+  background: white;
+  opacity: 0.7;
+  width: 8px;
+  height: 8px;
+}
+
+.photo-swiper .swiper-pagination-bullet-active {
+  background: white;
+  opacity: 1;
+  width: 20px;
+  border-radius: 4px;
+}
+
+/* Zoom hint */
+
+.zoom-hint {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  animation: fadeInOut 3s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .photo-slide {
+    height: 300px;
+  }
+  .swiper-button-prev-custom,
+  .swiper-button-next-custom {
+    width: 32px;
+    height: 32px;
+  }
+  .swiper-button-prev-custom svg,
+  .swiper-button-next-custom svg {
+    width: 20px;
+    height: 20px;
+  }
+  .photo-counter {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+  .zoom-hint {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+}
+
+/* Loading skeleton */
+
+.photo-loading {
+  width: 100%;
+  height: 400px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 12px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Dark mode */
+
+@media (prefers-color-scheme: dark) {
+  .no-photos {
+    background: #2a2a2a;
+    color: #888;
+  }
+  .photo-swiper {
+    background: #1a1a1a;
+  }
+  .swiper-button-prev-custom,
+  .swiper-button-next-custom {
+    background: rgba(42, 42, 42, 0.9);
+  }
+  .swiper-button-prev-custom svg,
+  .swiper-button-next-custom svg {
+    color: #ccc;
+  }
+}
