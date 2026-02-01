@@ -9,6 +9,11 @@ import Camera from "../pages/CameraPage";
 import CameraPost from "../pages/CameraPostPage";
 import StrangerProfile from "../pages/StrangerProfilePage";
 import Notification from "../pages/NotificationPage";
+import FeedbackPage from "../pages/FeedbackPage";
+import ReportPage from "../pages/ReportPage";
+import ChatListPage from "../pages/ChatListPage";
+import ChatDetailPage from "../pages/ChatDetailPage";
+import DeleteAccountConfirmPage from "../pages/DeleteAccountConfirmPage";
 
 export default function AppRoutes() {
   return (
@@ -29,6 +34,14 @@ export default function AppRoutes() {
       <Route path="/camera-post" element={<CameraPost />} />
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />
       <Route path="/notification" element={<Notification />} />
+      <Route path="/feedback" element={<FeedbackPage />} />
+      <Route path="/report" element={<ReportPage />} />
+      <Route path="/chat/list" element={<ChatListPage />} />
+      <Route path="/chat/detail" element={<ChatDetailPage />} />
+      <Route
+        path="/delete-account-confirm"
+        element={<DeleteAccountConfirmPage />}
+      />
 
       {/* Optional: route không tồn tại */}
       <Route path="*" element={<Navigate to="/login" replace />} />
