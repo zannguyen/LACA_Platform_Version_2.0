@@ -1,0 +1,235 @@
+/* =========================
+   ROOT
+========================= */
+.analytics {
+  padding: 24px;
+  background: #f7f8fc;
+  min-height: 100vh;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  color: #111;
+}
+
+/* =========================
+   HEADER
+========================= */
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.analytics-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.range-filter button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+.range-filter button.active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+/* =========================
+   KPI CARDS
+========================= */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+}
+
+.kpi-card span {
+  font-size: 14px;
+  color: #666;
+}
+
+.kpi-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.kpi-card.users {
+  border-left: 5px solid #6366f1;
+}
+
+.kpi-card.online {
+  border-left: 5px solid #22c55e;
+}
+
+.kpi-card.new {
+  border-left: 5px solid #f97316;
+}
+
+/* =========================
+   CHART CARD
+========================= */
+.chart-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+}
+
+.chart-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* =========================
+   USER GROWTH (LINE MOCK)
+========================= */
+.line-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 180px;
+  padding: 12px 0;
+}
+
+.line-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.line-dot {
+  width: 10px;
+  height: 10px;
+  background: #6366f1;
+  border-radius: 50%;
+  margin-bottom: 6px;
+}
+
+.line-point span {
+  font-size: 12px;
+  color: #111;
+}
+
+.line-point small {
+  font-size: 12px;
+  color: #777;
+  margin-top: 6px;
+}
+
+/* =========================
+   BAR CHART – ACTIVE REGIONS
+========================= */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  height: 200px;
+  gap: 18px;
+}
+
+.bar-item {
+  flex: 1;
+  text-align: center;
+}
+
+.bar {
+  width: 100%;
+  background: linear-gradient(180deg, #4f46e5, #818cf8);
+  border-radius: 8px 8px 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar-item span {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+}
+
+/* =========================
+   TABLE – TOP LOCATIONS
+========================= */
+.table-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+}
+
+.table-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.table-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-card thead {
+  background: #f1f3f7;
+}
+
+.table-card th,
+.table-card td {
+  padding: 12px 10px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.table-card tbody tr:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+/* =========================
+   LOADING
+========================= */
+.analytics-loading {
+  padding: 40px;
+  text-align: center;
+  font-size: 16px;
+  color: #666;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .bar-chart {
+    height: 160px;
+  }
+}
