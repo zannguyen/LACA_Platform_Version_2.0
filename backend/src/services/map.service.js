@@ -69,6 +69,7 @@ exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
       $project: {
         content: 1,
         type: 1,
+        mediaUrl: 1,
         distanceKm: 1,
         createdAt: 1,
 
