@@ -19,6 +19,8 @@ app.use("/api/posts", require("./src/routes/post.route"));
 app.use("/api/reactions", require("./src/routes/reaction.route"));
 app.use("/api/upload", require("./src/routes/upload.route"));
 app.use("/api/map", require("./src/routes/map.route"));
+app.use("/api/user", require("./src/routes/user.route"));
+
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);
 

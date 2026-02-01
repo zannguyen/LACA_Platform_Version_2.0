@@ -195,6 +195,19 @@ main::-webkit-scrollbar {
   font-size: 14px;
 }
 
+.user-name-distance {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.post-distance {
+  font-size: 12px;
+  color: #888;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 /* 2. Menu Report */
 .report-wrapper {
   position: relative;
