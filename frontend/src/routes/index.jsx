@@ -9,6 +9,12 @@ import Camera from "../pages/CameraPage";
 import CameraPost from "../pages/CameraPostPage";
 import StrangerProfile from "../pages/StrangerProfilePage";
 import Notification from "../pages/NotificationPage";
+import AdminLayout from "../components/admin/AdminLayout";
+import AdminDashboard from "../components/admin/AdminDashboard";
+import UserManagement from "../components/admin/UserManagement";
+import ContentModeration from "../components/admin/ContentModeration";
+import MapManagement from "../components/admin/MapManagement";
+import AdminAnalytics from "../components/admin/AdminAnalytics"; 
 
 export default function AppRoutes() {
   return (
@@ -29,6 +35,15 @@ export default function AppRoutes() {
       <Route path="/camera-post" element={<CameraPost />} />
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />
       <Route path="/notification" element={<Notification />} />
+
+      {/* Admin */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="content" element={<ContentModeration />} />
+        <Route path="map" element={<MapManagement />} />
+        <Route path="analytics" element={<AdminAnalytics />} /> 
+      </Route>
 
       {/* Optional: route không tồn tại */}
       <Route path="*" element={<Navigate to="/login" replace />} />

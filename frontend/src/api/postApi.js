@@ -42,3 +42,13 @@ export const createPost = async ({ content, type, mediaUrl }) => {
 
   return res.data;
 };
+
+// Get nearby posts (no pagination)
+export const getNearbyPosts = async ({ lat, lng }) => {
+  const res = await api.get("/map/posts/nearby", {
+    params: { lat, lng },
+  });
+
+  // API của bạn: data là array
+  return res.data;
+};
