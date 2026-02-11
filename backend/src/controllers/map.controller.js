@@ -18,8 +18,14 @@ exports.getPostsInRadius = asyncHandler(async (req, res) => {
 
 exports.getPostsAtPoint = asyncHandler(async (req, res) => {
   const { lng, lat } = req.geo;
+  const { userLng, userLat } = req.query;
 
-  const posts = await MapService.getPostsAtPoint({ lng, lat });
+  const posts = await MapService.getPostsAtPoint({
+    lng,
+    lat,
+    userLng,
+    userLat,
+  });
 
   res.status(200).json({
     success: true,
