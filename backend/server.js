@@ -29,7 +29,7 @@ const server = http.createServer(app);
 // 2. Gắn thêm Socket.io vào Server này
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"], // Chỉ cho phép localhost
     methods: ["GET", "POST"],
   },
 });
@@ -46,9 +46,10 @@ io.on("connection", (socket) => {
   try {
     await connectDB();
 
-    // QUAN TRỌNG: Phải dùng server.listen
-    server.listen(port, () => {
-      console.log(`>>> Server đang chạy ngon lành tại port ${port}`);
+    // CHỈ Listen trên localhost
+    server.listen(port, "localhost", () => {
+      console.log(`>>> Server đang chạy tại port ${port}`);
+      console.log(`>>> Local: http://localhost:${port}`);
     });
   } catch (err) {
     console.error("Server tạch rồi:", err);

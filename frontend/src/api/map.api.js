@@ -290,4 +290,45 @@ export const getUserCheckIns = async (userId = null) => {
   }
 };
 
+// ============================================
+// POST APIs
+// ============================================
+
+/**
+ * Lấy bài viết tại một điểm cụ thể trên bản đồ
+ * @param {number} latitude - Vĩ độ của điểm click
+ * @param {number} longitude - Kinh độ của điểm click
+ * @param {number} userLatitude - Vĩ độ hiện tại của user
+ * @param {number} userLongitude - Kinh độ hiện tại của user
+ */
+export const getPostsAtPoint = async (
+  latitude,
+  longitude,
+  userLatitude,
+  userLongitude,
+) => {
+  try {
+    const res = await apiClient.get("/map/posts/at-point", {
+      params: {
+        lat: latitude, // Điểm click - backend expect 'lat'
+        lng: longitude, // Điểm click - backend expect 'lng'
+        userLat: userLatitude,
+        userLng: userLongitude,
+      },
+    });
+    return {
+      success: true,
+      message: "Lấy bài viết thành công",
+      data: res.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || "Không thể lấy bài viết tại vị trí này",
+      data: null,
+    };
+  }
+};
+
 export default apiClient;

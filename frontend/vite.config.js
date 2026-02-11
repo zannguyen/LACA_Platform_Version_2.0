@@ -1,10 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
+    // host: "0.0.0.0", // Truy cập từ IP ngoài
     port: 3000,
     open: true, // Tự động mở trình duyệt khi chạy
   },
@@ -14,4 +15,4 @@ export default defineConfig({
     include: /src\/.*\.jsx?$/,
     exclude: [],
   },
-})
+});
