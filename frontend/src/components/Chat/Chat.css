@@ -1,0 +1,146 @@
+/* src/pages/Chat.css */
+
+/* Avatar hình tròn */
+.avatar-circle {
+  width: 50px;
+  height: 50px;
+  background-color: #ccc;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* LIST STYLE */
+.chat-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.chat-item:hover {
+  background-color: #fafafa;
+}
+
+.chat-info {
+  flex: 1;
+  margin-left: 15px;
+}
+
+.chat-name {
+  font-weight: bold;
+  font-size: 16px;
+  margin: 0;
+}
+
+.chat-preview {
+  font-size: 14px;
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+.chat-time {
+  font-size: 12px;
+  color: #999;
+}
+
+/* DETAIL STYLE */
+.chat-header-info {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #666;
+}
+
+.message-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding-bottom: 80px;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.message-row.me {
+  flex-direction: row-reverse;
+}
+
+.bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.bubble.received {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  color: #333;
+  border-bottom-left-radius: 5px;
+}
+
+.bubble.sent {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  color: #333;
+  border-bottom-right-radius: 5px;
+}
+
+.message-image {
+  max-width: 70%;
+  border-radius: 15px;
+  overflow: hidden;
+}
+.message-image img {
+  width: 100%;
+  display: block;
+}
+
+.chat-input-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.input-rounded {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: 1px solid #ccc;
+  outline: none;
+  background: #f5f5f5;
+}
+
+.send-btn-circle {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+}

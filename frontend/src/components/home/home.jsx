@@ -1,17 +1,19 @@
 // src/pages/Home/Home.jsx
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./home.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 const Home = () => {
+  const navigate = useNavigate();
+
   const [feedPosts, setFeedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState("");
   const [location, setLocation] = useState(null);
 
-  // ✅ menu state (thay cho checkbox)
+  // ✅ menu state
   const [menuOpen, setMenuOpen] = useState(false);
 
   /* =======================
@@ -26,10 +28,7 @@ const Home = () => {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
         setErrMsg("Vui lòng bật quyền vị trí để xem bài đăng gần bạn");
@@ -44,6 +43,7 @@ const Home = () => {
   ======================= */
   useEffect(() => {
     if (location) fetchHomePosts(location.lat, location.lng);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   const fetchHomePosts = async (lat, lng) => {
@@ -54,7 +54,6 @@ const Home = () => {
       const res = await fetch(
         `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}`,
       );
-
       const json = await res.json();
 
       if (!res.ok) throw new Error(json?.message || "Get posts failed");
@@ -67,6 +66,31 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* =======================
+     CHAT ACTION (✅ dùng localStorage + /chat/detail)
+  ======================= */
+  const getDisplayName = (post) =>
+    post?.user?.fullname || post?.user?.username || "User";
+
+  const openChatWithPostUser = (post) => {
+    const receiverId = post?.user?._id;
+    const receiverName = getDisplayName(post);
+    if (!receiverId) return;
+
+    // ✅ tránh tự chat với chính mình (nếu cần)
+    try {
+      const me = JSON.parse(localStorage.getItem("user") || "{}")?._id;
+      if (me && String(me) === String(receiverId)) return;
+    } catch {
+      // ignore
+    }
+
+    localStorage.setItem("chatReceiverId", receiverId);
+    localStorage.setItem("chatReceiverName", receiverName);
+
+    navigate("/chat/detail");
   };
 
   /* =======================
@@ -100,7 +124,7 @@ const Home = () => {
     return () => window.removeEventListener("click", close);
   }, []);
 
-  // ✅ khoá scroll khi menu mở (đỡ lỗi "không click được" do scroll/overlay)
+  // ✅ khóa scroll khi menu mở
   useEffect(() => {
     const main = document.querySelector(".home-main");
     if (!main) return;
@@ -125,9 +149,6 @@ const Home = () => {
   const isVideoUrl = (url) =>
     url?.endsWith(".mp4") || url?.includes("/video/upload/");
 
-  const getDisplayName = (post) =>
-    post?.user?.fullname || post?.user?.username || "User";
-
   const closeMenu = () => setMenuOpen(false);
   const openMenu = () => setMenuOpen(true);
 
@@ -136,38 +157,34 @@ const Home = () => {
   ======================= */
   return (
     <div className="mobile-wrapper">
-      {/* ✅ OVERLAY (bấm để đóng menu) */}
+      {/* ✅ overlay */}
       <div
         className={`home-overlay ${menuOpen ? "show" : ""}`}
         onClick={closeMenu}
       />
 
-      {/* ✅ SIDEBAR */}
+      {/* ✅ sidebar */}
       <nav className={`home-sidebar ${menuOpen ? "open" : ""}`}>
         <div className="sidebar-header">MENU</div>
 
         <Link to="/profile" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-regular fa-user"></i> Profile
         </Link>
-
         <Link to="/camera" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-solid fa-camera"></i> Camera
         </Link>
-
         <Link to="/chat" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-regular fa-comment-dots"></i> Chat
         </Link>
-
         <Link to="/map" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-regular fa-map"></i> Map
         </Link>
-
         <Link to="/setting" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-solid fa-gear"></i> Setting
         </Link>
       </nav>
 
-      {/* ✅ HEADER */}
+      {/* ✅ header */}
       <header className="home-header">
         <button className="icon-btn" type="button" onClick={openMenu}>
           <i className="fa-solid fa-bars"></i>
@@ -180,7 +197,7 @@ const Home = () => {
         </Link>
       </header>
 
-      {/* ✅ MAIN */}
+      {/* ✅ main */}
       <main className="home-main" onClick={() => menuOpen && closeMenu()}>
         {loading && (
           <div style={{ padding: 12, textAlign: "center" }}>
@@ -269,6 +286,19 @@ const Home = () => {
                       <p>{post.content}</p>
                     </div>
                   )}
+                </div>
+
+                {/* ✅ ACTIONS dưới bài */}
+                <div className="post-actions">
+                  <button
+                    type="button"
+                    className="left-actions"
+                    onClick={() => openChatWithPostUser(post)}
+                    aria-label="Chat"
+                  >
+                    <i className="fa-regular fa-comment action-icon"></i>
+                    <span className="like-count">Chat</span>
+                  </button>
                 </div>
               </article>
             );

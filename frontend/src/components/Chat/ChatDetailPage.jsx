@@ -1,0 +1,217 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import io from "socket.io-client";
+import chatApi from "../../api/chatApi";
+import "./Chat.css";
+
+const SOCKET_URL = "http://localhost:4000";
+
+const ChatDetailPage = () => {
+  const navigate = useNavigate();
+  const [socket, setSocket] = useState(null);
+
+  const [messages, setMessages] = useState([]);
+  const [messageText, setMessageText] = useState("");
+
+  const [receiverId, setReceiverId] = useState("");
+  const [receiverName, setReceiverName] = useState("User");
+
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const getCurrentUserId = () => {
+    const rawUser = localStorage.getItem("user");
+    if (rawUser) {
+      try {
+        const user = JSON.parse(rawUser);
+        return user?._id || "";
+      } catch {
+        return "";
+      }
+    }
+
+    const storedUserId = localStorage.getItem("userId");
+    if (storedUserId) return storedUserId;
+
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return "";
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1] || ""));
+      return payload?.userID || payload?.userId || payload?._id || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const normalizeMessage = (msg, userId) => {
+    const senderId = msg?.senderId?._id || msg?.senderId;
+    return { ...msg, isSent: String(senderId || "") === String(userId || "") };
+  };
+
+  const initials = useMemo(
+    () => (receiverName || "User").trim().charAt(0).toUpperCase(),
+    [receiverName],
+  );
+
+  // ✅ load receiver từ localStorage
+  useEffect(() => {
+    const me = getCurrentUserId();
+    setCurrentUserId(me);
+
+    const id = localStorage.getItem("chatReceiverId");
+    const name = localStorage.getItem("chatReceiverName") || "User";
+
+    if (!id) {
+      navigate("/chat"); // nếu không có receiver => quay về list
+      return;
+    }
+
+    setReceiverId(id);
+    setReceiverName(name);
+  }, [navigate]);
+
+  // fetch messages
+  useEffect(() => {
+    if (!receiverId) return;
+    const fetchMessages = async () => {
+      try {
+        setLoading(true);
+        const response = await chatApi.getMessages(receiverId);
+        const me = getCurrentUserId();
+        const normalized = (response.data || []).map((m) =>
+          normalizeMessage(m, me),
+        );
+        setMessages(normalized);
+      } catch (err) {
+        console.error("Lỗi lấy tin nhắn:", err);
+        setMessages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMessages();
+  }, [receiverId]);
+
+  // socket
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const s = io(SOCKET_URL, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+
+    s.on("connect", () => {
+      s.emit("setup", { _id: currentUserId });
+    });
+
+    s.on("receive_message", (data) => {
+      setMessages((prev) => [...prev, normalizeMessage(data, currentUserId)]);
+    });
+
+    setSocket(s);
+    return () => s.close();
+  }, [currentUserId]);
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !receiverId) return;
+
+    try {
+      const response = await chatApi.sendMessage(
+        receiverId,
+        messageText.trim(),
+      );
+      const me = getCurrentUserId();
+      const normalized = normalizeMessage(response.data, me);
+
+      setMessages((prev) => [...prev, normalized]);
+      setMessageText("");
+
+      // nếu backend bạn phát socket ở server thì ok,
+      // nếu muốn FE emit thêm thì:
+      // socket?.emit("send_message", normalized);
+    } catch (error) {
+      console.error("Lỗi gửi tin nhắn:", error);
+    }
+  };
+
+  return (
+    <div
+      className="auth-form"
+      style={{ position: "relative", minHeight: "80vh" }}
+    >
+      <div className="page-header" style={{ borderBottom: "1px solid #ccc" }}>
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          ←
+        </button>
+
+        <div className="avatar-circle" style={{ width: 40, height: 40 }}>
+          {initials}
+        </div>
+
+        <div className="chat-header-info">
+          <span style={{ fontWeight: "bold" }}>{receiverName}</span>
+          <span className="status-text">Online</span>
+        </div>
+      </div>
+
+      <div className="message-container">
+        {loading ? (
+          <p style={{ textAlign: "center", padding: 20 }}>
+            Đang tải tin nhắn...
+          </p>
+        ) : messages.length === 0 ? (
+          <p style={{ textAlign: "center", padding: 20, color: "#999" }}>
+            Chưa có cuộc trò chuyện
+          </p>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={msg._id || msg.createdAt || idx}
+              className={`message-row ${msg.isSent ? "me" : ""}`}
+            >
+              {!msg.isSent && (
+                <div
+                  className="avatar-circle"
+                  style={{ width: 30, height: 30, marginRight: 8 }}
+                />
+              )}
+
+              {msg.image ? (
+                <div className="message-image">
+                  <img
+                    src={msg.image}
+                    alt="Message"
+                    style={{ maxWidth: 200 }}
+                  />
+                </div>
+              ) : (
+                <div className={`bubble ${msg.isSent ? "sent" : "received"}`}>
+                  {msg.text}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="chat-input-bar">
+        <input
+          type="text"
+          className="input-rounded"
+          placeholder="Nhập tin nhắn..."
+          value={messageText}
+          onChange={(e) => setMessageText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+        />
+        <button className="send-btn-circle" onClick={handleSendMessage}>
+          ↑
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ChatDetailPage;

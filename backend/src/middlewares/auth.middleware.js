@@ -1,10 +1,10 @@
-// middlewares/auth.middleware.js
 const jwtUtil = require("../utils/jwt");
 const User = require("../models/user.model");
 
 module.exports = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || "";
+
     if (!authHeader) {
       return res.status(401).json({ message: "Authorization header missing" });
     }
@@ -17,6 +17,7 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: "Access token missing" });
     }
 
+    // verify token (jwt payload của bạn là { userID })
     let decoded;
     try {
       decoded = jwtUtil.verifyAccessToken(token);
@@ -27,7 +28,6 @@ module.exports = async (req, res, next) => {
       });
     }
 
-    // ✅ QUAN TRỌNG: jwt.js của bạn dùng userID
     const userId =
       decoded?.userID ||
       decoded?.userId ||
@@ -47,10 +47,9 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid token: user not found" });
     }
 
-    // ✅ enforce status
-    if (user.deletedAt) {
+    // ✅ chặn account theo status (blocked/suspended/deleted)
+    if (user.deletedAt)
       return res.status(403).json({ message: "Account deleted" });
-    }
 
     if (user.suspendUntil && user.suspendUntil.getTime() > Date.now()) {
       return res.status(403).json({
@@ -63,15 +62,15 @@ module.exports = async (req, res, next) => {
       return res.status(403).json({ message: "Account blocked" });
     }
 
-    // ✅ attach req.user
+    // ✅ quan trọng: set đủ _id để controller chat dùng được
     req.user = {
-      id: String(user._id),
+      _id: user._id, // 👈 chat.controller đang dùng
+      id: String(user._id), // 👈 admin requireAdmin kiểu khác vẫn dùng được
       role: user.role,
-      isEmailVerified: !!user.isEmailVerified,
     };
 
     return next();
-  } catch (err) {
+  } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
