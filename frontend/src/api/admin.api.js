@@ -13,14 +13,15 @@ const apiClient = axios.create({
 });
 
 // Attach token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("authToken");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
+apiClient.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("authToken") || localStorage.getItem("token");
+
+  console.log("[FE] token exists?", !!token); // ✅ debug FE
+
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 // Helper: normalize error
 const parseError = (err) => {
@@ -70,21 +71,85 @@ export const getRecentActivity = async (limit = 5) => {
 ======================= */
 
 // GET /api/admin/users
-export const getAllUsers = async () => {
+/* =======================
+   USER MANAGEMENT
+======================= */
+
+const computeStatus = (u) => {
+  // ưu tiên giống backend
+  if (u?.deletedAt) return "deleted";
+  if (u?.suspendUntil && new Date(u.suspendUntil).getTime() > Date.now())
+    return "suspended";
+  if (u?.isActive === false) return "blocked";
+  if (u?.isEmailVerified === false) return "unverified";
+  return "active";
+};
+
+// GET /api/admin/users
+export const getAllUsers = async ({
+  query = "",
+  status = "all",
+  page = 1,
+  limit = 10,
+} = {}) => {
   try {
-    const res = await apiClient.get("/admin/users");
-    // backend tùy bạn: có thể trả { users: [...] } hoặc [...] => FE tự handle
-    return { success: true, data: res.data };
+    const res = await apiClient.get("/admin/users", {
+      params: { query, status, page, limit },
+    });
+
+    const payload = res.data || {};
+    const rawUsers = Array.isArray(payload.users) ? payload.users : [];
+
+    const users = rawUsers.map((u) => ({
+      id: u.id || u._id,
+      name: u.fullname || u.username || u.email || "Unknown",
+      email: u.email || "",
+      avatar: u.avatar || null,
+
+      // ✅ 5 statuses
+      status: u.status || computeStatus(u),
+
+      role: u.role || "user",
+      createdAt: u.createdAt,
+
+      // keep raw fields for dialogs
+      fullname: u.fullname,
+      username: u.username,
+      isActive: u.isActive,
+      isEmailVerified: u.isEmailVerified,
+      deletedAt: u.deletedAt || null,
+      suspendUntil: u.suspendUntil || null,
+    }));
+
+    const total = payload.total ?? users.length;
+
+    return {
+      success: true,
+      data: {
+        users,
+        total,
+        page: payload.page ?? page,
+        limit: payload.limit ?? limit,
+      },
+      users,
+      total,
+    };
   } catch (err) {
-    return { success: false, error: parseError(err) };
+    return {
+      success: false,
+      error: parseError(err),
+      data: { users: [], total: 0, page, limit },
+      users: [],
+      total: 0,
+    };
   }
 };
 
-// PATCH /api/admin/users/:userId/status
-export const updateUserStatus = async (userId, status) => {
+// PATCH /api/admin/users/:userId/status  (blocked/unblocked)
+export const updateUserStatus = async (userId, isActive) => {
   try {
     const res = await apiClient.patch(`/admin/users/${userId}/status`, {
-      status,
+      isActive,
     });
     return { success: true, data: res.data };
   } catch (err) {
@@ -92,7 +157,33 @@ export const updateUserStatus = async (userId, status) => {
   }
 };
 
-// DELETE /api/admin/users/:userId
+// ✅ PATCH /api/admin/users/:userId/suspend
+// suspendUntil: ISO string | null
+export const suspendUser = async (userId, suspendUntil) => {
+  try {
+    const res = await apiClient.patch(`/admin/users/${userId}/suspend`, {
+      suspendUntil,
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    return { success: false, error: parseError(err) };
+  }
+};
+
+// ✅ PATCH /api/admin/users/:userId/delete
+// deleted: true (soft delete) | false (restore)
+export const softDeleteUser = async (userId, deleted) => {
+  try {
+    const res = await apiClient.patch(`/admin/users/${userId}/delete`, {
+      deleted,
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    return { success: false, error: parseError(err) };
+  }
+};
+
+// DELETE /api/admin/users/:userId  (backend bạn đã đổi thành soft delete)
 export const deleteUser = async (userId) => {
   try {
     const res = await apiClient.delete(`/admin/users/${userId}`);

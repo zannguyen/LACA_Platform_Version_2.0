@@ -14,7 +14,8 @@ app.use(
 app.use(express.json());
 
 // routes
-app.use("/api/admin", require("./src/routes/admin.routes"));
+app.use("/api/admin", require("./src/routes/admin.routes")); // dashboard, recent-activity,...
+app.use("/api/admin/users", require("./src/routes/admin.users.routes"));
 app.use("/api/auth", require("./src/routes/auth.route"));
 app.use("/api/posts", require("./src/routes/post.route"));
 app.use("/api/reactions", require("./src/routes/reaction.route"));

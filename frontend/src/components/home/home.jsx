@@ -11,6 +11,9 @@ const Home = () => {
   const [errMsg, setErrMsg] = useState("");
   const [location, setLocation] = useState(null);
 
+  // ✅ menu state (thay cho checkbox)
+  const [menuOpen, setMenuOpen] = useState(false);
+
   /* =======================
      1️⃣ LẤY GPS KHI VÀO HOME
   ======================= */
@@ -32,10 +35,7 @@ const Home = () => {
         setErrMsg("Vui lòng bật quyền vị trí để xem bài đăng gần bạn");
         setLoading(false);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      },
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   }, []);
 
@@ -43,9 +43,7 @@ const Home = () => {
      2️⃣ FETCH POSTS KHI CÓ GPS
   ======================= */
   useEffect(() => {
-    if (location) {
-      fetchHomePosts(location.lat, location.lng);
-    }
+    if (location) fetchHomePosts(location.lat, location.lng);
   }, [location]);
 
   const fetchHomePosts = async (lat, lng) => {
@@ -59,9 +57,7 @@ const Home = () => {
 
       const json = await res.json();
 
-      if (!res.ok) {
-        throw new Error(json?.message || "Get posts failed");
-      }
+      if (!res.ok) throw new Error(json?.message || "Get posts failed");
 
       setFeedPosts(json.data || []);
     } catch (err) {
@@ -104,12 +100,22 @@ const Home = () => {
     return () => window.removeEventListener("click", close);
   }, []);
 
+  // ✅ khoá scroll khi menu mở (đỡ lỗi "không click được" do scroll/overlay)
+  useEffect(() => {
+    const main = document.querySelector(".home-main");
+    if (!main) return;
+    main.style.overflowY = menuOpen ? "hidden" : "auto";
+    return () => {
+      main.style.overflowY = "auto";
+    };
+  }, [menuOpen]);
+
   /* =======================
      HELPERS
   ======================= */
   const formatDistance = (kilometers) => {
     if (kilometers === undefined || kilometers === null) return "";
-    if (kilometers < 1) return `${kilometers * 1000} m`;
+    if (kilometers < 1) return `${Math.round(kilometers * 1000)} m`;
     return `${kilometers} km`;
   };
 
@@ -122,47 +128,60 @@ const Home = () => {
   const getDisplayName = (post) =>
     post?.user?.fullname || post?.user?.username || "User";
 
+  const closeMenu = () => setMenuOpen(false);
+  const openMenu = () => setMenuOpen(true);
+
   /* =======================
      RENDER
   ======================= */
   return (
     <div className="mobile-wrapper">
-      <input type="checkbox" id="menu-toggle" />
-      <label htmlFor="menu-toggle" className="overlay"></label>
+      {/* ✅ OVERLAY (bấm để đóng menu) */}
+      <div
+        className={`home-overlay ${menuOpen ? "show" : ""}`}
+        onClick={closeMenu}
+      />
 
-      {/* SIDEBAR */}
-      <nav className="sidebar">
+      {/* ✅ SIDEBAR */}
+      <nav className={`home-sidebar ${menuOpen ? "open" : ""}`}>
         <div className="sidebar-header">MENU</div>
-        <Link to="/profile" className="sidebar-item">
+
+        <Link to="/profile" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-regular fa-user"></i> Profile
         </Link>
-        <Link to="/camera" className="sidebar-item">
+
+        <Link to="/camera" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-solid fa-camera"></i> Camera
         </Link>
-        <Link to="/chat" className="sidebar-item">
+
+        <Link to="/chat" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-regular fa-comment-dots"></i> Chat
         </Link>
-        <Link to="/map" className="sidebar-item">
+
+        <Link to="/map" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-regular fa-map"></i> Map
         </Link>
-        <Link to="/setting" className="sidebar-item">
+
+        <Link to="/setting" className="sidebar-item" onClick={closeMenu}>
           <i className="fa-solid fa-gear"></i> Setting
         </Link>
       </nav>
 
-      {/* HEADER */}
-      <header>
-        <label htmlFor="menu-toggle" className="icon-btn">
+      {/* ✅ HEADER */}
+      <header className="home-header">
+        <button className="icon-btn" type="button" onClick={openMenu}>
           <i className="fa-solid fa-bars"></i>
-        </label>
+        </button>
+
         <div className="header-title">LACA</div>
-        <Link to="/notification" className="icon-btn">
+
+        <Link to="/notification" className="icon-btn" onClick={closeMenu}>
           <i className="fa-regular fa-bell"></i>
         </Link>
       </header>
 
-      {/* MAIN */}
-      <main>
+      {/* ✅ MAIN */}
+      <main className="home-main" onClick={() => menuOpen && closeMenu()}>
         {loading && (
           <div style={{ padding: 12, textAlign: "center" }}>
             Đang tải bài đăng...
@@ -192,6 +211,7 @@ const Home = () => {
                     <div className="user-avatar">
                       <i className="fa-solid fa-user"></i>
                     </div>
+
                     <div className="user-name-distance">
                       <span className="username">{getDisplayName(post)}</span>
 
@@ -207,6 +227,7 @@ const Home = () => {
                     <div className="report-btn" onClick={toggleReportMenu}>
                       <i className="fa-solid fa-circle-exclamation"></i>
                     </div>
+
                     <div className="report-dropdown">
                       <div
                         className="dropdown-item"
@@ -214,6 +235,7 @@ const Home = () => {
                       >
                         <i className="fa-solid fa-ban"></i> Block
                       </div>
+
                       <div
                         className="dropdown-item warning"
                         onClick={() => handleAction("report")}
