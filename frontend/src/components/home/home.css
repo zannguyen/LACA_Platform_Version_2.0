@@ -326,3 +326,23 @@
   outline: none !important;
   box-shadow: none !important;
 }
+
+.mobile-wrapper .post-actions {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: #fff;
+}
+
+.mobile-wrapper .left-actions {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.mobile-wrapper .action-icon {
+  font-size: 22px;
+}
