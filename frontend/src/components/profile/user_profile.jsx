@@ -1,9 +1,9 @@
-// src/components/profile/user_profile.jsx
+// frontend/src/components/profile/user_profile.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./user_profile.css";
 import userApi from "../../api/userApi";
 import { deletePost, uploadMedia } from "../../api/postApi";
+import "./user_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
 const IconBack = ({ size = 22 }) => (
@@ -58,8 +58,10 @@ const IconTrash = ({ size = 16 }) => (
   </svg>
 );
 
-const isVideoUrl = (url) =>
-  url?.endsWith(".mp4") || url?.endsWith(".webm") || url?.endsWith(".mov") || url?.includes("/video/upload/");
+const isVideoUrl = (url = "") => {
+  const u = String(url).toLowerCase();
+  return u.endsWith(".mp4") || u.endsWith(".webm") || u.endsWith(".mov") || u.includes("/video/upload/") || u.includes("video");
+};
 
 const pickFirstMedia = (post) => {
   if (!post) return "";
@@ -75,11 +77,25 @@ const normalizeProfilePayload = (res) => {
     if (payload.success === false) throw new Error(payload.message || "Request failed");
     return payload.data;
   }
-
   return payload;
 };
 
-const UserProfile = () => {
+const formatPostDate = (post) => {
+  const raw =
+    post?.createdAt ||
+    post?.created_at ||
+    post?.created ||
+    post?.timestamp ||
+    post?.date ||
+    post?.updatedAt;
+
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("vi-VN");
+};
+
+export default function UserProfile() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -147,7 +163,7 @@ const UserProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // click outside để đóng menu
+  // click outside -> đóng menu post
   useEffect(() => {
     const handleClickOutside = () => setActiveMenuId(null);
     window.addEventListener("click", handleClickOutside);
@@ -235,7 +251,6 @@ const UserProfile = () => {
     }
   };
 
-  /** ===== POST MENU (FIX BUG toggleMenu undefined) ===== */
   const togglePostMenu = (e, postId) => {
     e.stopPropagation();
     const sid = String(postId);
@@ -245,7 +260,6 @@ const UserProfile = () => {
   const handlePostEditClick = (e) => {
     e.stopPropagation();
     setActiveMenuId(null);
-    // Tạm thời chưa có BE edit post => chỉ thông báo nhẹ
     setError("Chức năng sửa bài đăng sẽ được làm sau.");
   };
 
@@ -300,34 +314,47 @@ const UserProfile = () => {
     await fetchMyProfile({ page: nextPage, append: true });
   };
 
+  const displayName = profile?.fullname || profile?.username || "User";
+  const displayBio = (isEditing ? draftBio : profile?.bio)?.trim() ? (isEditing ? draftBio : profile?.bio) : "Chưa có bio";
+
   if (loading && !profile) {
     return (
       <div className="mobile-wrapper my-profile">
-        <main className="profile-container" style={{ textAlign: "center", paddingTop: 60 }}>
-          Đang tải profile...
-        </main>
+        <div style={{ color: "black", textAlign: "center", marginTop: 50 }}>Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="mobile-wrapper my-profile">
+      {/* ✅ HEADER giống stranger_profile */}
       <header className="top-nav">
-        <button type="button" className="back-btn" onClick={handleBack} aria-label="Back">
+        <button type="button" className="nav-btn" aria-label="Back" onClick={handleBack}>
           <IconBack />
         </button>
+
+        {/* giữ layout justify-between giống stranger_profile */}
+        <div style={{ width: 44 }} />
       </header>
 
-      <main className="profile-container">
+      {/* ✅ MAIN giống stranger_profile */}
+      <div className="profile-container">
         {!!error && <div style={{ marginBottom: 12, color: "#b00020", fontSize: 13 }}>{error}</div>}
 
-        <div className="user-details-section">
+        <div className="details-section">
           <div
             className="avatar-large"
             onClick={triggerAvatarPick}
             style={{ cursor: isEditing ? "pointer" : "default" }}
+            title={isEditing ? "Bấm để đổi avatar" : ""}
           >
-            {profile?.avatar ? <img src={profile.avatar} alt="avatar" /> : null}
+            {profile?.avatar ? (
+              <img src={profile.avatar} alt="avatar" />
+            ) : (
+              <div className="avatar-fallback">
+                <span className="avatar-dot" />
+              </div>
+            )}
           </div>
 
           <input
@@ -338,7 +365,7 @@ const UserProfile = () => {
             onChange={onAvatarSelected}
           />
 
-          <div className="user-text-info">
+          <div className="user-name-distance">
             {isEditing ? (
               <input
                 className="user-name editable"
@@ -347,10 +374,10 @@ const UserProfile = () => {
                 maxLength={120}
               />
             ) : (
-              <h2 className="user-name">{profile?.fullname || profile?.username || "User"}</h2>
+              <div className="user-name">{displayName}</div>
             )}
 
-            <p className="user-id">ID: {profile?._id || "-"}</p>
+            <div className="user-id">ID: {profile?._id || "-"}</div>
 
             {isEditing ? (
               <textarea
@@ -361,16 +388,15 @@ const UserProfile = () => {
                 rows={2}
               />
             ) : (
-              <p className="user-bio">{profile?.bio || ""}</p>
+              <div className="user-bio">{displayBio}</div>
             )}
 
-            {isEditing && (
-              <div style={{ marginTop: 6, fontSize: 11, color: "#333" }}>Tip: bấm vào avatar để đổi ảnh.</div>
-            )}
+            {isEditing ? <div className="edit-hint">Tip: bấm vào avatar để đổi ảnh.</div> : null}
           </div>
         </div>
 
-        <div className="stats-action-section">
+        {/* ✅ STATS ROW giống stranger_profile (nút phải là EDIT/DONE) */}
+        <div className="stats-row">
           <div className="stats-group">
             <span className="stat-item">
               <strong>{pagination?.total ?? posts.length}</strong> Posts
@@ -380,32 +406,33 @@ const UserProfile = () => {
             </span>
           </div>
 
-          <button className="edit-profile-btn" onClick={handleEditToggle} disabled={saving}>
+          <button className={`follow-btn ${isEditing ? "following" : ""}`} onClick={handleEditToggle} disabled={saving}>
             {saving ? "SAVING..." : isEditing ? "DONE" : "EDIT"}
           </button>
         </div>
 
-        <div className="section-label">POSTS</div>
+        <h3 className="post-title">POSTS</h3>
 
-        <div className="post-list" id="postList">
+        {/* ✅ POSTS LIST giống stranger_profile */}
+        <div className="posts-grid">
           {posts.length > 0 ? (
-            posts.map((post) => {
-              const id = String(post._id || post.id);
-              const media = pickFirstMedia(post);
-              const isVideo = post.type === "video" || isVideoUrl(media);
-              const caption = post.content || post.caption || "";
-              const createdAt = post.createdAt ? new Date(post.createdAt) : null;
-              const dateLabel = createdAt ? createdAt.toLocaleString() : post.date || "";
+            posts.map((p) => {
+              const id = String(p._id || p.id);
+              const media = pickFirstMedia(p);
+              const isVideo = p.type === "video" || isVideoUrl(media);
+              const createdAt = formatPostDate(p);
+              const caption = p.content || p.caption || "";
 
               return (
-                <article className="mini-post" key={id}>
+                <div className="post-item" key={id}>
                   <div className="mini-post-header">
                     <div className="mini-user">
                       <div className="mini-avatar">{profile?.avatar ? <img src={profile.avatar} alt="" /> : null}</div>
-                      <span className="mini-username">{profile?.fullname || profile?.username || "User"}</span>
-                      {dateLabel ? <span style={{ marginLeft: 10, fontSize: 12, color: "#666" }}>{dateLabel}</span> : null}
+                      <span className="mini-username">{displayName}</span>
+                      {createdAt ? <span className="mini-date">{createdAt}</span> : null}
                     </div>
 
+                    {/* ✅ vẫn giữ menu Edit/Delete của bạn */}
                     <div className="mini-post-actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
@@ -417,59 +444,52 @@ const UserProfile = () => {
                       </button>
 
                       <div className={`post-options-menu ${activeMenuId === id ? "show" : ""}`}>
-                        <div className="option-item" onClick={handlePostEditClick}>
+                        <button type="button" className="option-item" onClick={handlePostEditClick}>
                           <IconEdit />
                           <span>Edit</span>
-                        </div>
+                        </button>
 
-                        <div className="option-item danger" onClick={(e) => handleDeleteClick(e, id)}>
+                        <button
+                          type="button"
+                          className="option-item danger"
+                          onClick={(e) => handleDeleteClick(e, id)}
+                        >
                           <IconTrash />
                           <span>Delete</span>
-                        </div>
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="post-image-wrapper">
+                  <div className="post-media">
                     {media ? (
                       isVideo ? (
-                        <video
-                          src={media}
-                          muted
-                          loop
-                          autoPlay
-                          playsInline
-                          onClick={(e) => {
-                            e.currentTarget.muted = !e.currentTarget.muted;
-                          }}
-                        />
+                        <video src={media} controls playsInline />
                       ) : (
-                        <img src={media} alt="Post" />
+                        <img src={media} alt="post" />
                       )
                     ) : (
                       <div style={{ color: "#fff", fontSize: 12 }}>No media</div>
                     )}
 
-                    {caption ? <div className="overlay-caption">{caption}</div> : null}
+                    {caption ? <div className="post-caption">{caption}</div> : null}
                   </div>
-                </article>
+                </div>
               );
             })
           ) : (
             <div style={{ textAlign: "center", marginTop: 50, color: "#666" }}>NO POST YET</div>
           )}
-
-          {canLoadMore && (
-            <div style={{ textAlign: "center", marginTop: 12 }}>
-              <button className="edit-profile-btn" onClick={handleLoadMore} disabled={loading}>
-                {loading ? "LOADING..." : "LOAD MORE"}
-              </button>
-            </div>
-          )}
         </div>
-      </main>
 
-      {/* Modal delete */}
+        {canLoadMore && (
+          <button className="follow-btn" style={{ width: "100%", marginTop: 12 }} onClick={handleLoadMore} disabled={loading}>
+            {loading ? "LOADING..." : "TẢI THÊM"}
+          </button>
+        )}
+      </div>
+
+      {/* Modal delete (giữ nguyên) */}
       <div className={`modal-overlay ${showModal ? "show" : ""}`} onClick={closeDeleteModal}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <p className="modal-text">ARE YOU SURE YOU WANT TO DELETE?</p>
@@ -486,6 +506,4 @@ const UserProfile = () => {
       </div>
     </div>
   );
-};
-
-export default UserProfile;
+}

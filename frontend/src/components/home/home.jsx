@@ -1,4 +1,4 @@
-// src/pages/Home/Home.jsx
+// src/components/home/home.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./home.css";
@@ -13,12 +13,11 @@ const Home = () => {
   const [errMsg, setErrMsg] = useState("");
   const [location, setLocation] = useState(null);
 
-  // ✅ menu state
   const [menuOpen, setMenuOpen] = useState(false);
 
-  /* =======================
-     1️⃣ LẤY GPS KHI VÀO HOME
-  ======================= */
+  const getAccessToken = () =>
+    localStorage.getItem("token") || localStorage.getItem("authToken");
+
   useEffect(() => {
     if (!navigator.geolocation) {
       setErrMsg("Trình duyệt không hỗ trợ định vị GPS");
@@ -34,13 +33,10 @@ const Home = () => {
         setErrMsg("Vui lòng bật quyền vị trí để xem bài đăng gần bạn");
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }, []);
 
-  /* =======================
-     2️⃣ FETCH POSTS KHI CÓ GPS
-  ======================= */
   useEffect(() => {
     if (location) fetchHomePosts(location.lat, location.lng);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,26 +47,50 @@ const Home = () => {
       setLoading(true);
       setErrMsg("");
 
+      const token = getAccessToken();
+      if (!token) {
+        setErrMsg("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+        setFeedPosts([]);
+        navigate("/login");
+        return;
+      }
+
       const res = await fetch(
         `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      const json = await res.json();
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        setErrMsg("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        setFeedPosts([]);
+        navigate("/login");
+        return;
+      }
+
+      let json = null;
+      try {
+        json = await res.json();
+      } catch {
+        // ignore
+      }
 
       if (!res.ok) throw new Error(json?.message || "Get posts failed");
 
-      setFeedPosts(json.data || []);
+      setFeedPosts(json?.data || []);
     } catch (err) {
       console.error("Fetch home posts error:", err);
-      setErrMsg(err.message || "Không thể tải bài đăng");
+      setErrMsg(err?.message || "Không thể tải bài đăng");
       setFeedPosts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  /* =======================
-     CHAT ACTION (✅ dùng localStorage + /chat/detail)
-  ======================= */
   const getDisplayName = (post) =>
     post?.user?.fullname || post?.user?.username || "User";
 
@@ -79,7 +99,6 @@ const Home = () => {
     const receiverName = getDisplayName(post);
     if (!receiverId) return;
 
-    // ✅ tránh tự chat với chính mình (nếu cần)
     try {
       const me = JSON.parse(localStorage.getItem("user") || "{}")?._id;
       if (me && String(me) === String(receiverId)) return;
@@ -93,9 +112,6 @@ const Home = () => {
     navigate("/chat/detail");
   };
 
-  /* =======================
-     UI HANDLERS
-  ======================= */
   const toggleReportMenu = (e) => {
     e.stopPropagation();
     const dropdown = e.currentTarget.nextElementSibling;
@@ -124,7 +140,6 @@ const Home = () => {
     return () => window.removeEventListener("click", close);
   }, []);
 
-  // ✅ khóa scroll khi menu mở
   useEffect(() => {
     const main = document.querySelector(".home-main");
     if (!main) return;
@@ -134,9 +149,6 @@ const Home = () => {
     };
   }, [menuOpen]);
 
-  /* =======================
-     HELPERS
-  ======================= */
   const formatDistance = (kilometers) => {
     if (kilometers === undefined || kilometers === null) return "";
     if (kilometers < 1) return `${Math.round(kilometers * 1000)} m`;
@@ -152,18 +164,13 @@ const Home = () => {
   const closeMenu = () => setMenuOpen(false);
   const openMenu = () => setMenuOpen(true);
 
-  /* =======================
-     RENDER
-  ======================= */
   return (
     <div className="mobile-wrapper">
-      {/* ✅ overlay */}
       <div
         className={`home-overlay ${menuOpen ? "show" : ""}`}
         onClick={closeMenu}
       />
 
-      {/* ✅ sidebar */}
       <nav className={`home-sidebar ${menuOpen ? "open" : ""}`}>
         <div className="sidebar-header">MENU</div>
 
@@ -184,7 +191,6 @@ const Home = () => {
         </Link>
       </nav>
 
-      {/* ✅ header */}
       <header className="home-header">
         <button className="icon-btn" type="button" onClick={openMenu}>
           <i className="fa-solid fa-bars"></i>
@@ -197,7 +203,6 @@ const Home = () => {
         </Link>
       </header>
 
-      {/* ✅ main */}
       <main className="home-main" onClick={() => menuOpen && closeMenu()}>
         {loading && (
           <div style={{ padding: 12, textAlign: "center" }}>
@@ -224,7 +229,16 @@ const Home = () => {
                   <Link to={`/profile/${post.user?._id}`} className="user-info">
                     <div className="user-avatar">
                       {post.user?.avatar ? (
-                        <img src={post.user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 999 }} />
+                        <img
+                          src={post.user.avatar}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            borderRadius: 999,
+                          }}
+                        />
                       ) : (
                         <i className="fa-solid fa-user"></i>
                       )}
@@ -289,7 +303,6 @@ const Home = () => {
                   )}
                 </div>
 
-                {/* ✅ ACTIONS dưới bài */}
                 <div className="post-actions">
                   <button
                     type="button"
