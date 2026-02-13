@@ -1,6 +1,9 @@
 // controllers/post.controller.js
 const service = require("../services/post.service");
 const Post = require("../models/post.model");
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/appError");
+const mongoose = require("mongoose");
 
 const create = async (req, res) => {
   try {
@@ -80,7 +83,7 @@ const createWithMedia = async (req, res) => {
 const getHomePosts = async (req, res) => {
   try {
     const posts = await Post.find({ status: "active" })
-      .populate("userId", "name avatar")
+      .populate("userId", "fullname username avatar")
       .populate("placeId", "name")
       .sort({ createdAt: -1 })
       .limit(20);
@@ -92,4 +95,18 @@ const getHomePosts = async (req, res) => {
   }
 };
 
-module.exports = { create, createWithMedia, getHomePosts };
+// DELETE /api/posts/:postId (Auth required)
+// Hard delete: remove the post document from DB.
+// Only the owner of the post can delete.
+const deletePost = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) throw new AppError("Unauthorized", 401);
+  if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid postId", 400);
+
+  const result = await service.deletePost({ postId, userId });
+  return res.status(200).json({ success: true, message: "Post deleted", ...result });
+});
+
+module.exports = { create, createWithMedia, getHomePosts, deletePost };

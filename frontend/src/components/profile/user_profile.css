@@ -1,22 +1,15 @@
-/* src/pages/Profile/user_profile.css */
+/* frontend/src/components/profile/user_profile.css */
+/* Scope toàn bộ vào .my-profile để không ảnh hưởng trang khác */
 
-/* --- CẤU TRÚC CƠ BẢN --- */
-* {
+.my-profile * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: "Segoe UI", sans-serif;
 }
-body {
-  background-color: #ffffff !important;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
 
 /* Wrapper chính */
-.mobile-wrapper {
+.my-profile.mobile-wrapper {
   width: 375px;
   height: 800px;
   background-color: #fff;
@@ -24,130 +17,134 @@ body {
   border-radius: 30px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 
-  /* Flex column để chia Header và Main */
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 /* Header */
-.top-nav {
+.my-profile .top-nav {
   padding: 15px 20px;
   background: #fff;
   border-bottom: 1px solid #eee;
   flex-shrink: 0;
 }
-.back-btn {
+.my-profile .back-btn {
   font-size: 24px;
   color: #333;
   text-decoration: none;
   cursor: pointer;
 }
 
-.profile-container {
+/* Container */
+.my-profile .profile-container {
   flex: 1;
   overflow-y: auto;
   padding: 10px 20px 20px;
   background-color: #f8f6f6;
 }
-/* Ẩn thanh cuộn */
-.profile-container::-webkit-scrollbar {
+.my-profile .profile-container::-webkit-scrollbar {
   width: 0;
   display: none;
 }
 
 /* User Details */
-.user-details-section {
+.my-profile .user-details-section {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
 }
-.avatar-large {
+.my-profile .avatar-large {
   width: 80px;
   height: 80px;
   background-color: #d9d9d9;
 
   border-radius: 50%;
   overflow: hidden;
-  /* --- */
   margin-right: 20px;
   border: 1px solid #ccc;
   flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.user-text-info {
+.my-profile .avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.my-profile .user-text-info {
   display: flex;
   flex-direction: column;
   justify-content: center;
   width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Style cho Input khi Edit */
-.user-name,
-.user-bio {
+/* Inputs / text */
+.my-profile .user-name,
+.my-profile .user-bio {
   padding: 2px 5px;
   border: 1px solid transparent;
   border-radius: 4px;
   transition: 0.2s;
 }
-.user-name {
+.my-profile .user-name {
   font-size: 18px;
-  font-weight: 500;
   margin-bottom: 4px;
   color: #000000 !important;
-  font-weight: 700 !important; /* In đậm */
+  font-weight: 700 !important;
 }
-.user-id {
+.my-profile .user-id {
   font-size: 14px;
   color: #000;
   margin-bottom: 4px;
 }
-.user-bio {
+.my-profile .user-bio {
   font-size: 14px;
-  color: #000;
   color: #000000 !important;
 }
-
-/* Class khi đang Edit  */
-.editable {
+.my-profile .editable {
   border-color: #007bff;
   background: #f9f9f9;
   outline: none;
 }
 
 /* Stats & Buttons */
-.stats-action-section {
+.my-profile .stats-action-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 25px;
 }
-.stat-item {
+.my-profile .stat-item {
   font-size: 13px;
   margin-right: 15px;
   color: #000;
 }
-.edit-profile-btn {
+.my-profile .edit-profile-btn {
   background: transparent;
   border: 1px solid #333;
   padding: 6px 20px;
   border-radius: 5px;
   font-size: 12px;
-  font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  transition: 0.2s; /* Nền đen */
-  color: #000000 !important; /* Chữ trắng */
+  transition: 0.2s;
+  color: #000000 !important;
   border: 1px solid #030303 !important;
   font-weight: bold !important;
 }
-.edit-profile-btn:active {
-  background-color: #f0f0f0;
+.my-profile .edit-profile-btn:active {
   background-color: #333333 !important;
   transform: scale(0.95);
 }
 
 /* Posts */
-.section-label {
+.my-profile .section-label {
   font-size: 12px;
   color: #000;
   margin-bottom: 15px;
@@ -155,48 +152,44 @@ body {
   letter-spacing: 0.5px;
   font-weight: bold;
 }
-.mini-post {
+.my-profile .mini-post {
   margin-bottom: 30px;
 }
-.mini-post-header {
+.my-profile .mini-post-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
-.mini-user {
+.my-profile .mini-user {
   display: flex;
   align-items: center;
 }
-.mini-avatar {
+.my-profile .mini-avatar {
   width: 30px;
   height: 30px;
   background-color: #d9d9d9;
 
   border-radius: 50%;
   overflow: hidden;
-  /* --- */
   margin-right: 10px;
   border: 1px solid #ccc;
   flex-shrink: 0;
 }
-.mini-username {
+.my-profile .mini-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.my-profile .mini-username {
   font-size: 14px;
-  font-weight: 500;
   color: #000000 !important;
   font-weight: 600 !important;
 }
-.close-btn {
-  font-size: 20px;
-  color: #333;
-  cursor: pointer;
-  padding: 5px;
-}
-.close-btn:hover {
-  color: #dc3545;
-}
 
-.post-image-wrapper {
+/* Media */
+.my-profile .post-image-wrapper {
   position: relative;
   width: 100%;
   height: 350px;
@@ -206,17 +199,15 @@ body {
   align-items: center;
   overflow: hidden;
 }
-
-/* [SỬA ĐOẠN NÀY] Áp dụng style cho cả IMG và VIDEO */
-.post-image-wrapper img,
-.post-image-wrapper video {
+.my-profile .post-image-wrapper img,
+.my-profile .post-image-wrapper video {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Đảm bảo video cũng full khung */
+  object-fit: cover;
   opacity: 0.9;
+  display: block;
 }
-
-.overlay-caption {
+.my-profile .overlay-caption {
   position: absolute;
   bottom: 15px;
   left: 0;
@@ -225,33 +216,28 @@ body {
   color: rgba(255, 255, 255, 0.85);
   font-size: 13px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-  z-index: 5; /* Đè lên trên video */
+  z-index: 5;
 }
 
-/* --- MODAL XÁC NHẬN XÓA (Giống hình mẫu) --- */
-.modal-overlay {
+/* Modal confirm delete (nếu bạn vẫn dùng) */
+.my-profile .modal-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-
   background: linear-gradient(90deg, #ff4b6e 0%, #2bd0d0 100%);
-
   padding: 20px;
   z-index: 100;
-
   transform: translateY(100%);
   transition: transform 0.3s ease-out;
 }
-
-.modal-overlay.show {
+.my-profile .modal-overlay.show {
   transform: translateY(0);
 }
-
-.modal-content {
+.my-profile .modal-content {
   text-align: center;
 }
-.modal-text {
+.my-profile .modal-text {
   color: #000;
   font-weight: bold;
   margin-bottom: 15px;
@@ -260,13 +246,12 @@ body {
   letter-spacing: 0.5px;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
 }
-
-.modal-actions {
+.my-profile .modal-actions {
   display: flex;
   justify-content: center;
   gap: 30px;
 }
-.btn-modal {
+.my-profile .btn-modal {
   padding: 8px 30px;
   border: 1px solid #000;
   border-radius: 5px;
@@ -275,28 +260,22 @@ body {
   font-size: 14px;
   box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
 }
-.btn-no {
+.my-profile .btn-no {
   background-color: #ff4b6e;
   color: #fff;
   border-color: #fff;
 }
-.btn-yes {
+.my-profile .btn-yes {
   background-color: #00cba9;
   color: #000;
   border-color: #000;
 }
 
-/* src/pages/Profile/user_profile.css */
-
-/* --- THAY THẾ NÚT X CŨ BẰNG MENU 3 CHẤM --- */
-
-/* Wrapper cho phần bên phải header của post */
-.mini-post-actions {
+/* 3-dots menu */
+.my-profile .mini-post-actions {
   position: relative;
 }
-
-/* Nút 3 chấm (Ellipsis) */
-.post-options-btn {
+.my-profile .post-options-btn {
   font-size: 18px;
   color: #333;
   cursor: pointer;
@@ -306,14 +285,11 @@ body {
   transition: background 0.2s;
   border-radius: 50%;
 }
-
-.post-options-btn:active {
+.my-profile .post-options-btn:active {
   background-color: #f0f0f0;
 }
-
-/* Menu Dropdown (Hiện ra khi bấm 3 chấm) */
-.post-options-menu {
-  display: none; /* Mặc định ẩn */
+.my-profile .post-options-menu {
+  display: none;
   position: absolute;
   top: 30px;
   right: 0;
@@ -325,15 +301,11 @@ body {
   overflow: hidden;
   border: 1px solid #eee;
 }
-
-/* Class kích hoạt hiện menu */
-.post-options-menu.show {
+.my-profile .post-options-menu.show {
   display: block;
-  animation: fadeIn 0.2s ease-out;
+  animation: myProfileFadeIn 0.2s ease-out;
 }
-
-/* Các mục trong menu */
-.option-item {
+.my-profile .option-item {
   padding: 10px 15px;
   font-size: 13px;
   color: #333;
@@ -343,23 +315,17 @@ body {
   gap: 8px;
   border-bottom: 1px solid #f9f9f9;
 }
-
-.option-item:hover {
+.my-profile .option-item:hover {
   background-color: #f5f5f5;
 }
-
-/* Mục Delete màu đỏ */
-.option-item.danger {
+.my-profile .option-item.danger {
   color: #ff4b6e;
   font-weight: 600;
 }
-
-.option-item:last-child {
+.my-profile .option-item:last-child {
   border-bottom: none;
 }
-
-/* Animation hiện menu */
-@keyframes fadeIn {
+@keyframes myProfileFadeIn {
   from {
     opacity: 0;
     transform: translateY(-5px);
@@ -369,3 +335,14 @@ body {
     transform: translateY(0);
   }
 }
+.my-profile .post-options-btn svg,
+.my-profile .back-btn svg {
+  display: block;
+}
+
+.my-profile .option-item svg {
+  flex-shrink: 0;
+}
+
+.my-profile .option-item svg { flex-shrink: 0; display: block; }
+.my-profile .post-options-btn svg, .my-profile .back-btn svg { display: block; }

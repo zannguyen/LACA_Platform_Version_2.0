@@ -19,4 +19,7 @@ router.post(
 
 router.get("/home", controller.getHomePosts);
 
+// Delete post (hard delete) - only owner can delete
+router.delete("/:postId", auth, controller.deletePost);
+
 module.exports = router;

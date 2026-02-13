@@ -14,7 +14,14 @@ module.exports = (req, res, next) => {
 
     const decoded = jwtUtil.verifyAccessToken(token);
 
-    req.user = { id: decoded.userId }; // 👈 CHÍNH XÁC
+    // Support multiple payload keys across the project.
+    // jwt.js currently signs tokens with { userID }, while some code expects { userId }.
+    const uid = decoded?.userId || decoded?.userID || decoded?.id || decoded?._id || decoded?.sub;
+    if (!uid) {
+      return res.status(401).json({ message: "Token payload missing userId" });
+    }
+
+    req.user = { id: uid };
 
     next();
   } catch (error) {

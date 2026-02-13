@@ -185,12 +185,13 @@ const Home = () => {
             return (
               <article className="post-card" key={post._id}>
                 <div className="post-header">
-                  <Link
-                    to={`/stranger_profile/${post.user?._id}`}
-                    className="user-info"
-                  >
+                  <Link to={`/profile/${post.user?._id}`} className="user-info">
                     <div className="user-avatar">
-                      <i className="fa-solid fa-user"></i>
+                      {post.user?.avatar ? (
+                        <img src={post.user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 999 }} />
+                      ) : (
+                        <i className="fa-solid fa-user"></i>
+                      )}
                     </div>
                     <div className="user-name-distance">
                       <span className="username">{getDisplayName(post)}</span>

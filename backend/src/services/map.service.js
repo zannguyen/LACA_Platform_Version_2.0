@@ -77,6 +77,7 @@ exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
           _id: "$user._id",
           fullname: "$user.fullname",
           username: "$user.username",
+          avatar: "$user.avatar",
         },
       },
     },
