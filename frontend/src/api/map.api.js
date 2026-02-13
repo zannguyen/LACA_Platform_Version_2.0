@@ -331,4 +331,53 @@ export const getPostsAtPoint = async (
   }
 };
 
+export const getPostDensity = async (latitude, longitude, radiusKm = 5) => {
+  try {
+    const res = await apiClient.get("/map/posts/density", {
+      params: {
+        lat: latitude,
+        lng: longitude,
+        radius: radiusKm, // km
+      },
+    });
+
+    return {
+      success: true,
+      message: "Lấy density thành công",
+      data: res.data, // { success, count, data:[{lat,lng,weight}] }
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || "Không thể lấy density",
+      data: null,
+    };
+  }
+};
+export const getPostHotspots = async (
+  latitude,
+  longitude,
+  radiusKm = 5,
+  days = 30,
+  limit = 80,
+) => {
+  try {
+    const res = await apiClient.get("/map/posts/hotspots", {
+      params: { lat: latitude, lng: longitude, radius: radiusKm, days, limit },
+    });
+
+    return {
+      success: true,
+      message: "Lấy hotspots thành công",
+      data: res.data, // { success, count, data:[...] }
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || "Không thể lấy hotspots",
+      data: null,
+    };
+  }
+};
+
 export default apiClient;

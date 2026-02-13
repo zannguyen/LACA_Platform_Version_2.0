@@ -12,10 +12,14 @@ const normalizeObjectIds = (ids = []) =>
         : new mongoose.Types.ObjectId(id),
     );
 
+// ===============================
+// 1) FEED: nearby + followed
+// ===============================
 exports.getPostsInRadius = async ({
   lat,
   lng,
   limit = 10,
+  radiusMeters = 5000,
   blockedUserIds = [],
   followedUserIds = [],
 }) => {
@@ -23,21 +27,18 @@ exports.getPostsInRadius = async ({
   const followedIds = normalizeObjectIds(followedUserIds);
 
   // ===============================
-  // 1) Nearby posts (within 5km)
+  // 1) Nearby posts (within radiusMeters)
   // ===============================
   const nearbyPipeline = [
     {
       $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [lng, lat],
-        },
+        near: { type: "Point", coordinates: [lng, lat] },
         distanceField: "distanceMeters",
-        maxDistance: 5000,
+        maxDistance: radiusMeters,
         spherical: true,
       },
     },
-    { $limit: 20 },
+    { $limit: 40 },
     {
       $lookup: {
         from: "posts",
@@ -55,19 +56,9 @@ exports.getPostsInRadius = async ({
       },
     },
     { $replaceRoot: { newRoot: "$posts" } },
-    {
-      $match: {
-        status: "active",
-      },
-    },
+    { $match: { status: "active" } },
     ...(blockedIds.length
-      ? [
-          {
-            $match: {
-              userId: { $nin: blockedIds },
-            },
-          },
-        ]
+      ? [{ $match: { userId: { $nin: blockedIds } } }]
       : []),
     {
       $lookup: {
@@ -93,12 +84,7 @@ exports.getPostsInRadius = async ({
         },
       },
     },
-    {
-      $sort: {
-        createdAt: -1,
-        distanceKm: 1,
-      },
-    },
+    { $sort: { createdAt: -1, distanceKm: 1 } },
     { $limit: Math.max(limit, 10) },
   ];
 
@@ -114,7 +100,9 @@ exports.getPostsInRadius = async ({
         $match: {
           status: "active",
           userId: { $in: followedIds },
-          ...(blockedIds.length ? { userId: { $in: followedIds, $nin: blockedIds } } : {}),
+          ...(blockedIds.length
+            ? { userId: { $in: followedIds, $nin: blockedIds } }
+            : {}),
         },
       },
       {
@@ -132,7 +120,6 @@ exports.getPostsInRadius = async ({
           type: 1,
           mediaUrl: 1,
           createdAt: 1,
-          // Followed posts can be far away -> no distance
           distanceKm: { $literal: null },
           user: {
             _id: "$user._id",
@@ -167,8 +154,8 @@ exports.getPostsInRadius = async ({
     const tb = new Date(b.createdAt).getTime();
     if (tb !== ta) return tb - ta;
 
-    const da = a.distanceKm === null || a.distanceKm === undefined ? 999999 : a.distanceKm;
-    const db = b.distanceKm === null || b.distanceKm === undefined ? 999999 : b.distanceKm;
+    const da = a.distanceKm == null ? 999999 : a.distanceKm;
+    const db = b.distanceKm == null ? 999999 : b.distanceKm;
     return da - db;
   });
 
@@ -181,6 +168,9 @@ exports.getPostsInRadius = async ({
   return result;
 };
 
+// ===============================
+// 2) Click at a point -> posts
+// ===============================
 exports.getPostsAtPoint = async ({
   lat,
   lng,
@@ -194,11 +184,9 @@ exports.getPostsAtPoint = async ({
 
   let remoteOnlyFollowed = false;
 
-  // Kiểm tra nếu có vị trí user, validate khoảng cách
   if (userLat && userLng) {
     const distance = calculateDistance(userLat, userLng, lat, lng);
 
-    // Nếu click ngoài 5km, chỉ cho phép xem post của người mình follow
     if (distance > 5) {
       remoteOnlyFollowed = true;
 
@@ -214,12 +202,9 @@ exports.getPostsAtPoint = async ({
   const pipeline = [
     {
       $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [lng, lat],
-        },
+        near: { type: "Point", coordinates: [lng, lat] },
         distanceField: "distanceMeters",
-        maxDistance: 30, // 30 meters
+        maxDistance: 30,
         spherical: true,
         query: { isActive: true },
       },
@@ -243,27 +228,13 @@ exports.getPostsAtPoint = async ({
     },
     { $replaceRoot: { newRoot: "$posts" } },
 
-    // Only active posts
     { $match: { status: "active" } },
 
     ...(remoteOnlyFollowed
-      ? [
-          {
-            $match: {
-              userId: { $in: followedIds },
-            },
-          },
-        ]
+      ? [{ $match: { userId: { $in: followedIds } } }]
       : []),
-
     ...(blockedIds.length
-      ? [
-          {
-            $match: {
-              userId: { $nin: blockedIds },
-            },
-          },
-        ]
+      ? [{ $match: { userId: { $nin: blockedIds } } }]
       : []),
 
     { $sort: { createdAt: -1 } },
@@ -301,9 +272,150 @@ exports.getPostsAtPoint = async ({
   return posts;
 };
 
-// Helper function to calculate distance using Haversine formula
+// ===============================
+// 3) Density (for heat/hotspot)
+// ===============================
+exports.getPostDensity = async ({
+  lat,
+  lng,
+  radiusMeters,
+  days = 30,
+  limit = 500,
+  blockedUserIds = [],
+}) => {
+  const blockedIds = normalizeObjectIds(blockedUserIds);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const pipeline = [
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [lng, lat] },
+        distanceField: "distanceMeters",
+        maxDistance: radiusMeters,
+        spherical: true,
+        query: { isActive: true },
+      },
+    },
+    { $limit: 1500 },
+    {
+      $lookup: {
+        from: "posts",
+        let: { pid: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$placeId", "$$pid"] } } },
+          { $match: { status: "active", createdAt: { $gte: since } } },
+          ...(blockedIds.length
+            ? [{ $match: { userId: { $nin: blockedIds } } }]
+            : []),
+          { $project: { _id: 1 } },
+        ],
+        as: "posts",
+      },
+    },
+    { $addFields: { weight: { $size: "$posts" } } },
+    { $match: { weight: { $gt: 0 } } },
+    {
+      $project: {
+        _id: 0,
+        placeId: "$_id",
+        lng: { $arrayElemAt: ["$location.coordinates", 0] },
+        lat: { $arrayElemAt: ["$location.coordinates", 1] },
+        weight: 1,
+      },
+    },
+    { $sort: { weight: -1 } },
+    { $limit: limit },
+  ];
+
+  return Place.aggregate(pipeline);
+};
+
+// ===============================
+// 4) ✅ Hotspots with thumbnail (BEST for your UI)
+// ===============================
+exports.getPostHotspots = async ({
+  lat,
+  lng,
+  radiusMeters,
+  days = 30,
+  limit = 80,
+  blockedUserIds = [],
+}) => {
+  const blockedIds = normalizeObjectIds(blockedUserIds);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const pipeline = [
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [lng, lat] },
+        distanceField: "distanceMeters",
+        maxDistance: radiusMeters,
+        spherical: true,
+        query: { isActive: true },
+      },
+    },
+
+    // chống nặng lookup
+    { $limit: 1200 },
+
+    {
+      $lookup: {
+        from: "posts",
+        let: { pid: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$placeId", "$$pid"] } } },
+          { $match: { status: "active", createdAt: { $gte: since } } },
+          ...(blockedIds.length
+            ? [{ $match: { userId: { $nin: blockedIds } } }]
+            : []),
+
+          // bài mới nhất để lấy thumb
+          { $sort: { createdAt: -1 } },
+          { $project: { _id: 1, mediaUrl: 1, createdAt: 1 } },
+        ],
+        as: "posts",
+      },
+    },
+
+    { $addFields: { weight: { $size: "$posts" } } },
+    { $match: { weight: { $gt: 0 } } },
+
+    // thumb = mediaUrl[0] của bài mới nhất
+    {
+      $addFields: {
+        thumb: {
+          $let: {
+            vars: { first: { $arrayElemAt: ["$posts", 0] } },
+            in: { $arrayElemAt: ["$$first.mediaUrl", 0] },
+          },
+        },
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        placeId: "$_id",
+        lng: { $arrayElemAt: ["$location.coordinates", 0] },
+        lat: { $arrayElemAt: ["$location.coordinates", 1] },
+        weight: 1,
+        thumb: 1,
+        distanceMeters: 1,
+      },
+    },
+
+    { $sort: { weight: -1 } },
+    { $limit: limit },
+  ];
+
+  return Place.aggregate(pipeline);
+};
+
+// ===============================
+// Helpers
+// ===============================
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Radius of the earth in km
+  const R = 6371;
   const dLat = deg2rad(Number(lat2) - Number(lat1));
   const dLon = deg2rad(Number(lon2) - Number(lon1));
   const a =
@@ -313,8 +425,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // Distance in km
-  return distance;
+  return R * c;
 }
 
 function deg2rad(deg) {
