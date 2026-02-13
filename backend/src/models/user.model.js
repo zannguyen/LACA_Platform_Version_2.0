@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  deletedAt: { type: Date, default: null },
+  suspendUntil: { type: Date, default: null },
   role: {
     type: String,
     enum: ["user", "admin"],
@@ -57,7 +59,7 @@ module.exports = mongoose.model("User", userSchema);
 userSchema.statics.findByIdAndUpdate = async function (
   userId,
   updateData,
-  options = {}
+  options = {},
 ) {
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");

@@ -1,12 +1,18 @@
 const MapService = require("../services/map.service");
 const asyncHandler = require("../utils/asyncHandler");
+const UserService = require("../services/user.service");
 
 exports.getPostsInRadius = asyncHandler(async (req, res) => {
   const { lng, lat } = req.geo;
+  let blockedUserIds = [];
+  if (req.user?.id) {
+    blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+  }
 
   const posts = await MapService.getPostsInRadius({
     lng,
     lat,
+    blockedUserIds,
   });
 
   res.status(200).json({
@@ -18,8 +24,19 @@ exports.getPostsInRadius = asyncHandler(async (req, res) => {
 
 exports.getPostsAtPoint = asyncHandler(async (req, res) => {
   const { lng, lat } = req.geo;
+  const { userLng, userLat } = req.query;
+  let blockedUserIds = [];
+  if (req.user?.id) {
+    blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+  }
 
-  const posts = await MapService.getPostsAtPoint({ lng, lat });
+  const posts = await MapService.getPostsAtPoint({
+    lng,
+    lat,
+    userLng,
+    userLat,
+    blockedUserIds,
+  });
 
   res.status(200).json({
     success: true,

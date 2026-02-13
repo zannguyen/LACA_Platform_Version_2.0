@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Circle, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Circle,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -8,6 +14,8 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 import UserLocationMarker from "./UserLocationMarker";
+import PostsModal from "./PostsModal";
+import { getPostsAtPoint } from "../../api/map.api";
 import "./MapView.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -34,6 +42,16 @@ function FixLeafletSize() {
   return null;
 }
 
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click: (e) => {
+      const { lat, lng } = e.latlng;
+      onMapClick(lat, lng);
+    },
+  });
+  return null;
+}
+
 const DEFAULT_CENTER = [16.0544, 108.2208]; // Đà Nẵng
 const DEFAULT_ZOOM = 13;
 
@@ -44,6 +62,12 @@ const MapView = () => {
 
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
+
+  // Posts modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalPosts, setModalPosts] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState(null);
 
   const mapRef = useRef(null);
   const searchRadius = 5000;
@@ -101,6 +125,44 @@ const MapView = () => {
     setMapZoom(DEFAULT_ZOOM);
   };
 
+  const handleMapClick = async (clickLat, clickLng) => {
+    if (!userLocation) {
+      setNotice("Vui lòng bật quyền vị trí để xem bài viết");
+      return;
+    }
+
+    // Open modal and start loading
+    setIsModalOpen(true);
+    setModalLoading(true);
+    setModalError(null);
+    setModalPosts([]);
+
+    try {
+      const result = await getPostsAtPoint(
+        clickLat,
+        clickLng,
+        userLocation[0],
+        userLocation[1],
+      );
+
+      if (result.success) {
+        setModalPosts(result.data.data || []);
+      } else {
+        setModalError(result.message);
+      }
+    } catch (error) {
+      setModalError("Đã xảy ra lỗi khi tải bài viết");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setModalPosts([]);
+    setModalError(null);
+  };
+
   if (loading) {
     return (
       <div className="map-loading">
@@ -122,6 +184,7 @@ const MapView = () => {
       >
         <FixLeafletSize />
         <ChangeView center={mapCenter} zoom={mapZoom} />
+        <MapClickHandler onMapClick={handleMapClick} />
 
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -191,6 +254,14 @@ const MapView = () => {
       )}
 
       <div className="checkin-count">0 địa điểm trong bán kính 5km</div>
+
+      <PostsModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        posts={modalPosts}
+        loading={modalLoading}
+        error={modalError}
+      />
     </div>
   );
 };

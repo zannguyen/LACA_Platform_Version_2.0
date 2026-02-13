@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:4000/api"; // chỉnh theo backend bạn
+  import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -17,49 +17,37 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// ===== AUTH (login/register/verify OTP signup)
 export const authApi = {
   register: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Registration failed");
-    return data;
+    const res = await apiClient.post("/auth/register", userData);
+    return res.data;
   },
 
   verifyOtp: async ({ otpToken, otpCode }) => {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ otpToken, otpCode }),
-    });
-    const data = await response.json();
-    if (!response.ok)
-      throw new Error(data.message || "OTP verification failed");
-    return data;
+    const res = await apiClient.post("/auth/verify-otp", { otpToken, otpCode });
+    return res.data;
   },
 
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Login failed");
+    const res = await apiClient.post("/auth/login", credentials);
+    const data = res.data;
 
-    if (data.accessToken) {
+    // backend bạn trả: { success, message, accessToken, user }
+    if (data?.accessToken) {
       localStorage.setItem("token", data.accessToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("authToken", data.accessToken); // optional cho chắc
     }
+
+    if (data?.user) {
+      localStorage.setItem("user", JSON.stringify(data.user)); // ✅ có role
+    }
+
     return data;
   },
 
   logout: () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
     localStorage.removeItem("user");
   },
 
@@ -68,26 +56,24 @@ export const authApi = {
     return user ? JSON.parse(user) : null;
   },
 
-  getToken: () => localStorage.getItem("token"),
+  getToken: () =>
+    localStorage.getItem("token") || localStorage.getItem("authToken"),
 
-  isAuthenticated: () => !!localStorage.getItem("token"),
+  isAuthenticated: () =>
+    !!(localStorage.getItem("token") || localStorage.getItem("authToken")),
 };
 
 // ===== FORGOT PASSWORD =====
-
-// 1) gửi OTP reset (backend đã có)
 export const sendOTP = async (email) => {
   const res = await apiClient.post("/auth/forgot-password", { email });
   return res.data;
 };
 
-// 2) resend OTP: gọi lại endpoint send OTP (đỡ phải làm route mới)
 export const resendOTP = async (email) => {
   const res = await apiClient.post("/auth/forgot-password", { email });
   return res.data;
 };
 
-// 3) verify OTP reset (chỉ dùng khi backend đã thêm route này)
 export const verifyOTP = async (otpToken, otpCode) => {
   const res = await apiClient.post("/auth/forgot-password/verify-otp", {
     otpToken,
@@ -95,10 +81,6 @@ export const verifyOTP = async (otpToken, otpCode) => {
   });
   return res.data;
 };
-
-// 4) reset password
-// - Nếu backend bạn đã update resetPassword nhận otpCode thì giữ như dưới
-// - Nếu chưa update thì bỏ otpCode ra (mình ghi 2 lựa chọn)
 
 export const resetPassword = async ({
   otpToken,
@@ -108,7 +90,7 @@ export const resetPassword = async ({
 }) => {
   const res = await apiClient.post("/auth/reset-password", {
     otpToken,
-    otpCode, // chỉ gửi nếu backend có verify otpCode
+    otpCode,
     password,
     confirmPassword,
   });

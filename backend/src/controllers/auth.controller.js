@@ -16,6 +16,38 @@ const {
   PASSWORD_LENGTH_MAX,
 } = process.env;
 
+// helper: check user status (5 trạng thái)
+const assertUserCanLogin = (user) => {
+  if (!user) return { ok: false, status: 400, message: "Invalid credentials" };
+
+  // deleted
+  if (user.deletedAt) {
+    return { ok: false, status: 403, message: "Account deleted" };
+  }
+
+  // suspended
+  if (user.suspendUntil && new Date(user.suspendUntil).getTime() > Date.now()) {
+    return {
+      ok: false,
+      status: 403,
+      message: "Account suspended",
+      extra: { suspendUntil: user.suspendUntil },
+    };
+  }
+
+  // blocked
+  if (user.isActive === false) {
+    return { ok: false, status: 403, message: "Account blocked" };
+  }
+
+  // unverified
+  if (user.isEmailVerified === false) {
+    return { ok: false, status: 403, message: "Email not verified" };
+  }
+
+  return { ok: true };
+};
+
 exports.register = async (req, res) => {
   try {
     const { fullname, username, email, password, confirmPassword } = req.body;
@@ -53,6 +85,8 @@ exports.register = async (req, res) => {
       Number(process.env.SALT_ROUNDS),
     );
 
+    // ✅ mặc định: chưa verify => isEmailVerified=false
+    // ✅ isActive=false để bắt buộc verify OTP xong mới active
     const user = await User.create({
       fullname,
       username,
@@ -60,6 +94,8 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       isActive: false,
       isEmailVerified: false,
+      deletedAt: null, // nếu schema có
+      suspendUntil: null, // nếu schema có
     });
 
     const plainOTP = authService.generateOTP();
@@ -68,7 +104,6 @@ exports.register = async (req, res) => {
       Number(process.env.SALT_ROUNDS),
     );
 
-    // ✅ THÊM purpose: "REGISTER" để không bị purpose=null
     const otp = await EmailOTP.create({
       otpToken: randomUUID(),
       userId: user._id,
@@ -79,7 +114,6 @@ exports.register = async (req, res) => {
       attempts: 0,
     });
 
-    // dùng hàm sendOTP chung (nếu bạn có sendOTPRegister thì cứ giữ)
     await emailService.sendOTP(user.email, plainOTP, "REGISTER");
 
     return res.status(201).json({
@@ -112,6 +146,38 @@ exports.verifyOtp = async (req, res) => {
       purpose: "REGISTER",
     });
 
+    // ✅ LẤY USER + CHẶN deleted/suspended trước khi phát token
+    let user = await User.findById(userId).select(
+      "fullname username email role isActive isEmailVerified deletedAt suspendUntil",
+    );
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    if (user.deletedAt) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Account deleted" });
+    }
+
+    if (user.suspendUntil && user.suspendUntil.getTime() > Date.now()) {
+      return res.status(403).json({
+        success: false,
+        message: "Account suspended",
+        suspendUntil: user.suspendUntil,
+      });
+    }
+
+    // ✅ Sau khi verify OTP: bật verified + active
+    // (Nếu bạn muốn admin duyệt thủ công thì bỏ isActive:true)
+    user.isEmailVerified = true;
+    user.isActive = true;
+    await user.save();
+
+    // ✅ phát token
     const accessToken = jwtUtil.generateAccessToken(userId);
     const refreshToken = jwtUtil.generateRefreshToken(userId);
 
@@ -152,15 +218,24 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Bad request" });
     }
 
-    const user = await User.findOne({ email });
+    // ✅ lấy thêm các field status để check
+    const user = await User.findOne({ email }).select(
+      "fullname username email password role isActive isEmailVerified deletedAt suspendUntil",
+    );
+
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(400).json({ message: "Invalid credentials" });
 
-    // (tuỳ bạn) chặn user chưa verify email
-    if (user.isEmailVerified === false) {
-      return res.status(403).json({ message: "Email not verified" });
+    // ✅ chặn theo 5 trạng thái
+    const check = assertUserCanLogin(user);
+    if (!check.ok) {
+      return res.status(check.status).json({
+        success: false,
+        message: check.message,
+        ...(check.extra ? check.extra : {}),
+      });
     }
 
     const accessToken = jwtUtil.generateAccessToken(user._id);
@@ -185,12 +260,13 @@ exports.login = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Login success",
-      accessToken, // ✅ frontend đang đọc data.accessToken
+      accessToken,
       user: {
         _id: user._id,
         fullname: user.fullname,
         username: user.username,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -203,7 +279,7 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const data = await authService.forgotPassword(email); // { otpToken }
+    const data = await authService.forgotPassword(email);
     return res.status(200).json({
       success: true,
       message: "OTP has been sent to your email",

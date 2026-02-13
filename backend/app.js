@@ -6,7 +6,7 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
     credentials: true,
   }),
 );
@@ -14,12 +14,17 @@ app.use(
 app.use(express.json());
 
 // routes
+app.use("/api/admin", require("./src/routes/admin.routes")); // dashboard, recent-activity,...
+app.use("/api/admin/users", require("./src/routes/admin.users.routes"));
 app.use("/api/auth", require("./src/routes/auth.route"));
 app.use("/api/posts", require("./src/routes/post.route"));
 app.use("/api/reactions", require("./src/routes/reaction.route"));
 app.use("/api/upload", require("./src/routes/upload.route"));
 app.use("/api/map", require("./src/routes/map.route"));
 app.use("/api/user", require("./src/routes/user.route"));
+app.use("/api/feedbacks", require("./src/routes/feedback.route"));
+app.use("/api/reports", require("./src/routes/report.route"));
+app.use("/api/chat", require("./src/routes/chat.route"));
 
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);

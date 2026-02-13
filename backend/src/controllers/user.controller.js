@@ -19,7 +19,7 @@ exports.getMyProfile = asyncHandler(async (req, res) => {
  * (Public)
  */
 exports.getUserProfile = asyncHandler(async (req, res) => {
-  const viewerId = req.user?.id; // nếu bạn muốn public hoàn toàn thì không cần auth middleware
+  const viewerId = req.user?.id; // public: có thể không có auth
   const data = await UserService.getProfile({
     targetUserId: req.params.userId,
     viewerUserId: viewerId,
@@ -33,10 +33,24 @@ exports.getUserProfile = asyncHandler(async (req, res) => {
  * (Auth required)
  */
 exports.updateMyProfile = asyncHandler(async (req, res) => {
-    console.log("req.user =", req.user);
   const user = await UserService.updateMyProfile({
     userId: req.user.id,
     body: req.body,
   });
   return res.status(200).json({ success: true, message: "Profile updated", data: user });
+});
+
+// ===== Block / Unblock (Auth required) =====
+exports.blockUser = asyncHandler(async (req, res) => {
+  const blockedId = req.params.id;
+  const blockerId = req.user.id;
+  await UserService.blockUser(blockerId, blockedId);
+  res.status(200).json({ success: true, message: "User blocked successfully" });
+});
+
+exports.unblockUser = asyncHandler(async (req, res) => {
+  const blockedId = req.params.id;
+  const blockerId = req.user.id;
+  await UserService.unblockUser(blockerId, blockedId);
+  res.status(200).json({ success: true, message: "User unblocked successfully" });
 });

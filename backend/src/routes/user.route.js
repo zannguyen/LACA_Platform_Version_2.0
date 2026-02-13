@@ -1,15 +1,16 @@
 const router = require("express").Router();
-
 const auth = require("../middlewares/auth.middleware");
-const userController = require("../controllers/user.controller");
+const controller = require("../controllers/user.controller");
 
-// router.post("/user/:id/block", require("../controllers/user.controller"));
-// My profile
-router.get("/me/profile", auth, userController.getMyProfile);
-router.put("/me/profile", auth, userController.updateMyProfile);
+// My profile (Auth)
+router.get("/me/profile", auth, controller.getMyProfile);
+router.put("/me/profile", auth, controller.updateMyProfile);
 
 // Public profile (by id)
-router.get("/:userId/profile", userController.getUserProfile);
+router.get("/:userId/profile", controller.getUserProfile);
 
+// Block/Unblock (Auth)
+router.post("/:id/block", auth, controller.blockUser);
+router.delete("/:id/block", auth, controller.unblockUser);
 
 module.exports = router;

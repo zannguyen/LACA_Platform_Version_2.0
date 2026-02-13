@@ -1,7 +1,21 @@
+const mongoose = require("mongoose");
 const Place = require("../models/place.model");
 const AppError = require("../utils/appError");
 
-exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
+const normalizeBlockedIds = (blockedUserIds = []) =>
+  blockedUserIds.map((id) =>
+    id instanceof mongoose.Types.ObjectId
+      ? id
+      : new mongoose.Types.ObjectId(id),
+  );
+
+exports.getPostsInRadius = async ({
+  lat,
+  lng,
+  limit = 10,
+  blockedUserIds = [],
+}) => {
+  const blockedIds = normalizeBlockedIds(blockedUserIds);
   const pipeline = [
     // 1️⃣ Tìm place gần user
     {
@@ -50,6 +64,16 @@ exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
         status: "active",
       },
     },
+
+    ...(blockedIds.length
+      ? [
+          {
+            $match: {
+              userId: { $nin: blockedIds },
+            },
+          },
+        ]
+      : []),
 
     // 8️⃣ JOIN USER 🔥🔥🔥
     {
@@ -103,7 +127,27 @@ exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
   return posts;
 };
 
-exports.getPostsAtPoint = async ({ lat, lng }) => {
+exports.getPostsAtPoint = async ({
+  lat,
+  lng,
+  userLat,
+  userLng,
+  blockedUserIds = [],
+}) => {
+  const blockedIds = normalizeBlockedIds(blockedUserIds);
+  // Kiểm tra nếu có vị trí user, validate khoảng cách
+  if (userLat && userLng) {
+    const distance = calculateDistance(userLat, userLng, lat, lng);
+
+    // Kiểm tra nếu điểm click nằm ngoài bán kính 5km
+    if (distance > 5) {
+      throw new AppError(
+        "Bạn không thể xem bài viết ở vị trí này. Vui lòng di chuyển đến gần hơn (trong bán kính 5km)",
+        403,
+      );
+    }
+  }
+
   const pipeline = [
     {
       $geoNear: {
@@ -145,7 +189,45 @@ exports.getPostsAtPoint = async ({ lat, lng }) => {
       },
     },
 
+    ...(blockedIds.length
+      ? [
+          {
+            $match: {
+              userId: { $nin: blockedIds },
+            },
+          },
+        ]
+      : []),
+
     { $sort: { createdAt: -1 } },
+
+    // 8️⃣ JOIN USER info
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+
+    { $unwind: "$user" },
+
+    // 🔟 Chỉ lấy field cần thiết
+    {
+      $project: {
+        content: 1,
+        type: 1,
+        mediaUrl: 1,
+        distanceKm: 1,
+        createdAt: 1,
+        user: {
+          _id: "$user._id",
+          fullname: "$user.fullname",
+          username: "$user.username",
+        },
+      },
+    },
   ];
 
   const posts = await Place.aggregate(pipeline);
@@ -156,3 +238,23 @@ exports.getPostsAtPoint = async ({ lat, lng }) => {
 
   return posts;
 };
+
+// Helper function to calculate distance using Haversine formula
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in km
+  return distance;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}

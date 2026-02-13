@@ -17,7 +17,7 @@ router.post(
   controller.createWithMedia,
 );
 
-router.get("/home", controller.getHomePosts);
+router.get("/home", auth, controller.getHomePosts);
 
 // Delete post (hard delete) - only owner can delete
 router.delete("/:postId", auth, controller.deletePost);
