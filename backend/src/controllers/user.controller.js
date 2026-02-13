@@ -54,3 +54,39 @@ exports.unblockUser = asyncHandler(async (req, res) => {
   await UserService.unblockUser(blockerId, blockedId);
   res.status(200).json({ success: true, message: "User unblocked successfully" });
 });
+
+// ===== Follow / Unfollow (Auth required) =====
+exports.followUser = asyncHandler(async (req, res) => {
+  const targetId = req.params.id;
+  const me = req.user.id;
+
+  const result = await UserService.followUser(me, targetId);
+  const followers = await UserService.getFollowersCount(targetId);
+
+  res.status(200).json({
+    success: true,
+    message: "Followed",
+    data: { ...result, followers },
+  });
+});
+
+exports.unfollowUser = asyncHandler(async (req, res) => {
+  const targetId = req.params.id;
+  const me = req.user.id;
+
+  const result = await UserService.unfollowUser(me, targetId);
+  const followers = await UserService.getFollowersCount(targetId);
+
+  res.status(200).json({
+    success: true,
+    message: "Unfollowed",
+    data: { ...result, followers },
+  });
+});
+
+exports.getFollowStatus = asyncHandler(async (req, res) => {
+  const targetId = req.params.id;
+  const me = req.user.id;
+  const isFollowing = await UserService.isFollowingUser(me, targetId);
+  res.status(200).json({ success: true, data: { isFollowing } });
+});

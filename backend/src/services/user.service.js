@@ -4,6 +4,7 @@ const AppError = require("../utils/appError");
 const User = require("../models/user.model");
 const Post = require("../models/post.model");
 const BlockUser = require("../models/blockUser.model");
+const Follow = require("../models/follow.model");
 
 // ===== Helpers =====
 function parsePagination(query) {
@@ -30,13 +31,24 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
 
   const { page, limit, skip } = parsePagination(query);
 
+  const isOwner = viewerId && String(viewerId) === String(targetId);
+
   const postFilter = { userId: targetId, status: "active" };
-  const [totalPosts, posts] = await Promise.all([
+
+  const followersCountPromise = Follow.countDocuments({ followingUserId: targetId });
+  const followingCountPromise = Follow.countDocuments({ followerUserId: targetId });
+  const isFollowingPromise =
+    viewerId && !isOwner
+      ? Follow.exists({ followerUserId: viewerId, followingUserId: targetId })
+      : Promise.resolve(false);
+
+  const [totalPosts, posts, followersCount, followingCount, isFollowing] = await Promise.all([
     Post.countDocuments(postFilter),
     Post.find(postFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    followersCountPromise,
+    followingCountPromise,
+    isFollowingPromise,
   ]);
-
-  const isOwner = viewerId && String(viewerId) === String(targetId);
 
   const profileUser = {
     _id: user._id,
@@ -57,7 +69,12 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
     user: profileUser,
     stats: {
       posts: totalPosts,
-      followers: 0, // chưa implement
+      followers: followersCount || 0,
+      following: followingCount || 0,
+    },
+    relationship: {
+      isOwner: Boolean(isOwner),
+      isFollowing: Boolean(isFollowing),
     },
     posts,
     pagination: {
@@ -67,6 +84,72 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
       totalPages: Math.ceil(totalPosts / limit) || 1,
     },
   };
+}
+
+// ===== Follow =====
+async function getFollowingUserIds(userId) {
+  const id = safeObjectId(userId);
+  const rows = await Follow.find({ followerUserId: id })
+    .select("followingUserId")
+    .lean();
+  return rows.map((r) => r.followingUserId);
+}
+
+async function getFollowersCount(userId) {
+  const id = safeObjectId(userId);
+  return await Follow.countDocuments({ followingUserId: id });
+}
+
+async function getFollowingCount(userId) {
+  const id = safeObjectId(userId);
+  return await Follow.countDocuments({ followerUserId: id });
+}
+
+async function isFollowingUser(followerId, followingId) {
+  const follower = safeObjectId(followerId);
+  const following = safeObjectId(followingId);
+  const exists = await Follow.exists({ followerUserId: follower, followingUserId: following });
+  return Boolean(exists);
+}
+
+async function followUser(followerId, followingId) {
+  const follower = safeObjectId(followerId);
+  const following = safeObjectId(followingId);
+
+  if (String(follower) === String(following)) {
+    throw new AppError("You cannot follow yourself", 400);
+  }
+
+  const targetExists = await User.exists({ _id: following });
+  if (!targetExists) throw new AppError("User not found", 404);
+
+  // If either direction is blocked, forbid follow
+  const blockedEitherWay = await BlockUser.exists({
+    $or: [
+      { blockerUserId: follower, blockedUserId: following },
+      { blockerUserId: following, blockedUserId: follower },
+    ],
+  });
+  if (blockedEitherWay) {
+    throw new AppError("Cannot follow this user", 403);
+  }
+
+  try {
+    await Follow.create({ followerUserId: follower, followingUserId: following });
+  } catch (e) {
+    // Duplicate follow -> ignore
+    if (e?.code !== 11000) throw e;
+  }
+
+  return { isFollowing: true };
+}
+
+async function unfollowUser(followerId, followingId) {
+  const follower = safeObjectId(followerId);
+  const following = safeObjectId(followingId);
+
+  await Follow.deleteOne({ followerUserId: follower, followingUserId: following });
+  return { isFollowing: false };
 }
 
 async function updateMyProfile({ userId, body }) {
@@ -156,6 +239,14 @@ module.exports = {
   // profile
   getProfile,
   updateMyProfile,
+
+  // follow
+  getFollowingUserIds,
+  getFollowersCount,
+  getFollowingCount,
+  isFollowingUser,
+  followUser,
+  unfollowUser,
 
   // block
   blockUser,

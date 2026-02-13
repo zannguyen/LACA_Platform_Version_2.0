@@ -1,23 +1,31 @@
 const mongoose = require("mongoose");
 const Place = require("../models/place.model");
+const Post = require("../models/post.model");
 const AppError = require("../utils/appError");
 
-const normalizeBlockedIds = (blockedUserIds = []) =>
-  blockedUserIds.map((id) =>
-    id instanceof mongoose.Types.ObjectId
-      ? id
-      : new mongoose.Types.ObjectId(id),
-  );
+const normalizeObjectIds = (ids = []) =>
+  ids
+    .filter(Boolean)
+    .map((id) =>
+      id instanceof mongoose.Types.ObjectId
+        ? id
+        : new mongoose.Types.ObjectId(id),
+    );
 
 exports.getPostsInRadius = async ({
   lat,
   lng,
   limit = 10,
   blockedUserIds = [],
+  followedUserIds = [],
 }) => {
-  const blockedIds = normalizeBlockedIds(blockedUserIds);
-  const pipeline = [
-    // 1️⃣ Tìm place gần user
+  const blockedIds = normalizeObjectIds(blockedUserIds);
+  const followedIds = normalizeObjectIds(followedUserIds);
+
+  // ===============================
+  // 1) Nearby posts (within 5km)
+  // ===============================
+  const nearbyPipeline = [
     {
       $geoNear: {
         near: {
@@ -29,11 +37,7 @@ exports.getPostsInRadius = async ({
         spherical: true,
       },
     },
-
-    // 2️⃣ Giới hạn place
     { $limit: 20 },
-
-    // 3️⃣ Join posts theo placeId
     {
       $lookup: {
         from: "posts",
@@ -42,11 +46,7 @@ exports.getPostsInRadius = async ({
         as: "posts",
       },
     },
-
-    // 4️⃣ Mỗi document = 1 post
     { $unwind: "$posts" },
-
-    // 5️⃣ Gắn distance vào post
     {
       $addFields: {
         "posts.distanceKm": {
@@ -54,17 +54,12 @@ exports.getPostsInRadius = async ({
         },
       },
     },
-
-    // 6️⃣ Lấy post làm root
     { $replaceRoot: { newRoot: "$posts" } },
-
-    // 7️⃣ Chỉ lấy post active
     {
       $match: {
         status: "active",
       },
     },
-
     ...(blockedIds.length
       ? [
           {
@@ -74,8 +69,6 @@ exports.getPostsInRadius = async ({
           },
         ]
       : []),
-
-    // 8️⃣ JOIN USER 🔥🔥🔥
     {
       $lookup: {
         from: "users",
@@ -84,11 +77,7 @@ exports.getPostsInRadius = async ({
         as: "user",
       },
     },
-
-    // 9️⃣ user là object, không phải array
     { $unwind: "$user" },
-
-    // 🔟 Chỉ lấy field cần thiết
     {
       $project: {
         content: 1,
@@ -96,7 +85,6 @@ exports.getPostsInRadius = async ({
         mediaUrl: 1,
         distanceKm: 1,
         createdAt: 1,
-
         user: {
           _id: "$user._id",
           fullname: "$user.fullname",
@@ -105,26 +93,92 @@ exports.getPostsInRadius = async ({
         },
       },
     },
-
-    // 1️⃣1️⃣ Sort feed (mới + gần)
     {
       $sort: {
         createdAt: -1,
         distanceKm: 1,
       },
     },
-
-    // 1️⃣2️⃣ Limit cho feed
-    { $limit: limit },
+    { $limit: Math.max(limit, 10) },
   ];
 
-  const posts = await Place.aggregate(pipeline);
+  const nearbyPosts = await Place.aggregate(nearbyPipeline);
 
-  if (!posts.length) {
+  // ===============================
+  // 2) Followed posts (ANY distance)
+  // ===============================
+  let followedPosts = [];
+  if (followedIds.length) {
+    const followedPipeline = [
+      {
+        $match: {
+          status: "active",
+          userId: { $in: followedIds },
+          ...(blockedIds.length ? { userId: { $in: followedIds, $nin: blockedIds } } : {}),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          content: 1,
+          type: 1,
+          mediaUrl: 1,
+          createdAt: 1,
+          // Followed posts can be far away -> no distance
+          distanceKm: { $literal: null },
+          user: {
+            _id: "$user._id",
+            fullname: "$user.fullname",
+            username: "$user.username",
+            avatar: "$user.avatar",
+          },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: Math.max(limit * 3, 30) },
+    ];
+
+    followedPosts = await Post.aggregate(followedPipeline);
+  }
+
+  // ===============================
+  // 3) Merge + de-dupe + sort
+  // ===============================
+  const merged = [];
+  const seen = new Set();
+
+  for (const p of [...nearbyPosts, ...followedPosts]) {
+    const key = String(p._id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(p);
+  }
+
+  merged.sort((a, b) => {
+    const ta = new Date(a.createdAt).getTime();
+    const tb = new Date(b.createdAt).getTime();
+    if (tb !== ta) return tb - ta;
+
+    const da = a.distanceKm === null || a.distanceKm === undefined ? 999999 : a.distanceKm;
+    const db = b.distanceKm === null || b.distanceKm === undefined ? 999999 : b.distanceKm;
+    return da - db;
+  });
+
+  const result = merged.slice(0, Math.max(limit, 10));
+
+  if (!result.length) {
     throw new AppError("No posts found in this area", 404);
   }
 
-  return posts;
+  return result;
 };
 
 exports.getPostsAtPoint = async ({
@@ -133,18 +187,27 @@ exports.getPostsAtPoint = async ({
   userLat,
   userLng,
   blockedUserIds = [],
+  followedUserIds = [],
 }) => {
-  const blockedIds = normalizeBlockedIds(blockedUserIds);
+  const blockedIds = normalizeObjectIds(blockedUserIds);
+  const followedIds = normalizeObjectIds(followedUserIds);
+
+  let remoteOnlyFollowed = false;
+
   // Kiểm tra nếu có vị trí user, validate khoảng cách
   if (userLat && userLng) {
     const distance = calculateDistance(userLat, userLng, lat, lng);
 
-    // Kiểm tra nếu điểm click nằm ngoài bán kính 5km
+    // Nếu click ngoài 5km, chỉ cho phép xem post của người mình follow
     if (distance > 5) {
-      throw new AppError(
-        "Bạn không thể xem bài viết ở vị trí này. Vui lòng di chuyển đến gần hơn (trong bán kính 5km)",
-        403,
-      );
+      remoteOnlyFollowed = true;
+
+      if (!followedIds.length) {
+        throw new AppError(
+          "Bạn không thể xem bài viết ở vị trí này. Vui lòng di chuyển đến gần hơn (trong bán kính 5km)",
+          403,
+        );
+      }
     }
   }
 
@@ -156,14 +219,12 @@ exports.getPostsAtPoint = async ({
           coordinates: [lng, lat],
         },
         distanceField: "distanceMeters",
-        maxDistance: 30, //30 meters
+        maxDistance: 30, // 30 meters
         spherical: true,
         query: { isActive: true },
       },
     },
-
     { $limit: 20 },
-
     {
       $lookup: {
         from: "posts",
@@ -172,9 +233,7 @@ exports.getPostsAtPoint = async ({
         as: "posts",
       },
     },
-
     { $unwind: "$posts" },
-
     {
       $addFields: {
         "posts.distanceKm": {
@@ -182,12 +241,20 @@ exports.getPostsAtPoint = async ({
         },
       },
     },
+    { $replaceRoot: { newRoot: "$posts" } },
 
-    {
-      $replaceRoot: {
-        newRoot: "$posts",
-      },
-    },
+    // Only active posts
+    { $match: { status: "active" } },
+
+    ...(remoteOnlyFollowed
+      ? [
+          {
+            $match: {
+              userId: { $in: followedIds },
+            },
+          },
+        ]
+      : []),
 
     ...(blockedIds.length
       ? [
@@ -200,8 +267,6 @@ exports.getPostsAtPoint = async ({
       : []),
 
     { $sort: { createdAt: -1 } },
-
-    // 8️⃣ JOIN USER info
     {
       $lookup: {
         from: "users",
@@ -210,10 +275,7 @@ exports.getPostsAtPoint = async ({
         as: "user",
       },
     },
-
     { $unwind: "$user" },
-
-    // 🔟 Chỉ lấy field cần thiết
     {
       $project: {
         content: 1,
@@ -242,12 +304,12 @@ exports.getPostsAtPoint = async ({
 // Helper function to calculate distance using Haversine formula
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radius of the earth in km
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
+  const dLat = deg2rad(Number(lat2) - Number(lat1));
+  const dLon = deg2rad(Number(lon2) - Number(lon1));
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
+    Math.cos(deg2rad(Number(lat1))) *
+      Math.cos(deg2rad(Number(lat2))) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
