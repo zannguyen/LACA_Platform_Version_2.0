@@ -21,7 +21,7 @@ import ChatListPage from "../pages/ChatListPage";
 import ChatDetailPage from "../pages/ChatDetailPage";
 import DeleteAccountConfirmPage from "../pages/DeleteAccountConfirmPage";
 import SettingPage from "../pages/SettingPage";
-
+import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -34,15 +34,43 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
       {/* App pages */}
-      <Route path="/home" element={<Home />} />
-      <Route path="/map" element={<Map />} />
-      <Route path="/profile" element={<UserProfile />} />
+      <Route
+        path="/home"
+        element={
+          <RequireAuth>
+            <Home />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/map"
+        element={
+          <RequireAuth>
+            <Map />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth>
+            <UserProfile />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/setting"
+        element={
+          <RequireAuth>
+            <SettingPage />
+          </RequireAuth>
+        }
+      />
       <Route path="/profile/:userId" element={<StrangerProfile />} />
       <Route path="/camera" element={<Camera />} />
       <Route path="/camera-post" element={<CameraPost />} />
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />
       <Route path="/notification" element={<Notification />} />
-      <Route path="/setting" element={<SettingPage />} />
       <Route path="/feedback" element={<FeedbackPage />} />
       <Route path="/report" element={<ReportPage />} />
       <Route path="/chat" element={<ChatListPage />} />

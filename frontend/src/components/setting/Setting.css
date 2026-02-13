@@ -229,8 +229,7 @@
   background:
     /* base line */
     linear-gradient(#111, #111) center / 100% 2px no-repeat,
-    /* ticks */
-    linear-gradient(#111, #111) left center / 2px 10px no-repeat,
+    /* ticks */ linear-gradient(#111, #111) left center / 2px 10px no-repeat,
     linear-gradient(#111, #111) center center / 2px 10px no-repeat,
     linear-gradient(#111, #111) right center / 2px 10px no-repeat;
   outline: none;
@@ -295,4 +294,7 @@
   font-size: 12px;
   color: #666;
   line-height: 1.35;
+}
+.st-row.danger .st-row-text {
+  color: #d32f2f;
 }

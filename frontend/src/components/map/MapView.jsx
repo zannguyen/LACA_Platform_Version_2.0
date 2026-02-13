@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import {
   MapContainer,
   TileLayer,
   Circle,
+  Marker,
+  Popup,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -16,9 +18,11 @@ import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 import UserLocationMarker from "./UserLocationMarker";
 import PostsModal from "./PostsModal";
-import { getPostsAtPoint } from "../../api/map.api";
+import { getPostsAtPoint, getPostHotspots } from "../../api/map.api";
+
 import "./MapView.css";
 
+// Fix Leaflet default icon URLs
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -53,11 +57,90 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-const DEFAULT_CENTER = [16.0544, 108.2208]; // Đà Nẵng
+// Marker thumbnail giống hình bạn muốn
+function HotspotMarker({ position, thumb, count, onOpen }) {
+  const icon = useMemo(() => {
+    const safeThumb = thumb ? String(thumb).replaceAll('"', "&quot;") : "";
+
+    const html = `
+      <div style="
+        width: 56px; height: 56px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 3px solid #fff;
+        box-shadow: 0 10px 22px rgba(0,0,0,.28);
+        background: #111;
+        position: relative;
+      ">
+        ${
+          safeThumb
+            ? `<img src="${safeThumb}" style="width:100%;height:100%;object-fit:cover;" />`
+            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;">${count}</div>`
+        }
+
+        <div style="
+          position:absolute; bottom: -10px; right: -10px;
+          width: 28px; height: 28px;
+          border-radius: 999px;
+          background:#000;
+          color:#fff;
+          display:flex;align-items:center;justify-content:center;
+          font-size: 12px;
+          font-weight: 700;
+          border:2px solid #fff;
+        ">${count}</div>
+      </div>
+    `;
+
+    return L.divIcon({
+      className: "",
+      html,
+      iconSize: [56, 56],
+      iconAnchor: [28, 56],
+      popupAnchor: [0, -56],
+    });
+  }, [thumb, count]);
+
+  return (
+    <Marker
+      position={position}
+      icon={icon}
+      eventHandlers={{
+        click: () => onOpen?.(),
+      }}
+    >
+      <Popup>
+        <div style={{ width: 180 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+            Có {count} bài viết
+          </div>
+          {thumb && (
+            <img
+              src={thumb}
+              alt=""
+              style={{
+                width: "100%",
+                borderRadius: 10,
+                objectFit: "cover",
+              }}
+            />
+          )}
+          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+            Bấm marker để mở danh sách bài viết
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+const DEFAULT_CENTER = [16.0544, 108.2208];
 const DEFAULT_ZOOM = 13;
 
 const MapView = () => {
-  const { enabled: locationEnabled, requestCurrentPosition } = useLocationAccess();
+  const { enabled: locationEnabled, requestCurrentPosition } =
+    useLocationAccess();
+
   const [userLocation, setUserLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
@@ -65,15 +148,22 @@ const MapView = () => {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
 
-  // Posts modal state
+  // Hotspots data
+  const [hotspots, setHotspots] = useState([]); // [{lat,lng,weight,thumb,placeId}]
+  const [hotspotMeta, setHotspotMeta] = useState({ places: 0, total: 0 });
+
+  // Posts modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalPosts, setModalPosts] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState(null);
 
   const mapRef = useRef(null);
-  const searchRadius = 5000;
 
+  const searchRadius = 5000; // meters
+  const radiusKm = searchRadius / 1000;
+
+  // Load user location
   useEffect(() => {
     getUserLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,12 +174,20 @@ const MapView = () => {
       setUserLocation(null);
       setMapCenter(DEFAULT_CENTER);
       setMapZoom(DEFAULT_ZOOM);
-      setNotice("Định vị đang tắt. Bật 'Allow location access' trong Setting để sử dụng Map.");
+      setNotice(
+        "Định vị đang tắt. Bật 'Allow location access' trong Setting để sử dụng Map.",
+      );
       setLoading(false);
       return;
     }
 
-    requestCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 })
+    setLoading(true);
+
+    requestCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    })
       .then((pos) => {
         const loc = [pos.lat, pos.lng];
         setUserLocation(loc);
@@ -102,10 +200,42 @@ const MapView = () => {
         setUserLocation(null);
         setMapCenter(DEFAULT_CENTER);
         setMapZoom(DEFAULT_ZOOM);
-        setNotice("Không thể lấy vị trí. Vui lòng bật quyền vị trí trong trình duyệt.");
+        setNotice(
+          "Không thể lấy vị trí. Vui lòng bật quyền vị trí trong trình duyệt.",
+        );
         setLoading(false);
       });
   };
+
+  // Fetch hotspots (thumbnail markers)
+  useEffect(() => {
+    const run = async () => {
+      if (!userLocation) {
+        setHotspots([]);
+        setHotspotMeta({ places: 0, total: 0 });
+        return;
+      }
+
+      const [lat, lng] = userLocation;
+
+      const result = await getPostHotspots(lat, lng, radiusKm, 30, 80);
+      if (!result?.success) {
+        setNotice(result?.message || "Không thể lấy hotspots");
+        setHotspots([]);
+        setHotspotMeta({ places: 0, total: 0 });
+        return;
+      }
+
+      const rows = result.data?.data || [];
+      const total = rows.reduce((s, x) => s + (x.weight || 0), 0);
+
+      setHotspots(rows);
+      setHotspotMeta({ places: rows.length, total });
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation]);
 
   const handleRecenterToUser = () => {
     if (!userLocation) return;
@@ -113,13 +243,12 @@ const MapView = () => {
     setMapZoom(DEFAULT_ZOOM);
   };
 
-  const handleMapClick = async (clickLat, clickLng) => {
+  const openPostsModalAt = async (lat, lng) => {
     if (!userLocation) {
       setNotice("Vui lòng bật quyền vị trí để xem bài viết");
       return;
     }
 
-    // Open modal and start loading
     setIsModalOpen(true);
     setModalLoading(true);
     setModalError(null);
@@ -127,22 +256,27 @@ const MapView = () => {
 
     try {
       const result = await getPostsAtPoint(
-        clickLat,
-        clickLng,
+        lat,
+        lng,
         userLocation[0],
         userLocation[1],
       );
 
-      if (result.success) {
-        setModalPosts(result.data.data || []);
+      if (result?.success) {
+        setModalPosts(result.data?.data || []);
       } else {
-        setModalError(result.message);
+        setModalError(result?.message || "Không thể tải bài viết");
       }
-    } catch (error) {
+    } catch (e) {
       setModalError("Đã xảy ra lỗi khi tải bài viết");
     } finally {
       setModalLoading(false);
     }
+  };
+
+  // Click map trống -> vẫn mở posts tại điểm click
+  const handleMapClick = async (clickLat, clickLng) => {
+    await openPostsModalAt(clickLat, clickLng);
   };
 
   const handleCloseModal = () => {
@@ -179,6 +313,17 @@ const MapView = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
 
+        {/* Hotspot thumbnail markers */}
+        {hotspots.map((h) => (
+          <HotspotMarker
+            key={h.placeId || `${h.lat},${h.lng}`}
+            position={[h.lat, h.lng]}
+            thumb={h.thumb}
+            count={h.weight || 1}
+            onOpen={() => openPostsModalAt(h.lat, h.lng)}
+          />
+        ))}
+
         {userLocation && (
           <>
             <Circle
@@ -186,10 +331,10 @@ const MapView = () => {
               radius={searchRadius}
               pathOptions={{
                 fillColor: "#4CAF50",
-                fillOpacity: 0.1,
+                fillOpacity: 0.08,
                 color: "#4CAF50",
                 weight: 2,
-                opacity: 0.5,
+                opacity: 0.4,
               }}
             />
             <UserLocationMarker position={userLocation} />
@@ -219,8 +364,9 @@ const MapView = () => {
 
         <button
           className="refresh-btn"
-          disabled
-          title="Chưa có backend check-in"
+          onClick={() => userLocation && setUserLocation([...userLocation])}
+          title="Tải lại hotspots"
+          disabled={!userLocation}
         >
           <svg
             width="24"
@@ -241,7 +387,10 @@ const MapView = () => {
         </div>
       )}
 
-      <div className="checkin-count">0 địa điểm trong bán kính 5km</div>
+      <div className="checkin-count">
+        {hotspotMeta.places} điểm • {hotspotMeta.total} bài viết trong bán kính{" "}
+        {radiusKm}km
+      </div>
 
       <PostsModal
         isOpen={isModalOpen}
