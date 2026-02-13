@@ -1,6 +1,7 @@
 // controllers/post.controller.js
 const service = require("../services/post.service");
 const Post = require("../models/post.model");
+const UserService = require("../services/user.service");
 
 const create = async (req, res) => {
   try {
@@ -79,7 +80,17 @@ const createWithMedia = async (req, res) => {
 
 const getHomePosts = async (req, res) => {
   try {
-    const posts = await Post.find({ status: "active" })
+    let blockedUserIds = [];
+    if (req.user?.id) {
+      blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+    }
+
+    const query = { status: "active" };
+    if (blockedUserIds.length) {
+      query.userId = { $nin: blockedUserIds };
+    }
+
+    const posts = await Post.find(query)
       .populate("userId", "name avatar")
       .populate("placeId", "name")
       .sort({ createdAt: -1 })

@@ -1,7 +1,21 @@
+const mongoose = require("mongoose");
 const Place = require("../models/place.model");
 const AppError = require("../utils/appError");
 
-exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
+const normalizeBlockedIds = (blockedUserIds = []) =>
+  blockedUserIds.map((id) =>
+    id instanceof mongoose.Types.ObjectId
+      ? id
+      : new mongoose.Types.ObjectId(id),
+  );
+
+exports.getPostsInRadius = async ({
+  lat,
+  lng,
+  limit = 10,
+  blockedUserIds = [],
+}) => {
+  const blockedIds = normalizeBlockedIds(blockedUserIds);
   const pipeline = [
     // 1️⃣ Tìm place gần user
     {
@@ -50,6 +64,16 @@ exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
         status: "active",
       },
     },
+
+    ...(blockedIds.length
+      ? [
+          {
+            $match: {
+              userId: { $nin: blockedIds },
+            },
+          },
+        ]
+      : []),
 
     // 8️⃣ JOIN USER 🔥🔥🔥
     {
@@ -102,7 +126,14 @@ exports.getPostsInRadius = async ({ lat, lng, limit = 10 }) => {
   return posts;
 };
 
-exports.getPostsAtPoint = async ({ lat, lng, userLat, userLng }) => {
+exports.getPostsAtPoint = async ({
+  lat,
+  lng,
+  userLat,
+  userLng,
+  blockedUserIds = [],
+}) => {
+  const blockedIds = normalizeBlockedIds(blockedUserIds);
   // Kiểm tra nếu có vị trí user, validate khoảng cách
   if (userLat && userLng) {
     const distance = calculateDistance(userLat, userLng, lat, lng);
@@ -156,6 +187,16 @@ exports.getPostsAtPoint = async ({ lat, lng, userLat, userLng }) => {
         newRoot: "$posts",
       },
     },
+
+    ...(blockedIds.length
+      ? [
+          {
+            $match: {
+              userId: { $nin: blockedIds },
+            },
+          },
+        ]
+      : []),
 
     { $sort: { createdAt: -1 } },
 
