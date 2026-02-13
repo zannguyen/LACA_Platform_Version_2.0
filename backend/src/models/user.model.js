@@ -32,6 +32,23 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  avatar: {
+    type: String,
+    default: null,
+  },
+  region: {
+    type: String,
+    default: null,
+  },
+  status: {
+    type: String,
+    enum: ["active", "inactive", "banned"],
+    default: "active",
+  },
+  lastLogin: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

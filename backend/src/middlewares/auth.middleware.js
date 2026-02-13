@@ -1,6 +1,11 @@
 const jwtUtil = require("../utils/jwt");
+const User = require("../models/user.model");
 
-module.exports = (req, res, next) => {
+/**
+ * Middleware: Protect routes (kiểm tra token)
+ * Default export - dùng như: app.use(auth) hoặc router.post("/", auth, ...)
+ */
+module.exports = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -14,7 +19,14 @@ module.exports = (req, res, next) => {
 
     const decoded = jwtUtil.verifyAccessToken(token);
 
-    req.user = { id: decoded.userId }; // 👈 CHÍNH XÁC
+    // Fetch full user from DB để có role, avatar, v.v.
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user; // Gán toàn bộ user object
 
     next();
   } catch (error) {

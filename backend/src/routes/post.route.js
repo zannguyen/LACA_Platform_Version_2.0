@@ -20,3 +20,4 @@ router.post(
 router.get("/home", controller.getHomePosts);
 
 module.exports = router;
+
