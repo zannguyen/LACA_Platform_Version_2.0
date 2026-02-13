@@ -1,5 +1,6 @@
 // src/components/home/home.jsx
 import React, { useEffect, useState } from "react";
+import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate } from "react-router-dom";
 import "./home.css";
 
@@ -18,24 +19,27 @@ const Home = () => {
   const getAccessToken = () =>
     localStorage.getItem("token") || localStorage.getItem("authToken");
 
+  const { enabled: locationEnabled, requestCurrentPosition } = useLocationAccess();
+
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setErrMsg("Trình duyệt không hỗ trợ định vị GPS");
+    // Respect in-app location toggle: when OFF, do not read GPS.
+    if (!locationEnabled) {
+      setLocation(null);
+      setFeedPosts([]);
+      setErrMsg("Định vị đang tắt. Bật 'Allow location access' trong Setting để xem bài đăng gần bạn.");
       setLoading(false);
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => {
+    requestCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 })
+      .then((pos) => {
+        setLocation({ lat: pos.lat, lng: pos.lng });
+      })
+      .catch(() => {
         setErrMsg("Vui lòng bật quyền vị trí để xem bài đăng gần bạn");
         setLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, []);
+      });
+  }, [locationEnabled, requestCurrentPosition]);
 
   useEffect(() => {
     if (location) fetchHomePosts(location.lat, location.lng);
