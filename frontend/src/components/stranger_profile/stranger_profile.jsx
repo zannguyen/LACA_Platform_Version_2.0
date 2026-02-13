@@ -79,7 +79,9 @@ export default function StrangerProfile() {
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [isFollowing, setIsFollowing] = useState(false); // UI only
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followPending, setFollowPending] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
   const menuRef = useRef(null);
@@ -101,6 +103,8 @@ export default function StrangerProfile() {
 
       setProfile(payload?.user || null);
       setStats(payload?.stats || { posts: 0, followers: 0 });
+      setIsFollowing(Boolean(payload?.relationship?.isFollowing));
+      setIsOwner(Boolean(payload?.relationship?.isOwner));
       setPosts(payload?.posts || []);
       setPagination(payload?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
     } catch (e) {
@@ -139,6 +143,41 @@ export default function StrangerProfile() {
   const handleReport = () => {
     setShowHeaderMenu(false);
     alert("Report: (tạm thời chưa có BE)");
+  };
+
+  const handleToggleFollow = async () => {
+    if (!profile?._id) return;
+
+    // Prevent double taps
+    if (followPending) return;
+
+    setFollowPending(true);
+    try {
+      if (isFollowing) {
+        const res = await userApi.unfollowUser(profile._id);
+        setIsFollowing(false);
+        const newCount = res?.data?.data?.followers;
+        if (typeof newCount === "number") {
+          setStats((s) => ({ ...s, followers: newCount }));
+        } else {
+          setStats((s) => ({ ...s, followers: Math.max(0, (s.followers || 0) - 1) }));
+        }
+      } else {
+        const res = await userApi.followUser(profile._id);
+        setIsFollowing(true);
+        const newCount = res?.data?.data?.followers;
+        if (typeof newCount === "number") {
+          setStats((s) => ({ ...s, followers: newCount }));
+        } else {
+          setStats((s) => ({ ...s, followers: (s.followers || 0) + 1 }));
+        }
+      }
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || "Follow failed";
+      alert(msg);
+    } finally {
+      setFollowPending(false);
+    }
   };
 
   if (loading) {
@@ -231,12 +270,15 @@ export default function StrangerProfile() {
             </span>
           </div>
 
-          <button
-            className={`follow-btn ${isFollowing ? "following" : ""}`}
-            onClick={() => setIsFollowing((v) => !v)}
-          >
-            {isFollowing ? "FOLLOWING" : "FOLLOW"}
-          </button>
+          {!isOwner && (
+            <button
+              className={`follow-btn ${isFollowing ? "following" : ""}`}
+              onClick={handleToggleFollow}
+              disabled={followPending}
+            >
+              {followPending ? "..." : isFollowing ? "FOLLOWING" : "FOLLOW"}
+            </button>
+          )}
         </div>
 
         <h3 className="post-title">POSTS</h3>
