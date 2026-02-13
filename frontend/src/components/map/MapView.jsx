@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocationAccess } from "../../context/LocationAccessContext";
 import {
   MapContainer,
   TileLayer,
@@ -56,6 +57,7 @@ const DEFAULT_CENTER = [16.0544, 108.2208]; // Đà Nẵng
 const DEFAULT_ZOOM = 13;
 
 const MapView = () => {
+  const { enabled: locationEnabled, requestCurrentPosition } = useLocationAccess();
   const [userLocation, setUserLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
@@ -75,48 +77,34 @@ const MapView = () => {
   useEffect(() => {
     getUserLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locationEnabled]);
 
   const getUserLocation = () => {
-    if (!navigator.geolocation) {
-      setNotice(
-        "Trình duyệt không hỗ trợ định vị. Map hiển thị vị trí mặc định.",
-      );
+    if (!locationEnabled) {
+      setUserLocation(null);
+      setMapCenter(DEFAULT_CENTER);
+      setMapZoom(DEFAULT_ZOOM);
+      setNotice("Định vị đang tắt. Bật 'Allow location access' trong Setting để sử dụng Map.");
       setLoading(false);
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const loc = [latitude, longitude];
+    requestCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 })
+      .then((pos) => {
+        const loc = [pos.lat, pos.lng];
         setUserLocation(loc);
         setMapCenter(loc);
         setMapZoom(DEFAULT_ZOOM);
         setNotice(null);
         setLoading(false);
-      },
-      (err) => {
-        console.warn("Geolocation bị từ chối / lỗi:", err);
-
+      })
+      .catch(() => {
         setUserLocation(null);
         setMapCenter(DEFAULT_CENTER);
         setMapZoom(DEFAULT_ZOOM);
-
-        if (err.code === 1) {
-          setNotice(
-            "Bạn chưa bật quyền vị trí. Map đang hiển thị vị trí mặc định.",
-          );
-        } else {
-          setNotice(
-            "Không lấy được vị trí. Map đang hiển thị vị trí mặc định.",
-          );
-        }
-
+        setNotice("Không thể lấy vị trí. Vui lòng bật quyền vị trí trong trình duyệt.");
         setLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
+      });
   };
 
   const handleRecenterToUser = () => {
