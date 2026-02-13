@@ -1,19 +1,24 @@
 // controllers/post.controller.js
 const service = require("../services/post.service");
 const Post = require("../models/post.model");
+
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/appError");
+const mongoose = require("mongoose");
+
 const UserService = require("../services/user.service");
 
 const create = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-    // ✅ accept string hoặc array
+    // accept string hoặc array
     const rawMediaUrl = req.body.mediaUrl;
     const mediaUrl = Array.isArray(rawMediaUrl)
       ? rawMediaUrl
       : rawMediaUrl
-        ? [rawMediaUrl]
-        : [];
+      ? [rawMediaUrl]
+      : [];
 
     const post = await service.createPost({
       userId: req.user.id,
@@ -37,7 +42,7 @@ const create = async (req, res) => {
   }
 };
 
-// ✅ create post + upload cloudinary
+// create post + upload cloudinary
 const createWithMedia = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -47,8 +52,7 @@ const createWithMedia = async (req, res) => {
 
     let type = req.body.type;
     if (!type) {
-      if (files.some((f) => (f.mimetype || "").startsWith("video/")))
-        type = "video";
+      if (files.some((f) => (f.mimetype || "").startsWith("video/"))) type = "video";
       else if (mediaUrl.length > 0) type = "image";
       else type = "text";
     }
@@ -86,12 +90,10 @@ const getHomePosts = async (req, res) => {
     }
 
     const query = { status: "active" };
-    if (blockedUserIds.length) {
-      query.userId = { $nin: blockedUserIds };
-    }
+    if (blockedUserIds.length) query.userId = { $nin: blockedUserIds };
 
     const posts = await Post.find(query)
-      .populate("userId", "name avatar")
+      .populate("userId", "fullname username avatar") // ✅ dùng fullname/username/avatar
       .populate("placeId", "name")
       .sort({ createdAt: -1 })
       .limit(20);
@@ -103,4 +105,18 @@ const getHomePosts = async (req, res) => {
   }
 };
 
-module.exports = { create, createWithMedia, getHomePosts };
+// DELETE /api/posts/:postId (Auth required)
+// Hard delete: remove the post document from DB.
+// Only the owner of the post can delete.
+const deletePost = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) throw new AppError("Unauthorized", 401);
+  if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid postId", 400);
+
+  const result = await service.deletePost({ postId, userId });
+  return res.status(200).json({ success: true, message: "Post deleted", ...result });
+});
+
+module.exports = { create, createWithMedia, getHomePosts, deletePost };

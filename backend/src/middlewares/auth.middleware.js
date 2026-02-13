@@ -4,7 +4,6 @@ const User = require("../models/user.model");
 module.exports = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || "";
-
     if (!authHeader) {
       return res.status(401).json({ message: "Authorization header missing" });
     }
@@ -17,7 +16,7 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: "Access token missing" });
     }
 
-    // verify token (jwt payload của bạn là { userID })
+    // verify token
     let decoded;
     try {
       decoded = jwtUtil.verifyAccessToken(token);
@@ -28,11 +27,12 @@ module.exports = async (req, res, next) => {
       });
     }
 
+    // ✅ support multiple keys
     const userId =
-      decoded?.userID ||
       decoded?.userId ||
-      decoded?._id ||
+      decoded?.userID ||
       decoded?.id ||
+      decoded?._id ||
       decoded?.sub;
 
     if (!userId) {
@@ -40,16 +40,14 @@ module.exports = async (req, res, next) => {
     }
 
     const user = await User.findById(userId).select(
-      "_id role isActive isEmailVerified deletedAt suspendUntil",
+      "_id role isActive isEmailVerified deletedAt suspendUntil"
     );
 
     if (!user) {
       return res.status(401).json({ message: "Invalid token: user not found" });
     }
 
-    // ✅ chặn account theo status (blocked/suspended/deleted)
-    if (user.deletedAt)
-      return res.status(403).json({ message: "Account deleted" });
+    if (user.deletedAt) return res.status(403).json({ message: "Account deleted" });
 
     if (user.suspendUntil && user.suspendUntil.getTime() > Date.now()) {
       return res.status(403).json({
@@ -62,10 +60,10 @@ module.exports = async (req, res, next) => {
       return res.status(403).json({ message: "Account blocked" });
     }
 
-    // ✅ quan trọng: set đủ _id để controller chat dùng được
+    // set req.user cho toàn project dùng được
     req.user = {
-      _id: user._id, // 👈 chat.controller đang dùng
-      id: String(user._id), // 👈 admin requireAdmin kiểu khác vẫn dùng được
+      _id: user._id,
+      id: String(user._id),
       role: user.role,
     };
 

@@ -43,6 +43,12 @@ export const createPost = async ({ content, type, mediaUrl }) => {
   return res.data;
 };
 
+// Delete post -> /api/posts/:postId (cần auth)
+export const deletePost = async (postId) => {
+  const res = await api.delete(`/posts/${postId}`);
+  return res.data;
+};
+
 // Get nearby posts (no pagination)
 export const getNearbyPosts = async ({ lat, lng }) => {
   const res = await api.get("/map/posts/nearby", {

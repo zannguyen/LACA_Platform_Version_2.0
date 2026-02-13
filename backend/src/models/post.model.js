@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const schema = new mongoose.Schema(
   {
-    userId: mongoose.Schema.Types.ObjectId,
-    placeId: mongoose.Schema.Types.ObjectId,
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    placeId: { type: mongoose.Schema.Types.ObjectId, ref: "Place" },
     content: String,
     type: String,
     status: String,

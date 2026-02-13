@@ -101,6 +101,7 @@ exports.getPostsInRadius = async ({
           _id: "$user._id",
           fullname: "$user.fullname",
           username: "$user.username",
+          avatar: "$user.avatar",
         },
       },
     },

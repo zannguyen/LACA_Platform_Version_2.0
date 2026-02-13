@@ -1,34 +1,29 @@
-/* src/pages/stranger_profile/stranger_profile.css */
+/* frontend/src/components/stranger_profile/stranger_profile.css */
+/* Scope toàn bộ vào .stranger-profile để không ảnh hưởng trang khác */
 
-/* --- CẤU HÌNH CƠ BẢN --- */
-* {
+.stranger-profile * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: "Segoe UI", sans-serif;
 }
-body {
-  background-color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
 
-.mobile-wrapper {
+/* Wrapper chính */
+.stranger-profile.mobile-wrapper {
   width: 375px;
   height: 800px;
   background-color: #fff;
   position: relative;
   border-radius: 30px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* --- HEADER (Nút Back & 3 Chấm) --- */
-.top-nav {
+/* --- HEADER --- */
+.stranger-profile .top-nav {
   padding: 15px 20px;
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
@@ -38,88 +33,185 @@ body {
   position: relative;
   z-index: 50;
 }
-.nav-btn {
+
+.stranger-profile .nav-btn {
   font-size: 24px;
   color: #333;
   cursor: pointer;
   background: none;
   border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.stranger-profile .nav-btn svg {
+  display: block;
 }
 
-/* Menu Dropdown góc phải (Report User) */
-.header-menu {
+.stranger-profile .header-actions {
+  position: relative;
+}
+
+/* Dropdown header menu */
+.stranger-profile .header-menu {
   display: none;
   position: absolute;
-  top: 50px;
-  right: 20px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+  top: 44px;
+  right: 0;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid #eee;
-  width: 160px;
+  min-width: 160px;
+  z-index: 80;
 }
-.header-menu.show {
+.stranger-profile .header-menu.show {
   display: block;
-  animation: fadeIn 0.2s;
+  animation: fadeIn 0.2s ease-out;
+}
+.stranger-profile .menu-item {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #f7f7f7;
+  text-align: left;
+}
+.stranger-profile .menu-item:hover {
+  background: #f5f5f5;
+}
+.stranger-profile .menu-item.danger {
+  color: #dc3545;
+  font-weight: 600;
+}
+.stranger-profile .menu-item:last-child {
+  border-bottom: none;
+}
+.stranger-profile .menu-item svg {
+  flex-shrink: 0;
+  display: block;
 }
 
-/* --- USER INFO --- */
-.profile-container {
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- MAIN --- */
+.stranger-profile .profile-container {
   flex: 1;
   overflow-y: auto;
   padding: 10px 20px 20px;
 }
-.profile-container::-webkit-scrollbar {
+.stranger-profile .profile-container::-webkit-scrollbar {
   display: none;
 }
 
-.user-details-section {
+/* Header user info (căn trái sát avatar giống user_profile) */
+.stranger-profile .details-section {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
+  gap: 14px;              /* sát hơn */
 }
-.avatar-large {
+
+.stranger-profile .avatar-large {
   width: 80px;
   height: 80px;
   background-color: #d9d9d9;
   border-radius: 50%;
-  margin-right: 20px;
   border: 1px solid #ccc;
   flex-shrink: 0;
-  overflow: hidden; /* Thêm cái này để ảnh avatar không bị tràn ra ngoài hình tròn */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.user-name {
+
+.stranger-profile .avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* fallback nếu không có avatar */
+.stranger-profile .avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stranger-profile .avatar-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #333;
+  opacity: 0.25;
+}
+
+.stranger-profile .user-name-distance {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* ✅ căn trái */
+  text-align: left;
+}
+
+.stranger-profile .user-name {
   font-size: 18px;
   font-weight: 700;
   color: #000;
   margin-bottom: 4px;
+  overflow-wrap: break-word;
 }
-.user-id {
+
+.stranger-profile .user-id {
   font-size: 14px;
   color: #000;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
-.user-bio {
+
+.stranger-profile .user-bio {
   font-size: 14px;
   color: #000;
 }
 
-/* --- STATS & FOLLOW BUTTON --- */
-.stats-action-section {
+/* Stats giống user_profile: posts + followers sát nhau */
+.stranger-profile .stats-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 25px;
 }
-.stat-item {
+
+.stranger-profile .stats-group {
+  display: flex;
+  align-items: center;
+  gap: 14px; /* ✅ sát nhau hơn */
+}
+
+.stranger-profile .stat-item {
   font-size: 13px;
-  margin-right: 15px;
   color: #000;
 }
 
-/* Nút FOLLOW */
-.follow-btn {
+/* Follow button giữ design cũ */
+.stranger-profile .follow-btn {
   background: #fff;
   color: #000;
   border: 1px solid #000;
@@ -132,102 +224,86 @@ body {
   transition: 0.2s;
   letter-spacing: 0.5px;
 }
-.follow-btn.following {
+.stranger-profile .follow-btn.following {
   background: #000;
   color: #fff;
 }
-.follow-btn:active {
+.stranger-profile .follow-btn:active {
   transform: scale(0.95);
 }
 
-/* --- POSTS --- */
-.mini-post {
-  margin-bottom: 30px;
+/* Title */
+.stranger-profile .post-title {
+  font-size: 12px;
+  color: #000;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+}
+
+/* Posts list */
+.stranger-profile .posts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.stranger-profile .post-item {
   position: relative;
 }
-.mini-post-header {
+
+/* Header mỗi post giống user_profile */
+.stranger-profile .mini-post-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
-  position: relative;
 }
-.mini-user {
+
+.stranger-profile .mini-user {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
-.mini-avatar {
+
+.stranger-profile .mini-avatar {
   width: 30px;
   height: 30px;
-  background: #d9d9d9;
+  background-color: #d9d9d9;
   border-radius: 50%;
+  overflow: hidden;
   margin-right: 10px;
   border: 1px solid #ccc;
-  overflow: hidden;
+  flex-shrink: 0;
 }
-.mini-username {
+
+.stranger-profile .mini-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stranger-profile .mini-username {
   font-size: 14px;
   font-weight: 600;
   color: #000;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Nút Report Post (!) */
-.report-post-btn {
-  font-size: 18px;
-  color: #333;
-  cursor: pointer;
-  padding: 5px;
+.stranger-profile .mini-date {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
 }
 
-/* Menu Dropdown của Post */
-.post-menu {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 30px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  z-index: 10;
-  border: 1px solid #eee;
-  width: 140px;
-}
-.post-menu.show {
-  display: block;
-  animation: fadeIn 0.2s;
-}
-
-.menu-item {
-  padding: 12px 15px;
-  font-size: 13px;
-  color: #333;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #f9f9f9;
-}
-.menu-item:hover {
-  background-color: #f5f5f5;
-}
-.menu-item.danger {
-  color: #dc3545;
-  font-weight: 600;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* --- [QUAN TRỌNG] SỬA PHẦN HIỂN THỊ ẢNH & VIDEO --- */
-.post-image-wrapper {
+/* Media wrapper giữ y design cũ: height 350 + overlay caption */
+.stranger-profile .post-media {
   position: relative;
   width: 100%;
   height: 350px;
@@ -238,9 +314,8 @@ body {
   overflow: hidden;
 }
 
-/* Áp dụng cho cả thẻ IMG và thẻ VIDEO để nó full khung hình */
-.post-image-wrapper img,
-.post-image-wrapper video {
+.stranger-profile .post-media img,
+.stranger-profile .post-media video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -248,7 +323,8 @@ body {
   display: block;
 }
 
-.overlay-caption {
+/* Caption overlay */
+.stranger-profile .post-caption {
   position: absolute;
   bottom: 15px;
   left: 0;
@@ -258,4 +334,5 @@ body {
   font-size: 13px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   z-index: 5;
+  padding: 0 12px;
 }

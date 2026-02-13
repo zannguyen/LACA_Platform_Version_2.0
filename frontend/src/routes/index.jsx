@@ -36,6 +36,7 @@ export default function AppRoutes() {
       <Route path="/home" element={<Home />} />
       <Route path="/map" element={<Map />} />
       <Route path="/profile" element={<UserProfile />} />
+      <Route path="/profile/:userId" element={<StrangerProfile />} />
       <Route path="/camera" element={<Camera />} />
       <Route path="/camera-post" element={<CameraPost />} />
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />

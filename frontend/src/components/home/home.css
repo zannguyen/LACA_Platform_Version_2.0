@@ -83,7 +83,7 @@
 .mobile-wrapper .home-main {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 20px;
+  padding: 10px 0 20px;
 }
 
 /* Ẩn thanh cuộn (chỉ Home) */
@@ -94,14 +94,10 @@
 
 /* =========================================================
    ✅ MENU HOME - THEO STATE (KHÔNG DÙNG CHECKBOX)
-   - overlay chỉ hiện khi có class .show
-   - sidebar mở khi có class .open
 ========================================================= */
-
-/* overlay nằm TRONG .mobile-wrapper để không che toàn app */
 .mobile-wrapper .home-overlay {
   position: absolute;
-  inset: 0; /* top right bottom left = 0 */
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
 
   z-index: 1000;
@@ -115,7 +111,6 @@
   pointer-events: auto;
 }
 
-/* sidebar trượt từ trái */
 .mobile-wrapper .home-sidebar {
   position: absolute;
   top: 0;
@@ -140,7 +135,6 @@
   transform: translateX(0);
 }
 
-/* menu content */
 .mobile-wrapper .home-sidebar .sidebar-header {
   font-size: 20px;
   font-weight: bold;
@@ -167,37 +161,47 @@
 }
 
 /* =========================================================
-   POST CARD (BÀI VIẾT)
+   ✅ POST CARD (BÀI VIẾT) - THẨM MỸ
 ========================================================= */
 .mobile-wrapper .post-card {
   background: #fff;
-  margin-bottom: 10px;
+  margin: 12px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
 }
 
+/* Header: avatar góc trái + tên ngay bên phải */
 .mobile-wrapper .post-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
+  padding: 12px 14px;
 }
 
 .mobile-wrapper .user-info {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
+  gap: 10px;
+
   text-decoration: none;
   color: #000;
   cursor: pointer;
+  min-width: 0;
 }
 
 .mobile-wrapper .user-avatar {
-  width: 32px;
-  height: 32px;
-  background: #ccc;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  background: #d7d7d7;
+  border-radius: 999px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
+  flex: 0 0 auto;
+  overflow: hidden;
 }
 
 .mobile-wrapper .user-avatar i {
@@ -205,20 +209,27 @@
   font-size: 14px;
 }
 
-.mobile-wrapper .username {
-  font-weight: bold;
-  font-size: 14px;
-}
-
+/* tên + distance cùng 1 hàng, gọn */
 .mobile-wrapper .user-name-distance {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mobile-wrapper .username {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
 }
 
 .mobile-wrapper .post-distance {
   font-size: 12px;
-  color: #888;
+  color: #8a8a8a;
   font-weight: 400;
   white-space: nowrap;
 }
@@ -241,8 +252,8 @@
   top: 30px;
   background-color: #fff;
   min-width: 150px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
   z-index: 50;
   overflow: hidden;
   border: 1px solid #eee;
@@ -287,13 +298,17 @@
   }
 }
 
-/* Media */
+/* Media: bo góc nhẹ + có khoảng trắng thẩm mỹ */
 .mobile-wrapper .post-image-wrapper {
   position: relative;
-  width: 100%;
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+
   height: 400px;
-  background-color: #000;
-  overflow: hidden;
+  background-color: #111;
+
+  border-radius: 14px; /* ✅ bo góc ảnh/video */
+  overflow: hidden;     /* ✅ cắt ảnh theo radius */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -308,20 +323,22 @@
   display: block;
 }
 
+/* caption overlay gọn, không quá to */
 .mobile-wrapper .caption-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
+
   background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   color: white;
-  padding: 20px 15px 10px 15px;
+
+  padding: 18px 14px 10px;
   font-size: 14px;
   text-align: center;
   box-sizing: border-box;
 }
 
-/* focus */
 .mobile-wrapper button:focus {
   outline: none !important;
   box-shadow: none !important;
@@ -330,8 +347,11 @@
 .mobile-wrapper .post-actions {
   display: flex;
   align-items: center;
-  padding: 10px 15px;
+  padding: 10px 14px 12px;
   background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
 }
 
 .mobile-wrapper .left-actions {
@@ -341,6 +361,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  padding: 6px 0;
 }
 
 .mobile-wrapper .action-icon {
