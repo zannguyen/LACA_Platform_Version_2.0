@@ -10,6 +10,9 @@ const chatApi = {
 
   // Lấy danh sách cuộc trò chuyện
   getConversations: () => api.get("/chat"),
+
+  // Đánh dấu đã đọc
+  markRead: (receiverId) => api.post(`/chat/read/${receiverId}`),
 };
 
 export default chatApi;

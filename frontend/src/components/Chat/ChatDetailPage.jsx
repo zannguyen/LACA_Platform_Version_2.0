@@ -15,6 +15,8 @@ const ChatDetailPage = () => {
 
   const [receiverId, setReceiverId] = useState("");
   const [receiverName, setReceiverName] = useState("User");
+  const [conversationId, setConversationId] = useState("");
+  const conversationIdRef = useRef("");
 
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -68,6 +70,10 @@ const ChatDetailPage = () => {
     setTimeout(() => setToast(""), 2500);
   };
 
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
+
   // ✅ load receiver từ localStorage
   useEffect(() => {
     const me = getCurrentUserId();
@@ -96,7 +102,15 @@ const ChatDetailPage = () => {
         const normalized = (response.data || []).map((m) =>
           normalizeMessage(m, me),
         );
+        const first = response.data?.[0];
+        if (first?.conversationId) {
+          setConversationId(String(first.conversationId));
+        }
         setMessages(normalized);
+        await chatApi.markRead(receiverId);
+        setMessages((prev) =>
+          prev.map((m) => (m.isSent ? m : { ...m, isRead: true })),
+        );
       } catch (err) {
         console.error("Lỗi lấy tin nhắn:", err);
         setMessages([]);
@@ -137,10 +151,27 @@ const ChatDetailPage = () => {
     s.on("receive_message", (data) => {
       const senderId = data?.senderId?._id || data?.senderId;
       if (String(senderId || "") === String(receiverId || "")) {
+        if (!conversationIdRef.current && data?.conversationId) {
+          setConversationId(String(data.conversationId));
+        }
         setMessages((prev) => [...prev, normalizeMessage(data, currentUserId)]);
+        chatApi.markRead(receiverId).catch(() => {});
       } else {
         showToast("Có tin nhắn mới");
       }
+    });
+
+    s.on("messages_read", ({ conversationId: readConversationId }) => {
+      if (!readConversationId) return;
+      if (
+        conversationIdRef.current &&
+        String(readConversationId) !== String(conversationIdRef.current)
+      ) {
+        return;
+      }
+      setMessages((prev) =>
+        prev.map((m) => (m.isSent ? { ...m, isRead: true } : m)),
+      );
     });
 
     setSocket(s);
@@ -204,11 +235,15 @@ const ChatDetailPage = () => {
             Chưa có cuộc trò chuyện
           </p>
         ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={msg._id || msg.createdAt || idx}
-              className={`message-row ${msg.isSent ? "me" : ""}`}
-            >
+          messages.map((msg, idx) => {
+            const isLatest = idx === messages.length - 1;
+            const showUnread = msg.isSent && isLatest && msg.isRead === false;
+
+            return (
+              <div
+                key={msg._id || msg.createdAt || idx}
+                className={`message-row ${msg.isSent ? "me" : ""}`}
+              >
               {!msg.isSent && (
                 <div
                   className="avatar-circle"
@@ -216,21 +251,28 @@ const ChatDetailPage = () => {
                 />
               )}
 
-              {msg.image ? (
-                <div className="message-image">
-                  <img
-                    src={msg.image}
-                    alt="Message"
-                    style={{ maxWidth: 200 }}
-                  />
-                </div>
-              ) : (
-                <div className={`bubble ${msg.isSent ? "sent" : "received"}`}>
-                  {msg.text}
-                </div>
-              )}
+              <div className="message-content">
+                {msg.image ? (
+                  <div className="message-image">
+                    <img
+                      src={msg.image}
+                      alt="Message"
+                      style={{ maxWidth: 200 }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className={`bubble ${msg.isSent ? "sent" : "received"}`}
+                  >
+                    {msg.text}
+                  </div>
+                )}
+
+                {showUnread && <div className="message-status">Unread</div>}
+              </div>
             </div>
-          ))
+            );
+          })
         )}
         <div ref={messageEndRef} />
       </div>

@@ -72,6 +72,20 @@
   color: #999;
 }
 
+.chat-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.chat-unread-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2f88ff;
+}
+
 /* DETAIL STYLE */
 .chat-header-info {
   margin-left: 10px;
@@ -86,9 +100,17 @@
 
 .chat-detail-page {
   position: relative;
-  min-height: 80vh;
+  height: min(88vh, calc(100vh - 120px));
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.chat-detail-page .page-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 5;
 }
 
 .message-container {
@@ -110,13 +132,26 @@
   flex-direction: row-reverse;
 }
 
-.bubble {
+.message-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   max-width: 70%;
+}
+
+.message-row.me .message-content {
+  align-items: flex-end;
+}
+
+.bubble {
+  width: fit-content;
+  max-width: 100%;
   padding: 12px 16px;
   border-radius: 20px;
   font-size: 15px;
   line-height: 1.4;
   word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .bubble.received {
@@ -141,6 +176,12 @@
 .message-image img {
   width: 100%;
   display: block;
+}
+
+.message-status {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
 }
 
 .chat-input-bar {
