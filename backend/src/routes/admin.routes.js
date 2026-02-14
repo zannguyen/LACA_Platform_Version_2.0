@@ -20,6 +20,7 @@ router.get("/analytics", adminController.getAnalytics);
 router.get("/analytics/stats", adminController.getAnalyticsStats);
 router.get("/analytics/growth", adminController.getAnalyticsGrowth);
 router.get("/analytics/regions", adminController.getAnalyticsRegions);
+router.get("/analytics/debug", adminController.debugAnalytics);
 
 // Locations
 router.get("/locations", adminController.getAllLocations);

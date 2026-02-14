@@ -45,7 +45,7 @@
 ========================= */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -79,6 +79,10 @@
 
 .kpi-card.new {
   border-left: 5px solid #f97316;
+}
+
+.kpi-card.places {
+  border-left: 5px solid #3b82f6;
 }
 
 /* =========================

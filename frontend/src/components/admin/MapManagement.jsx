@@ -138,6 +138,17 @@ const MapManagement = () => {
     setShowAddModal(false);
     setEditingLocation(null);
     await fetchLocations();
+
+    // ✅ Emit signal to update Analytics
+    const action = editingLocation ? "update" : "create";
+    localStorage.setItem(
+      "placeUpdated",
+      JSON.stringify({
+        action,
+        timestamp: Date.now(),
+        locationName: formData.name,
+      })
+    );
   };
 
   const handleDelete = async (locationId) => {
@@ -151,6 +162,15 @@ const MapManagement = () => {
     }
 
     setLocations((prev) => prev.filter((l) => l.id !== locationId));
+
+    // ✅ Emit signal to update Analytics
+    localStorage.setItem(
+      "placeUpdated",
+      JSON.stringify({
+        action: "delete",
+        timestamp: Date.now(),
+      })
+    );
   };
 
   if (loading) {
@@ -183,7 +203,7 @@ const MapManagement = () => {
       </div>
 
       {errMsg && (
-        <div style={{ marginBottom: 12, color: "crimson" }}>
+        <div className="error-message">
           <b>Error:</b> {errMsg}
         </div>
       )}
