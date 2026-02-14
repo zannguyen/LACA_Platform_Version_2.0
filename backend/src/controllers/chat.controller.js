@@ -161,10 +161,60 @@ const getOrCreateConversation = asyncHandler(async (req, res) => {
   return res.status(200).json(conversation);
 });
 
+// 6) Mark messages as read
+const markRead = asyncHandler(async (req, res) => {
+  const { receiverId } = req.params;
+  const currentUserId = req.user?._id;
+  const rid = toObjectId(receiverId);
+
+  if (!currentUserId) return res.status(401).json({ message: "Unauthorized" });
+  if (!rid) return res.status(400).json({ message: "receiverId invalid" });
+
+  const conversation = await Conversation.findOne({
+    participants: { $all: [currentUserId, rid] },
+  });
+
+  if (!conversation) return res.status(200).json({ updated: 0 });
+
+  const result = await Message.updateMany(
+    {
+      conversationId: conversation._id,
+      senderId: { $ne: currentUserId },
+      isRead: false,
+    },
+    { $set: { isRead: true } },
+  );
+
+  if (
+    conversation.lastMessage?.sender &&
+    String(conversation.lastMessage.sender) !== String(currentUserId)
+  ) {
+    await Conversation.findByIdAndUpdate(conversation._id, {
+      "lastMessage.isRead": true,
+    });
+  }
+
+  const io = req.app.get("io");
+  if (io) {
+    const otherId = conversation.participants.find(
+      (id) => String(id) !== String(currentUserId),
+    );
+    if (otherId) {
+      io.to(String(otherId)).emit("messages_read", {
+        conversationId: String(conversation._id),
+        readerId: String(currentUserId),
+      });
+    }
+  }
+
+  return res.status(200).json({ updated: result.modifiedCount || 0 });
+});
+
 module.exports = {
   sendMessage,
   getMessages,
   getConversations,
   searchUsers,
   getOrCreateConversation,
+  markRead,
 };

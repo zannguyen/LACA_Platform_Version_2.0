@@ -143,6 +143,25 @@ const ChatListPage = () => {
       showToast(`Tin nhắn mới từ ${name}`);
     });
 
+    s.on("messages_read", ({ conversationId }) => {
+      if (!conversationId) return;
+      setConversations((prev) => {
+        const next = prev.map((conv) =>
+          String(conv._id) === String(conversationId)
+            ? {
+                ...conv,
+                lastMessage: {
+                  ...conv.lastMessage,
+                  isRead: true,
+                },
+              }
+            : conv,
+        );
+        conversationsRef.current = next;
+        return next;
+      });
+    });
+
     return () => s.close();
   }, [currentUserId]);
 
@@ -183,6 +202,13 @@ const ChatListPage = () => {
               conv.lastMessage?.text ||
               (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
 
+            const me = currentUserId;
+            const lastSender = conv.lastMessage?.sender;
+            const isUnread =
+              lastSender &&
+              String(lastSender) !== String(me) &&
+              conv.lastMessage?.isRead === false;
+
             const lastMessageTime =
               conv.lastMessage?.createdAt || conv.updatedAt || null;
 
@@ -206,9 +232,7 @@ const ChatListPage = () => {
                   <div className="avatar-circle" style={avatarStyle}>
                     {!other?.avatar && getInitials(other)}
                   </div>
-                  <span
-                    className={`status-dot ${isOnline ? "online" : ""}`}
-                  />
+                  <span className={`status-dot ${isOnline ? "online" : ""}`} />
                 </div>
 
                 <div className="chat-info">
@@ -218,14 +242,17 @@ const ChatListPage = () => {
                   </p>
                 </div>
 
-                <span className="chat-time">
-                  {lastMessageTime
-                    ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : ""}
-                </span>
+                <div className="chat-meta">
+                  <span className="chat-time">
+                    {lastMessageTime
+                      ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : ""}
+                  </span>
+                  {isUnread && <span className="chat-unread-dot" />}
+                </div>
               </div>
             );
           })
