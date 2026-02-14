@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import { getAllLocations, createLocation, updateLocation, deleteLocation } from "../../api/admin.api";
+import {
+  getAllLocations,
+  createLocation,
+  updateLocation,
+  deleteLocation,
+} from "../../api/admin.api";
 import "leaflet/dist/leaflet.css";
 import "./MapManagement.css";
 
@@ -16,97 +21,136 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
+const DEFAULT_CENTER = [10.8231, 106.6297]; // HCM
+
 const MapManagement = () => {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mapCenter] = useState([10.8231, 106.6297]); // Ho Chi Minh City
+  const [errMsg, setErrMsg] = useState("");
+
+  const [filter, setFilter] = useState("all"); // all | active | inactive
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
+
   const [formData, setFormData] = useState({
     name: "",
     address: "",
     latitude: "",
     longitude: "",
-    description: ""
+    category: "other",
+    isActive: true,
   });
+
+  const isActiveParam = useMemo(() => {
+    if (filter === "active") return true;
+    if (filter === "inactive") return false;
+    return undefined;
+  }, [filter]);
 
   useEffect(() => {
     fetchLocations();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const fetchLocations = async () => {
     setLoading(true);
-    const res = await getAllLocations(1, 100);
-    if (res.success) {
-      setLocations(res.data.locations || []);
+    setErrMsg("");
+
+    const res = await getAllLocations({ isActive: isActiveParam });
+
+    if (!res.success) {
+      setLocations([]);
+      setErrMsg(res.error?.message || "Failed to load locations");
+      setLoading(false);
+      return;
     }
+
+    setLocations(res.data?.locations || []);
     setLoading(false);
   };
 
   const handleFormChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAddClick = () => {
+    setEditingLocation(null);
     setFormData({
       name: "",
       address: "",
       latitude: "",
       longitude: "",
-      description: ""
+      category: "other",
+      isActive: true,
     });
-    setEditingLocation(null);
     setShowAddModal(true);
   };
 
   const handleEditClick = (location) => {
-    setFormData({
-      name: location.name,
-      address: location.address,
-      latitude: location.latitude.toString(),
-      longitude: location.longitude.toString(),
-      description: location.description || ""
-    });
     setEditingLocation(location);
+    setFormData({
+      name: location.name || "",
+      address: location.address || "",
+      latitude: String(location.latitude ?? ""),
+      longitude: String(location.longitude ?? ""),
+      category: location.category || "other",
+      isActive: location.isActive ?? true,
+    });
     setShowAddModal(true);
   };
 
   const handleSubmit = async () => {
-    const data = {
-      name: formData.name,
-      address: formData.address,
-      latitude: parseFloat(formData.latitude),
-      longitude: parseFloat(formData.longitude),
-      description: formData.description
+    const lat = Number(formData.latitude);
+    const lng = Number(formData.longitude);
+
+    if (
+      !formData.name ||
+      !formData.address ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng)
+    ) {
+      window.alert("Please fill Name/Address/Latitude/Longitude correctly.");
+      return;
+    }
+
+    const payload = {
+      name: formData.name.trim(),
+      address: formData.address.trim(),
+      latitude: lat,
+      longitude: lng,
+      category: formData.category,
+      isActive: !!formData.isActive,
     };
 
     let res;
     if (editingLocation) {
-      res = await updateLocation(editingLocation.id, data);
+      res = await updateLocation(editingLocation.id, payload);
     } else {
-      res = await createLocation(data);
+      res = await createLocation(payload);
     }
 
-    if (res.success) {
-      fetchLocations();
-      setShowAddModal(false);
-      setFormData({
-        name: "",
-        address: "",
-        latitude: "",
-        longitude: "",
-        description: ""
-      });
+    if (!res.success) {
+      window.alert(res.error?.message || "Save failed");
+      return;
     }
+
+    setShowAddModal(false);
+    setEditingLocation(null);
+    await fetchLocations();
   };
 
   const handleDelete = async (locationId) => {
-    if (!window.confirm("Are you sure you want to delete this location?")) return;
+    if (!window.confirm("Are you sure you want to delete this location?"))
+      return;
 
     const res = await deleteLocation(locationId);
-    if (res.success) {
-      setLocations(prev => prev.filter(l => l.id !== locationId));
+    if (!res.success) {
+      window.alert(res.error?.message || "Delete failed");
+      return;
     }
+
+    setLocations((prev) => prev.filter((l) => l.id !== locationId));
   };
 
   if (loading) {
@@ -124,24 +168,36 @@ const MapManagement = () => {
     <div className="map-management">
       <div className="page-header">
         <h1>Map Management</h1>
-        <button className="btn-add" onClick={handleAddClick}>
-          + Add Location
-        </button>
+
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="active">Active only</option>
+            <option value="inactive">Inactive only</option>
+          </select>
+
+          <button className="btn-add" onClick={handleAddClick}>
+            + Add Location
+          </button>
+        </div>
       </div>
+
+      {errMsg && (
+        <div style={{ marginBottom: 12, color: "crimson" }}>
+          <b>Error:</b> {errMsg}
+        </div>
+      )}
 
       {/* Map */}
       <div className="map-container">
-        <MapContainer 
-          center={mapCenter} 
-          zoom={13} 
-          className="leaflet-map"
-        >
+        <MapContainer center={DEFAULT_CENTER} zoom={13} className="leaflet-map">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {locations.map(location => (
-            <Marker 
+
+          {locations.map((location) => (
+            <Marker
               key={location.id}
               position={[location.latitude, location.longitude]}
             >
@@ -149,6 +205,18 @@ const MapManagement = () => {
                 <div className="popup-content">
                   <strong>{location.name}</strong>
                   <p>{location.address}</p>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    {location.latitude.toFixed(6)},{" "}
+                    {location.longitude.toFixed(6)}
+                  </div>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                    <button onClick={() => handleEditClick(location)}>
+                      Edit
+                    </button>
+                    <button onClick={() => handleDelete(location.id)}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </Popup>
             </Marker>
@@ -159,24 +227,32 @@ const MapManagement = () => {
       {/* Location List */}
       <div className="location-list">
         <h2>All Locations ({locations.length})</h2>
+
         <div className="location-items">
-          {locations.map(location => (
+          {locations.map((location) => (
             <div key={location.id} className="location-item">
               <div className="location-info">
-                <div className="location-name">{location.name}</div>
+                <div className="location-name">
+                  {location.name}{" "}
+                  <span style={{ fontSize: 12, opacity: 0.7 }}>
+                    ({location.isActive ? "active" : "inactive"})
+                  </span>
+                </div>
                 <div className="location-address">{location.address}</div>
                 <div className="location-coords">
-                  {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  {location.latitude.toFixed(4)},{" "}
+                  {location.longitude.toFixed(4)}
                 </div>
               </div>
+
               <div className="location-actions">
-                <button 
+                <button
                   className="btn-edit"
                   onClick={() => handleEditClick(location)}
                 >
                   Edit
                 </button>
-                <button 
+                <button
                   className="btn-delete"
                   onClick={() => handleDelete(location.id)}
                 >
@@ -185,6 +261,10 @@ const MapManagement = () => {
               </div>
             </div>
           ))}
+
+          {!locations.length && !errMsg && (
+            <div style={{ padding: 16, opacity: 0.7 }}>No locations found.</div>
+          )}
         </div>
       </div>
 
@@ -192,14 +272,14 @@ const MapManagement = () => {
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingLocation ? 'Edit Location' : 'Add New Location'}</h3>
-            
+            <h3>{editingLocation ? "Edit Location" : "Add New Location"}</h3>
+
             <div className="form-group">
               <label>Name *</label>
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleFormChange('name', e.target.value)}
+                onChange={(e) => handleFormChange("name", e.target.value)}
                 placeholder="Location name"
               />
             </div>
@@ -209,7 +289,7 @@ const MapManagement = () => {
               <input
                 type="text"
                 value={formData.address}
-                onChange={(e) => handleFormChange('address', e.target.value)}
+                onChange={(e) => handleFormChange("address", e.target.value)}
                 placeholder="Full address"
               />
             </div>
@@ -221,7 +301,7 @@ const MapManagement = () => {
                   type="number"
                   step="0.000001"
                   value={formData.latitude}
-                  onChange={(e) => handleFormChange('latitude', e.target.value)}
+                  onChange={(e) => handleFormChange("latitude", e.target.value)}
                   placeholder="10.8231"
                 />
               </div>
@@ -231,35 +311,61 @@ const MapManagement = () => {
                   type="number"
                   step="0.000001"
                   value={formData.longitude}
-                  onChange={(e) => handleFormChange('longitude', e.target.value)}
+                  onChange={(e) =>
+                    handleFormChange("longitude", e.target.value)
+                  }
                   placeholder="106.6297"
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label>Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => handleFormChange('description', e.target.value)}
-                placeholder="Additional information..."
-                rows="3"
+              <label>Category</label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleFormChange("category", e.target.value)}
+              >
+                <option value="cafe">cafe</option>
+                <option value="restaurant">restaurant</option>
+                <option value="bar">bar</option>
+                <option value="shop">shop</option>
+                <option value="park">park</option>
+                <option value="museum">museum</option>
+                <option value="hotel">hotel</option>
+                <option value="other">other</option>
+              </select>
+            </div>
+
+            <div
+              className="form-group"
+              style={{ display: "flex", gap: 10, alignItems: "center" }}
+            >
+              <input
+                type="checkbox"
+                checked={!!formData.isActive}
+                onChange={(e) => handleFormChange("isActive", e.target.checked)}
               />
+              <span>Active</span>
             </div>
 
             <div className="modal-actions">
-              <button 
-                className="btn-cancel" 
+              <button
+                className="btn-cancel"
                 onClick={() => setShowAddModal(false)}
               >
                 Cancel
               </button>
-              <button 
-                className="btn-confirm" 
+              <button
+                className="btn-confirm"
                 onClick={handleSubmit}
-                disabled={!formData.name || !formData.address || !formData.latitude || !formData.longitude}
+                disabled={
+                  !formData.name ||
+                  !formData.address ||
+                  !formData.latitude ||
+                  !formData.longitude
+                }
               >
-                {editingLocation ? 'Update' : 'Create'}
+                {editingLocation ? "Update" : "Create"}
               </button>
             </div>
           </div>

@@ -16,9 +16,6 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token =
     localStorage.getItem("authToken") || localStorage.getItem("token");
-
-  console.log("[FE] token exists?", !!token); // ✅ debug FE
-
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -42,7 +39,6 @@ const parseError = (err) => {
 export const getDashboardStats = async () => {
   try {
     const res = await apiClient.get("/admin/dashboard");
-    // backend trả { totalUsers, activeLocations, pendingReviews, totalPosts }
     return { success: true, data: res.data };
   } catch (err) {
     return { success: false, error: parseError(err) };
@@ -55,11 +51,7 @@ export const getRecentActivity = async (limit = 5) => {
     const res = await apiClient.get("/admin/recent-activity", {
       params: { limit },
     });
-
-    // backend trả: { activities: [...] }
     const activities = res.data?.activities || [];
-
-    // ✅ trả đúng format mock UI đang dùng: data là mảng
     return { success: true, data: activities };
   } catch (err) {
     return { success: false, error: parseError(err), data: [] };
@@ -70,13 +62,7 @@ export const getRecentActivity = async (limit = 5) => {
    USER MANAGEMENT
 ======================= */
 
-// GET /api/admin/users
-/* =======================
-   USER MANAGEMENT
-======================= */
-
 const computeStatus = (u) => {
-  // ưu tiên giống backend
   if (u?.deletedAt) return "deleted";
   if (u?.suspendUntil && new Date(u.suspendUntil).getTime() > Date.now())
     return "suspended";
@@ -105,14 +91,10 @@ export const getAllUsers = async ({
       name: u.fullname || u.username || u.email || "Unknown",
       email: u.email || "",
       avatar: u.avatar || null,
-
-      // ✅ 5 statuses
       status: u.status || computeStatus(u),
-
       role: u.role || "user",
       createdAt: u.createdAt,
 
-      // keep raw fields for dialogs
       fullname: u.fullname,
       username: u.username,
       isActive: u.isActive,
@@ -145,7 +127,7 @@ export const getAllUsers = async ({
   }
 };
 
-// PATCH /api/admin/users/:userId/status  (blocked/unblocked)
+// PATCH /api/admin/users/:userId/status
 export const updateUserStatus = async (userId, isActive) => {
   try {
     const res = await apiClient.patch(`/admin/users/${userId}/status`, {
@@ -157,8 +139,7 @@ export const updateUserStatus = async (userId, isActive) => {
   }
 };
 
-// ✅ PATCH /api/admin/users/:userId/suspend
-// suspendUntil: ISO string | null
+// PATCH /api/admin/users/:userId/suspend
 export const suspendUser = async (userId, suspendUntil) => {
   try {
     const res = await apiClient.patch(`/admin/users/${userId}/suspend`, {
@@ -170,8 +151,7 @@ export const suspendUser = async (userId, suspendUntil) => {
   }
 };
 
-// ✅ PATCH /api/admin/users/:userId/delete
-// deleted: true (soft delete) | false (restore)
+// PATCH /api/admin/users/:userId/delete
 export const softDeleteUser = async (userId, deleted) => {
   try {
     const res = await apiClient.patch(`/admin/users/${userId}/delete`, {
@@ -183,7 +163,7 @@ export const softDeleteUser = async (userId, deleted) => {
   }
 };
 
-// DELETE /api/admin/users/:userId  (backend bạn đã đổi thành soft delete)
+// DELETE /api/admin/users/:userId
 export const deleteUser = async (userId) => {
   try {
     const res = await apiClient.delete(`/admin/users/${userId}`);
@@ -197,7 +177,6 @@ export const deleteUser = async (userId) => {
    CONTENT MODERATION (REPORTS)
 ======================= */
 
-// GET /api/admin/reports?status=pending&page=1&limit=10
 export const getReportedContent = async ({
   status = "pending",
   page = 1,
@@ -207,14 +186,12 @@ export const getReportedContent = async ({
     const res = await apiClient.get("/admin/reports", {
       params: { status, page, limit },
     });
-    // gợi ý backend: { reports: [...], total, page, limit }
     return { success: true, data: res.data };
   } catch (err) {
     return { success: false, error: parseError(err) };
   }
 };
 
-// PATCH /api/admin/reports/:reportId/approve  (ví dụ: dismiss/report->reviewed)
 export const approveContent = async (reportId, payload = {}) => {
   try {
     const res = await apiClient.patch(
@@ -227,7 +204,6 @@ export const approveContent = async (reportId, payload = {}) => {
   }
 };
 
-// PATCH /api/admin/reports/:reportId/reject
 export const rejectContent = async (reportId, payload = {}) => {
   try {
     const res = await apiClient.patch(
@@ -240,7 +216,6 @@ export const rejectContent = async (reportId, payload = {}) => {
   }
 };
 
-// DELETE /api/admin/reports/:reportId  (hoặc xoá target tùy bạn)
 export const deleteContent = async (reportId) => {
   try {
     const res = await apiClient.delete(`/admin/reports/${reportId}`);
@@ -251,43 +226,133 @@ export const deleteContent = async (reportId) => {
 };
 
 /* =======================
-   MAP MANAGEMENT (PLACES)
+   MAP MANAGEMENT (LOCATIONS = Place)
 ======================= */
 
-// GET /api/admin/places
-export const getAllLocations = async () => {
+const normalizePlace = (p) => {
+  const id = p?.id || p?._id;
+
+  const coords = p?.location?.coordinates;
+  const lngRaw =
+    p?.lng ?? p?.longitude ?? (Array.isArray(coords) ? coords[0] : undefined);
+  const latRaw =
+    p?.lat ?? p?.latitude ?? (Array.isArray(coords) ? coords[1] : undefined);
+
+  const longitude = Number(lngRaw);
+  const latitude = Number(latRaw);
+
+  return {
+    id,
+    name: p?.name || "",
+    address: p?.address || "",
+    category: p?.category || "other",
+    isActive: p?.isActive !== undefined ? !!p.isActive : true,
+    longitude,
+    latitude,
+    raw: p,
+  };
+};
+
+// GET /api/admin/locations?isActive=true|false
+export const getAllLocations = async ({ isActive } = {}) => {
   try {
-    const res = await apiClient.get("/admin/places");
-    return { success: true, data: res.data };
+    const res = await apiClient.get("/admin/locations", {
+      params: isActive === undefined ? {} : { isActive },
+    });
+
+    // backend: { success:true, data:{ locations, count } }
+    const raw = res.data?.data?.locations || [];
+    const locations = raw
+      .map(normalizePlace)
+      .filter(
+        (x) => Number.isFinite(x.latitude) && Number.isFinite(x.longitude),
+      );
+
+    return {
+      success: true,
+      data: { locations, count: locations.length },
+      raw: res.data,
+    };
   } catch (err) {
-    return { success: false, error: parseError(err) };
+    return {
+      success: false,
+      error: parseError(err),
+      data: { locations: [], count: 0 },
+    };
   }
 };
 
-// POST /api/admin/places
+// POST /api/admin/locations
 export const createLocation = async (payload) => {
   try {
-    const res = await apiClient.post("/admin/places", payload);
+    // FE form thường dùng latitude/longitude
+    const latitude = payload?.latitude ?? payload?.lat;
+    const longitude = payload?.longitude ?? payload?.lng;
+
+    const body = {
+      name: payload?.name,
+      address: payload?.address,
+      category: payload?.category,
+      googlePlaceId: payload?.googlePlaceId,
+      isActive: payload?.isActive,
+      lat: latitude !== undefined ? Number(latitude) : undefined,
+      lng: longitude !== undefined ? Number(longitude) : undefined,
+    };
+
+    const res = await apiClient.post("/admin/locations", body);
     return { success: true, data: res.data };
   } catch (err) {
     return { success: false, error: parseError(err) };
   }
 };
 
-// PATCH /api/admin/places/:placeId
-export const updateLocation = async (placeId, payload) => {
+// PUT /api/admin/locations/:id
+export const updateLocation = async (id, payload) => {
   try {
-    const res = await apiClient.patch(`/admin/places/${placeId}`, payload);
+    const latitude = payload?.latitude ?? payload?.lat;
+    const longitude = payload?.longitude ?? payload?.lng;
+
+    const body = {
+      ...payload,
+      ...(latitude !== undefined ? { lat: Number(latitude) } : {}),
+      ...(longitude !== undefined ? { lng: Number(longitude) } : {}),
+    };
+
+    // tránh gửi thừa
+    delete body.latitude;
+    delete body.longitude;
+
+    const res = await apiClient.put(`/admin/locations/${id}`, body);
     return { success: true, data: res.data };
   } catch (err) {
     return { success: false, error: parseError(err) };
   }
 };
 
-// DELETE /api/admin/places/:placeId
-export const deleteLocation = async (placeId) => {
+// DELETE /api/admin/locations/:id
+export const deleteLocation = async (id) => {
   try {
-    const res = await apiClient.delete(`/admin/places/${placeId}`);
+    const res = await apiClient.delete(`/admin/locations/${id}`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    return { success: false, error: parseError(err) };
+  }
+};
+
+// PUT /api/admin/locations/:id/approve
+export const approveLocation = async (id) => {
+  try {
+    const res = await apiClient.put(`/admin/locations/${id}/approve`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    return { success: false, error: parseError(err) };
+  }
+};
+
+// PUT /api/admin/locations/:id/reject
+export const rejectLocation = async (id) => {
+  try {
+    const res = await apiClient.put(`/admin/locations/${id}/reject`);
     return { success: true, data: res.data };
   } catch (err) {
     return { success: false, error: parseError(err) };
@@ -298,12 +363,12 @@ export const deleteLocation = async (placeId) => {
    ANALYTICS
 ======================= */
 
-// (Nếu backend bạn chưa làm analytics endpoint thì để sau)
-// Gợi ý: GET /api/admin/analytics
-export const getAnalytics = async () => {
+// GET /api/admin/analytics?days=7|30
+export const getAnalytics = async (days = 7) => {
   try {
-    const res = await apiClient.get("/admin/analytics");
-    return { success: true, data: res.data };
+    const res = await apiClient.get("/admin/analytics", { params: { days } });
+    // backend: { success:true, data:{...} }
+    return { success: true, data: res.data?.data ?? res.data };
   } catch (err) {
     return { success: false, error: parseError(err) };
   }
