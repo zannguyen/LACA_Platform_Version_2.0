@@ -10,6 +10,7 @@ const {
   getAnalyticsStats: getAnalyticsStatsSvc,
   getUserGrowth: getUserGrowthSvc,
   getTopRegions: getTopRegionsSvc,
+  debugPlacesData,
 
   // locations (Place)
   getAllLocations: getAllLocationsSvc,
@@ -51,8 +52,8 @@ exports.getAnalytics = asyncHandler(async (req, res, next) => {
 
   const [stats, growth, regions] = await Promise.all([
     getAnalyticsStatsSvc(days),
-    getUserGrowthSvc(), // service hiện tại không nhận days
-    getTopRegionsSvc(4), // service hiện tại không nhận days
+    getUserGrowthSvc(days),          // ✅ FIXED: Pass days parameter
+    getTopRegionsSvc(4, days),       // ✅ FIXED: Pass days parameter
   ]);
 
   return res.status(200).json({
@@ -61,6 +62,7 @@ exports.getAnalytics = asyncHandler(async (req, res, next) => {
       totalUsers: stats.totalUsers,
       onlineUsers: stats.onlineUsers,
       newUsers: stats.newUsers,
+      newPlaces: stats.newPlaces,
       userGrowth: growth,
       topRegions: regions,
     },
@@ -99,6 +101,15 @@ exports.getAnalyticsRegions = asyncHandler(async (req, res) => {
   const limit = Math.max(1, Math.min(parseInt(req.query.limit || "4", 10), 20));
   const regions = await getTopRegionsSvc(limit);
   return res.status(200).json({ success: true, data: regions });
+});
+
+/**
+ * DEBUG: Get places data with city extraction details
+ */
+exports.debugAnalytics = asyncHandler(async (req, res) => {
+  const days = String(req.query.days || "7");
+  const debugData = await debugPlacesData(days);
+  return res.status(200).json({ success: true, data: debugData });
 });
 
 // ===============================

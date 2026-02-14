@@ -4,39 +4,55 @@ import "./AdminAnalytics.css";
 
 /* ================= MOCK FALLBACK ================= */
 const MOCK_ANALYTICS = {
-  totalUsers: 12540,
-  onlineUsers: 1340,
-  newUsers: 320,
+  totalUsers: 1250,
+  onlineUsers: 134,
+  newUsers: 32,
+  newPlaces: 8,
 
   userGrowth: [
-    { label: "Mon", value: 120 },
-    { label: "Tue", value: 180 },
-    { label: "Wed", value: 200 },
-    { label: "Thu", value: 200 },
-    { label: "Fri", value: 200 },
-    { label: "Sat", value: 150 },
-    { label: "Sun", value: 90 },
+    { label: "Sun", value: 5 },
+    { label: "Mon", value: 8 },
+    { label: "Tue", value: 10 },
+    { label: "Wed", value: 12 },
+    { label: "Thu", value: 4 },
+    { label: "Fri", value: 2 },
+    { label: "Sat", value: 1 },
   ],
 
   topRegions: [
-    { name: "Ho Chi Minh City", count: 4200 },
-    { name: "Ha Noi", count: 3100 },
-    { name: "Da Nang", count: 1800 },
-    { name: "Can Tho", count: 950 },
+    { name: "Ho Chi Minh City", count: 156 },
+    { name: "Ha Noi", count: 89 },
+    { name: "Da Nang", count: 45 },
+    { name: "Can Tho", count: 28 },
   ],
 };
 
 const AdminAnalytics = () => {
   const [data, setData] = useState(MOCK_ANALYTICS);
   const [loading, setLoading] = useState(true);
+  const [selectedDays, setSelectedDays] = useState(7);
 
   useEffect(() => {
-    fetchAnalytics();
-  }, []);
+    fetchAnalytics(selectedDays);
+  }, [selectedDays]);
 
-  const fetchAnalytics = async () => {
+  // ✅ NEW: Listen for place updates from Map Management
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "placeUpdated") {
+        console.log("📍 Place updated, refreshing analytics...");
+        fetchAnalytics(selectedDays);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [selectedDays]);
+
+  const fetchAnalytics = async (days) => {
+    setLoading(true);
     try {
-      const res = await getAnalytics();
+      const res = await getAnalytics(days);
 
       if (res?.success && res.data) {
         setData({
@@ -45,10 +61,19 @@ const AdminAnalytics = () => {
         });
       }
     } catch (err) {
-      console.warn("⚠️ Analytics API failed → using mock data");
+      console.warn(`⚠️ Analytics API failed for ${days} days → using mock data`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDayFilter = (days) => {
+    setSelectedDays(days);
+  };
+
+  // ✅ NEW: Manual refresh function
+  const handleRefresh = () => {
+    fetchAnalytics(selectedDays);
   };
 
   if (loading) {
@@ -61,10 +86,44 @@ const AdminAnalytics = () => {
       <div className="analytics-header">
         <h1>Analytics</h1>
 
-        <div className="range-filter">
-          <button className="active">7 days</button>
-          <button>30 days</button>
-          <button>Custom</button>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          {/* ✅ NEW: Refresh button */}
+          <button
+            onClick={handleRefresh}
+            style={{
+              padding: "8px 12px",
+              background: "#667eea",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.target.style.opacity = "0.8")}
+            onMouseLeave={(e) => (e.target.style.opacity = "1")}
+          >
+            🔄 Refresh
+          </button>
+
+          <div className="range-filter">
+            <button
+              className={selectedDays === 7 ? "active" : ""}
+              onClick={() => handleDayFilter(7)}
+            >
+              7 days
+            </button>
+            <button
+              className={selectedDays === 30 ? "active" : ""}
+              onClick={() => handleDayFilter(30)}
+            >
+              30 days
+            </button>
+          </div>
         </div>
       </div>
 
@@ -83,6 +142,11 @@ const AdminAnalytics = () => {
         <div className="kpi-card new">
           <span>New Registrations</span>
           <strong>{data.newUsers.toLocaleString()}</strong>
+        </div>
+
+        <div className="kpi-card places">
+          <span>New Locations</span>
+          <strong>{data.newPlaces.toLocaleString()}</strong>
         </div>
       </div>
 
