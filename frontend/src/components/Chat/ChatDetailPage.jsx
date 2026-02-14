@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import chatApi from "../../api/chatApi";
@@ -18,6 +18,9 @@ const ChatDetailPage = () => {
 
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [toast, setToast] = useState("");
+  const messageEndRef = useRef(null);
 
   const getCurrentUserId = () => {
     const rawUser = localStorage.getItem("user");
@@ -54,6 +57,16 @@ const ChatDetailPage = () => {
     () => (receiverName || "User").trim().charAt(0).toUpperCase(),
     [receiverName],
   );
+
+  const receiverOnline = useMemo(
+    () => onlineUsers.has(String(receiverId || "")),
+    [onlineUsers, receiverId],
+  );
+
+  const showToast = (text) => {
+    setToast(text);
+    setTimeout(() => setToast(""), 2500);
+  };
 
   // ✅ load receiver từ localStorage
   useEffect(() => {
@@ -107,13 +120,38 @@ const ChatDetailPage = () => {
       s.emit("setup", { _id: currentUserId });
     });
 
+    s.on("online_users", (users) => {
+      setOnlineUsers(new Set((users || []).map((u) => String(u))));
+    });
+
+    s.on("user_status", ({ userId, status }) => {
+      const key = String(userId || "");
+      setOnlineUsers((prev) => {
+        const next = new Set(prev);
+        if (status === "online") next.add(key);
+        if (status === "offline") next.delete(key);
+        return next;
+      });
+    });
+
     s.on("receive_message", (data) => {
-      setMessages((prev) => [...prev, normalizeMessage(data, currentUserId)]);
+      const senderId = data?.senderId?._id || data?.senderId;
+      if (String(senderId || "") === String(receiverId || "")) {
+        setMessages((prev) => [...prev, normalizeMessage(data, currentUserId)]);
+      } else {
+        showToast("Có tin nhắn mới");
+      }
     });
 
     setSocket(s);
     return () => s.close();
-  }, [currentUserId]);
+  }, [currentUserId, receiverId]);
+
+  useEffect(() => {
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !receiverId) return;
@@ -138,10 +176,7 @@ const ChatDetailPage = () => {
   };
 
   return (
-    <div
-      className="auth-form"
-      style={{ position: "relative", minHeight: "80vh" }}
-    >
+    <div className="auth-form chat-detail-page">
       <div className="page-header" style={{ borderBottom: "1px solid #ccc" }}>
         <button className="back-btn" onClick={() => navigate(-1)}>
           ←
@@ -153,7 +188,9 @@ const ChatDetailPage = () => {
 
         <div className="chat-header-info">
           <span style={{ fontWeight: "bold" }}>{receiverName}</span>
-          <span className="status-text">Online</span>
+          <span className="status-text">
+            {receiverOnline ? "Online" : "Offline"}
+          </span>
         </div>
       </div>
 
@@ -195,6 +232,7 @@ const ChatDetailPage = () => {
             </div>
           ))
         )}
+        <div ref={messageEndRef} />
       </div>
 
       <div className="chat-input-bar">
@@ -210,6 +248,8 @@ const ChatDetailPage = () => {
           ↑
         </button>
       </div>
+
+      {toast && <div className="chat-toast">{toast}</div>}
     </div>
   );
 };
