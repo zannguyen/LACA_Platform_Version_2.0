@@ -20,20 +20,42 @@ const io = new Server(server, {
 // ✅ để controller dùng req.app.get("io")
 app.set("io", io);
 
+const onlineUsers = new Map();
+
 io.on("connection", (socket) => {
   console.log("⚡ User connected:", socket.id);
 
-  // ✅ FE emit: socket.emit("setup", { _id: currentUserId })
+  // FE emit: socket.emit("setup", { _id: currentUserId })
   socket.on("setup", (user) => {
     const userId = user?._id || user?.id || user?.userId || user?.userID;
     if (!userId) return;
 
-    socket.join(String(userId)); // ✅ join room theo userId
-    console.log("✅ joined room userId =", String(userId));
+    const key = String(userId);
+    socket.join(key);
+    socket.data.userId = key;
+
+    const sockets = onlineUsers.get(key) || new Set();
+    sockets.add(socket.id);
+    onlineUsers.set(key, sockets);
+
     socket.emit("connected");
+    socket.emit("online_users", Array.from(onlineUsers.keys()));
+    io.emit("user_status", { userId: key, status: "online" });
   });
 
   socket.on("disconnect", () => {
+    const key = socket.data.userId;
+    if (key && onlineUsers.has(key)) {
+      const sockets = onlineUsers.get(key);
+      sockets.delete(socket.id);
+      if (sockets.size === 0) {
+        onlineUsers.delete(key);
+        io.emit("user_status", { userId: key, status: "offline" });
+      } else {
+        onlineUsers.set(key, sockets);
+      }
+    }
+
     console.log("❌ User disconnected:", socket.id);
   });
 });
