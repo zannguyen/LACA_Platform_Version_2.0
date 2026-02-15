@@ -25,6 +25,7 @@ app.use("/api/user", require("./src/routes/user.route"));
 app.use("/api/feedbacks", require("./src/routes/feedback.route"));
 app.use("/api/reports", require("./src/routes/report.route"));
 app.use("/api/chat", require("./src/routes/chat.route"));
+app.use("/api/places", require("./src/routes/place.route"));
 
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);
