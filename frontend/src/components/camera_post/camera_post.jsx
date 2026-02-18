@@ -640,14 +640,14 @@ export default function CameraPost() {
                   color: "white",
                 }}
               >
-                <option value="cafe">cafe</option>
-                <option value="restaurant">restaurant</option>
-                <option value="bar">bar</option>
-                <option value="shop">shop</option>
-                <option value="park">park</option>
-                <option value="museum">museum</option>
-                <option value="hotel">hotel</option>
-                <option value="other">other</option>
+                <option value="cafe">☕</option>
+                <option value="restaurant">🍽</option>
+                <option value="bar">💃🕺</option>
+                <option value="shop">🛍️</option>
+                <option value="park">🏞</option>
+                <option value="museum">🏛</option>
+                <option value="hotel">🏩</option>
+                <option value="other">Other</option>
               </select>
 
               <button

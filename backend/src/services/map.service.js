@@ -48,18 +48,37 @@ exports.getPostsInRadius = async ({
       },
     },
     { $unwind: "$posts" },
+
+    // ✅ NEW: attach place info into each post BEFORE replaceRoot
     {
       $addFields: {
         "posts.distanceKm": {
           $round: [{ $divide: ["$distanceMeters", 1000] }, 2],
         },
+
+        // place info (lat/lng/name/address) for Home icon + map focus
+        "posts.place": {
+          _id: "$_id",
+          name: "$name",
+          address: "$address",
+          location: {
+            lng: { $arrayElemAt: ["$location.coordinates", 0] },
+            lat: { $arrayElemAt: ["$location.coordinates", 1] },
+          },
+        },
+
+        // keep placeId explicitly
+        "posts.placeId": "$_id",
       },
     },
+
     { $replaceRoot: { newRoot: "$posts" } },
     { $match: { status: "active" } },
+
     ...(blockedIds.length
       ? [{ $match: { userId: { $nin: blockedIds } } }]
       : []),
+
     {
       $lookup: {
         from: "users",
@@ -69,6 +88,7 @@ exports.getPostsInRadius = async ({
       },
     },
     { $unwind: "$user" },
+
     {
       $project: {
         content: 1,
@@ -76,6 +96,11 @@ exports.getPostsInRadius = async ({
         mediaUrl: 1,
         distanceKm: 1,
         createdAt: 1,
+
+        // ✅ NEW: must return for Home to show icon
+        placeId: 1,
+        place: 1,
+
         user: {
           _id: "$user._id",
           fullname: "$user.fullname",
@@ -84,6 +109,7 @@ exports.getPostsInRadius = async ({
         },
       },
     },
+
     { $sort: { createdAt: -1, distanceKm: 1 } },
     { $limit: Math.max(limit, 10) },
   ];
@@ -114,6 +140,32 @@ exports.getPostsInRadius = async ({
         },
       },
       { $unwind: "$user" },
+
+      // ✅ Optional (khuyến nghị): populate place cho followed posts để vẫn có icon vị trí
+      // Nếu bạn muốn followed posts cũng có icon, bật đoạn lookup Place này.
+      {
+        $lookup: {
+          from: "places",
+          localField: "placeId",
+          foreignField: "_id",
+          as: "placeDoc",
+        },
+      },
+      { $unwind: { path: "$placeDoc", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          place: {
+            _id: "$placeDoc._id",
+            name: "$placeDoc.name",
+            address: "$placeDoc.address",
+            location: {
+              lng: { $arrayElemAt: ["$placeDoc.location.coordinates", 0] },
+              lat: { $arrayElemAt: ["$placeDoc.location.coordinates", 1] },
+            },
+          },
+        },
+      },
+
       {
         $project: {
           content: 1,
@@ -121,6 +173,11 @@ exports.getPostsInRadius = async ({
           mediaUrl: 1,
           createdAt: 1,
           distanceKm: { $literal: null },
+
+          // ✅ NEW
+          placeId: 1,
+          place: 1,
+
           user: {
             _id: "$user._id",
             fullname: "$user.fullname",
@@ -129,6 +186,7 @@ exports.getPostsInRadius = async ({
           },
         },
       },
+
       { $sort: { createdAt: -1 } },
       { $limit: Math.max(limit * 3, 30) },
     ];
@@ -222,8 +280,22 @@ exports.getPostsAtPoint = async ({
     {
       $addFields: {
         "posts.distanceKm": {
-          $round: [{ $divide: ["$distanceMeters", 1000] }, 3],
+          $round: [{ $divide: ["$distanceMeters", 1000] }, 2],
         },
+
+        // ✅ attach place info into each post before replaceRoot
+        "posts.place": {
+          _id: "$_id",
+          name: "$name",
+          address: "$address",
+          location: {
+            lng: { $arrayElemAt: ["$location.coordinates", 0] },
+            lat: { $arrayElemAt: ["$location.coordinates", 1] },
+          },
+        },
+
+        // keep placeId explicitly
+        "posts.placeId": "$_id",
       },
     },
     { $replaceRoot: { newRoot: "$posts" } },
@@ -254,6 +326,8 @@ exports.getPostsAtPoint = async ({
         mediaUrl: 1,
         distanceKm: 1,
         createdAt: 1,
+        placeId: 1,
+        place: 1,
         user: {
           _id: "$user._id",
           fullname: "$user.fullname",
@@ -331,7 +405,7 @@ exports.getPostDensity = async ({
 };
 
 // ===============================
-// 4) ✅ Hotspots with thumbnail (BEST for your UI)
+// 4) ✅ Hotspots with thumbnail
 // ===============================
 exports.getPostHotspots = async ({
   lat,
@@ -355,7 +429,6 @@ exports.getPostHotspots = async ({
       },
     },
 
-    // chống nặng lookup
     { $limit: 1200 },
 
     {
@@ -369,7 +442,6 @@ exports.getPostHotspots = async ({
             ? [{ $match: { userId: { $nin: blockedIds } } }]
             : []),
 
-          // bài mới nhất để lấy thumb
           { $sort: { createdAt: -1 } },
           { $project: { _id: 1, mediaUrl: 1, createdAt: 1 } },
         ],
@@ -380,7 +452,6 @@ exports.getPostHotspots = async ({
     { $addFields: { weight: { $size: "$posts" } } },
     { $match: { weight: { $gt: 0 } } },
 
-    // thumb = mediaUrl[0] của bài mới nhất
     {
       $addFields: {
         thumb: {

@@ -308,7 +308,7 @@
   background-color: #111;
 
   border-radius: 14px; /* ✅ bo góc ảnh/video */
-  overflow: hidden;     /* ✅ cắt ảnh theo radius */
+  overflow: hidden; /* ✅ cắt ảnh theo radius */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -366,4 +366,169 @@
 
 .mobile-wrapper .action-icon {
   font-size: 22px;
+}
+/* =========================
+   HOME TOPBAR (SEARCH + FILTER)
+   - nằm dưới header, không sticky
+========================= */
+.mobile-wrapper .home-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+
+  flex-shrink: 0; /* không bị co */
+  z-index: 4;
+}
+
+/* Search pill */
+.mobile-wrapper .home-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: #f2f3f5;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  padding: 10px 12px;
+
+  min-width: 0; /* tránh tràn khi màn nhỏ */
+}
+
+.mobile-wrapper .home-search-icon {
+  font-size: 14px;
+  color: #777;
+  flex: 0 0 auto;
+}
+
+.mobile-wrapper .home-search-input {
+  flex: 1;
+  min-width: 0;
+
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #111;
+}
+
+.mobile-wrapper .home-search-input::placeholder {
+  color: #8a8a8a;
+}
+
+/* Clear button (x) */
+.mobile-wrapper .home-search-clear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  color: #777;
+  font-size: 16px;
+  padding: 0 4px;
+
+  flex: 0 0 auto;
+}
+
+.mobile-wrapper .home-search-clear:active {
+  transform: scale(0.95);
+}
+
+/* Filter button */
+.mobile-wrapper .home-filter-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  color: #333;
+
+  flex: 0 0 auto;
+  touch-action: manipulation;
+}
+
+.mobile-wrapper .home-filter-btn i {
+  font-size: 16px;
+}
+
+.mobile-wrapper .home-filter-btn:active {
+  transform: scale(0.97);
+}
+
+/* =========================
+   FILTER PANEL (demo UI)
+========================= */
+.mobile-wrapper .home-filter-panel {
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  padding: 12px 14px;
+
+  flex-shrink: 0;
+}
+
+.mobile-wrapper .home-filter-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #111;
+}
+
+.mobile-wrapper .home-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 0;
+  font-size: 14px;
+  color: #222;
+}
+
+.mobile-wrapper .home-filter-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #111;
+}
+
+.mobile-wrapper .home-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mobile-wrapper .home-filter-reset,
+.mobile-wrapper .home-filter-apply {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+.mobile-wrapper .home-filter-reset {
+  background: #f2f3f5;
+  color: #333;
+}
+
+.mobile-wrapper .home-filter-apply {
+  background: #111;
+  color: #fff;
+}
+
+.mobile-wrapper .home-filter-reset:active,
+.mobile-wrapper .home-filter-apply:active {
+  transform: scale(0.98);
 }

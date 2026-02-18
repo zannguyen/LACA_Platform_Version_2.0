@@ -1,5 +1,7 @@
+// src/components/map/MapView.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
+import { useSearchParams } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -57,7 +59,6 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-// Marker thumbnail giống hình bạn muốn
 function HotspotMarker({ position, thumb, count, onOpen }) {
   const icon = useMemo(() => {
     const safeThumb = thumb ? String(thumb).replaceAll('"', "&quot;") : "";
@@ -118,11 +119,7 @@ function HotspotMarker({ position, thumb, count, onOpen }) {
             <img
               src={thumb}
               alt=""
-              style={{
-                width: "100%",
-                borderRadius: 10,
-                objectFit: "cover",
-              }}
+              style={{ width: "100%", borderRadius: 10, objectFit: "cover" }}
             />
           )}
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
@@ -141,6 +138,8 @@ const MapView = () => {
   const { enabled: locationEnabled, requestCurrentPosition } =
     useLocationAccess();
 
+  const [searchParams] = useSearchParams();
+
   const [userLocation, setUserLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
@@ -148,11 +147,9 @@ const MapView = () => {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
 
-  // Hotspots data
-  const [hotspots, setHotspots] = useState([]); // [{lat,lng,weight,thumb,placeId}]
+  const [hotspots, setHotspots] = useState([]);
   const [hotspotMeta, setHotspotMeta] = useState({ places: 0, total: 0 });
 
-  // Posts modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalPosts, setModalPosts] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
@@ -163,7 +160,22 @@ const MapView = () => {
   const searchRadius = 5000; // meters
   const radiusKm = searchRadius / 1000;
 
-  // Load user location
+  // ✅ focus target từ Home: /map?lat=..&lng=..&postId=..
+  const [focusTarget, setFocusTarget] = useState(null);
+
+  useEffect(() => {
+    const lat = Number(searchParams.get("lat"));
+    const lng = Number(searchParams.get("lng"));
+    const postId = searchParams.get("postId");
+
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      setFocusTarget({ lat, lng, postId: postId || null });
+    } else {
+      setFocusTarget(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     getUserLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -191,8 +203,16 @@ const MapView = () => {
       .then((pos) => {
         const loc = [pos.lat, pos.lng];
         setUserLocation(loc);
-        setMapCenter(loc);
-        setMapZoom(DEFAULT_ZOOM);
+
+        // ✅ nếu có focusTarget từ Home thì ưu tiên center theo focus
+        if (focusTarget?.lat && focusTarget?.lng) {
+          setMapCenter([focusTarget.lat, focusTarget.lng]);
+          setMapZoom(17);
+        } else {
+          setMapCenter(loc);
+          setMapZoom(DEFAULT_ZOOM);
+        }
+
         setNotice(null);
         setLoading(false);
       })
@@ -207,7 +227,6 @@ const MapView = () => {
       });
   };
 
-  // Fetch hotspots (thumbnail markers)
   useEffect(() => {
     const run = async () => {
       if (!userLocation) {
@@ -274,7 +293,20 @@ const MapView = () => {
     }
   };
 
-  // Click map trống -> vẫn mở posts tại điểm click
+  // ✅ auto open modal ngay khi vào map từ Home
+  useEffect(() => {
+    if (!userLocation) return;
+    if (!focusTarget?.lat || !focusTarget?.lng) return;
+
+    // đảm bảo map đã render
+    const t = setTimeout(() => {
+      openPostsModalAt(focusTarget.lat, focusTarget.lng);
+    }, 250);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, focusTarget?.lat, focusTarget?.lng]);
+
   const handleMapClick = async (clickLat, clickLng) => {
     await openPostsModalAt(clickLat, clickLng);
   };
@@ -313,7 +345,18 @@ const MapView = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
 
-        {/* Hotspot thumbnail markers */}
+        {/* ✅ marker focus từ Home */}
+        {focusTarget?.lat && focusTarget?.lng && (
+          <Marker position={[focusTarget.lat, focusTarget.lng]}>
+            <Popup>
+              <div style={{ fontWeight: 700 }}>Vị trí bài đăng</div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {focusTarget.postId ? `postId: ${focusTarget.postId}` : ""}
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
         {hotspots.map((h) => (
           <HotspotMarker
             key={h.placeId || `${h.lat},${h.lng}`}

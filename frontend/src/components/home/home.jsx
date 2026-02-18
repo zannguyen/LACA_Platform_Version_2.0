@@ -16,22 +16,34 @@ const Home = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // ✅ NEW: top search + filter UI (frontend only)
+  const [searchText, setSearchText] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [onlyNearby, setOnlyNearby] = useState(false);
+  const [onlyHasLocation, setOnlyHasLocation] = useState(false);
+
   const getAccessToken = () =>
     localStorage.getItem("token") || localStorage.getItem("authToken");
 
-  const { enabled: locationEnabled, requestCurrentPosition } = useLocationAccess();
+  const { enabled: locationEnabled, requestCurrentPosition } =
+    useLocationAccess();
 
   useEffect(() => {
-    // Respect in-app location toggle: when OFF, do not read GPS.
     if (!locationEnabled) {
       setLocation(null);
       setFeedPosts([]);
-      setErrMsg("Định vị đang tắt. Bật 'Allow location access' trong Setting để xem bài đăng gần bạn.");
+      setErrMsg(
+        "Định vị đang tắt. Bật 'Allow location access' trong Setting để xem bài đăng gần bạn.",
+      );
       setLoading(false);
       return;
     }
 
-    requestCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 })
+    requestCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    })
       .then((pos) => {
         setLocation({ lat: pos.lat, lng: pos.lng });
       })
@@ -61,9 +73,7 @@ const Home = () => {
 
       const res = await fetch(
         `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (res.status === 401) {
@@ -168,6 +178,25 @@ const Home = () => {
   const closeMenu = () => setMenuOpen(false);
   const openMenu = () => setMenuOpen(true);
 
+  // ✅ FIX: backend trả place.location.lat/lng
+  const getPostLatLng = (post) => {
+    const lat = post?.place?.location?.lat;
+    const lng = post?.place?.location?.lng;
+    if (typeof lat === "number" && typeof lng === "number") return { lat, lng };
+    return null;
+  };
+
+  // ✅ click icon -> qua MapView + focus (match MapView parse focusLat/focusLng)
+  const goToPostOnMap = (post) => {
+    const p = getPostLatLng(post);
+    if (!p) return;
+    navigate(
+      `/map?focusLat=${p.lat}&focusLng=${p.lng}&openPosts=1&postId=${post._id}`,
+    );
+  };
+
+  // ✅ frontend-only demo filter/search (KHÔNG gọi backend)
+
   return (
     <div className="mobile-wrapper">
       <div
@@ -207,6 +236,89 @@ const Home = () => {
         </Link>
       </header>
 
+      {/* ✅ NEW: thanh tìm kiếm + filter (theo ý 1: nằm dưới header, không sticky) */}
+      <div className="home-topbar" onClick={() => menuOpen && closeMenu()}>
+        <div className="home-search">
+          <i className="fa-solid fa-magnifying-glass home-search-icon" />
+          <input
+            type="text"
+            className="home-search-input"
+            placeholder="Tìm bạn bè bằng email hoặc username..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          {searchText && (
+            <button
+              type="button"
+              className="home-search-clear"
+              onClick={() => setSearchText("")}
+              aria-label="Clear search"
+              title="Xóa"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="home-filter-btn"
+          onClick={() => setFilterOpen((v) => !v)}
+          aria-label="Filter"
+          title="Filter"
+        >
+          <i className="fa-solid fa-sliders" />
+        </button>
+      </div>
+
+      {filterOpen && (
+        <div
+          className="home-filter-panel"
+          onClick={() => menuOpen && closeMenu()}
+        >
+          <div className="home-filter-title">Bộ lọc (demo UI)</div>
+
+          <label className="home-filter-row">
+            <input
+              type="checkbox"
+              checked={onlyNearby}
+              onChange={(e) => setOnlyNearby(e.target.checked)}
+            />
+            <span>Chỉ hiện bài gần tôi (≤ 5km)</span>
+          </label>
+
+          <label className="home-filter-row">
+            <input
+              type="checkbox"
+              checked={onlyHasLocation}
+              onChange={(e) => setOnlyHasLocation(e.target.checked)}
+            />
+            <span>Chỉ bài có vị trí</span>
+          </label>
+
+          <div className="home-filter-actions">
+            <button
+              type="button"
+              className="home-filter-reset"
+              onClick={() => {
+                setOnlyNearby(false);
+                setOnlyHasLocation(false);
+              }}
+            >
+              Reset
+            </button>
+
+            <button
+              type="button"
+              className="home-filter-apply"
+              onClick={() => setFilterOpen(false)}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="home-main" onClick={() => menuOpen && closeMenu()}>
         {loading && (
           <div style={{ padding: 12, textAlign: "center" }}>
@@ -226,6 +338,7 @@ const Home = () => {
           feedPosts.map((post) => {
             const media = getFirstMedia(post);
             const isVideo = post.type === "video" || isVideoUrl(media);
+            const hasPlace = !!getPostLatLng(post);
 
             return (
               <article className="post-card" key={post._id}>
@@ -259,24 +372,52 @@ const Home = () => {
                     </div>
                   </Link>
 
-                  <div className="report-wrapper">
-                    <div className="report-btn" onClick={toggleReportMenu}>
-                      <i className="fa-solid fa-circle-exclamation"></i>
-                    </div>
-
-                    <div className="report-dropdown">
-                      <div
-                        className="dropdown-item"
-                        onClick={() => handleAction("block")}
+                  {/* ✅ cụm icon góc phải: location + report */}
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    {hasPlace && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          goToPostOnMap(post);
+                        }}
+                        title="Xem vị trí trên bản đồ"
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          padding: 0,
+                          cursor: "pointer",
+                          color: "#666",
+                          fontSize: 18,
+                          lineHeight: 1,
+                        }}
+                        aria-label="View location"
                       >
-                        <i className="fa-solid fa-ban"></i> Block
+                        <i className="fa-solid fa-location-dot" />
+                      </button>
+                    )}
+
+                    <div className="report-wrapper">
+                      <div className="report-btn" onClick={toggleReportMenu}>
+                        <i className="fa-solid fa-circle-exclamation"></i>
                       </div>
 
-                      <div
-                        className="dropdown-item warning"
-                        onClick={() => handleAction("report")}
-                      >
-                        <i className="fa-solid fa-flag"></i> Report
+                      <div className="report-dropdown">
+                        <div
+                          className="dropdown-item"
+                          onClick={() => handleAction("block")}
+                        >
+                          <i className="fa-solid fa-ban"></i> Block
+                        </div>
+
+                        <div
+                          className="dropdown-item warning"
+                          onClick={() => handleAction("report")}
+                        >
+                          <i className="fa-solid fa-flag"></i> Report
+                        </div>
                       </div>
                     </div>
                   </div>
