@@ -173,3 +173,288 @@
   transform: scale(0.9);
   opacity: 0.7;
 }
+/* ===== Location Sheet (Mobile) ===== */
+.loc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+}
+
+.loc-sheet {
+  width: 100%;
+  max-width: 430px; /* giống khung mobile */
+  background: #111;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.loc-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.loc-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.loc-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.loc-section {
+  padding: 14px;
+}
+
+.loc-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.loc-muted {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+}
+
+.loc-error {
+  margin-top: 10px;
+  color: tomato;
+  font-size: 13px;
+}
+
+/* radar row */
+.loc-radar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.loc-radar-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.loc-radar-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 208, 208, 0.35);
+  background: rgba(43, 208, 208, 0.1);
+  color: #7ff3f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.loc-radar-btn.is-loading {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.loc-radar-dot {
+  position: absolute;
+  inset: -8px;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 208, 208, 0.25);
+  animation: radarPulse 1.2s ease-out infinite;
+}
+
+.loc-radar-btn.is-loading .loc-radar-dot {
+  animation: radarPulse 0.9s ease-out infinite;
+}
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.65);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* suggestions list */
+.loc-suggest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.loc-suggest-card {
+  width: 100%;
+  text-align: left;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  cursor: pointer;
+}
+
+.loc-suggest-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.loc-suggest-name {
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+}
+
+.loc-suggest-name i {
+  color: #2bd0d0;
+}
+
+.loc-suggest-dist {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.loc-suggest-addr {
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* create section */
+.loc-create-toggle {
+  width: 100%;
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1px dashed rgba(43, 208, 208, 0.45);
+  background: rgba(43, 208, 208, 0.08);
+  color: #7ff3f3;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.loc-plus {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 208, 208, 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loc-create-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.loc-create-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.loc-accuracy-pill {
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.loc-accuracy-pill.is-warn {
+  color: #ffd28a;
+  border-color: rgba(255, 210, 138, 0.35);
+}
+
+.loc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loc-input,
+.loc-select {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  outline: none;
+}
+
+.loc-select {
+  cursor: pointer;
+}
+
+.loc-btn {
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.loc-btn-primary {
+  border-color: rgba(43, 208, 208, 0.45);
+  background: rgba(43, 208, 208, 0.1);
+  color: #7ff3f3;
+}
+
+.loc-btn-success {
+  border-color: rgba(43, 208, 208, 0.45);
+  background: rgba(15, 32, 32, 0.9);
+  color: #7ff3f3;
+}
+
+.loc-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}

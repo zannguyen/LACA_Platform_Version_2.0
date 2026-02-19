@@ -1,30 +1,19 @@
 // src/pages/CameraPost/CameraPost.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./camera_post.css";
 
 import { uploadMedia, createPost } from "../../api/postApi";
 import { suggestPlaces, resolvePlace } from "../../api/place.api";
 
-const DEFAULT_CENTER = { lat: 10.8231, lng: 106.6297 }; // fallback HCM
-
 // ✅ unwrap mọi kiểu response để lấy PLACE DOC chuẩn: {_id, name, address, ...}
 function unwrapPlace(res) {
-  // res có thể là:
-  // A) { success:true, data: placeDoc }
-  // B) { success:true, data: { success:true, data: placeDoc } }
-  // C) axios raw: { data: { success:true, data: placeDoc } }
-  const root = res?.data ?? res; // nếu bạn truyền axios raw hoặc wrapper
+  const root = res?.data ?? res;
   if (!root) return null;
 
-  // case A: root = {success, data: placeDoc}
   if (root?.success === true && root?.data && root?.data?._id) return root.data;
-
-  // case B: root.data = {success, data: placeDoc}
   if (root?.data?.success === true && root?.data?.data?._id)
     return root.data.data;
-
-  // case: root = placeDoc
   if (root?._id) return root;
 
   return null;
@@ -34,18 +23,27 @@ function unwrapPlace(res) {
 function unwrapSuggestions(res) {
   const root = res?.data ?? res;
   if (!root) return [];
-  // phổ biến: {success:true, data:[...]}
   if (root?.success === true && Array.isArray(root?.data)) return root.data;
-  // wrapper kiểu: {success:true, data:{success:true, data:[...]}}
   if (root?.data?.success === true && Array.isArray(root?.data?.data))
     return root.data.data;
-  // trực tiếp array
   if (Array.isArray(root)) return root;
   return [];
 }
 
-// ✅ lấy GPS “best accuracy” trong vài giây
-function getBestPosition({ timeoutMs = 6500, desiredAccuracy = 30 } = {}) {
+/**
+ * ✅ Best GPS (high accuracy) trong một khoảng thời gian.
+ * - Dùng watchPosition để lấy nhiều mẫu
+ * - Chọn mẫu accuracy nhỏ nhất
+ * - Nếu đạt desiredAccuracy thì trả về sớm
+ *
+ * Lưu ý: 5-10m trong nhà thường KHÓ đạt. Mình để mặc định desiredAccuracy=20,
+ * bạn có thể chỉnh 10 nếu muốn "gắt" hơn (nhưng sẽ hay fail trong nhà).
+ */
+function getBestPosition({
+  timeoutMs = 12000,
+  desiredAccuracy = 20,
+  maxAgeMs = 0,
+} = {}) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation)
       return reject(new Error("Geolocation not supported"));
@@ -57,18 +55,23 @@ function getBestPosition({ timeoutMs = 6500, desiredAccuracy = 30 } = {}) {
     const finish = (ok) => {
       if (done) return;
       done = true;
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
       clearTimeout(timer);
-      ok ? resolve(best) : reject(new Error("Cannot get location"));
+      if (ok && best) resolve(best);
+      else reject(new Error("Cannot get accurate location"));
     };
 
     const onSuccess = (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
+      const { latitude, longitude, accuracy } = pos.coords || {};
       const candidate = {
-        lat: latitude,
-        lng: longitude,
-        accuracy: Math.round(accuracy || 0),
+        lat: Number(latitude),
+        lng: Number(longitude),
+        accuracy: Math.round(Number(accuracy || 0)),
+        ts: Date.now(),
       };
+
+      if (!Number.isFinite(candidate.lat) || !Number.isFinite(candidate.lng))
+        return;
 
       if (!best || (candidate.accuracy && candidate.accuracy < best.accuracy)) {
         best = candidate;
@@ -81,11 +84,14 @@ function getBestPosition({ timeoutMs = 6500, desiredAccuracy = 30 } = {}) {
 
     watchId = navigator.geolocation.watchPosition(onSuccess, onError, {
       enableHighAccuracy: true,
-      maximumAge: 0,
+      maximumAge: maxAgeMs,
       timeout: 10000,
     });
 
+    // hard timeout
     const timer = setTimeout(() => {
+      // nếu có best thì trả về best (dù chưa đạt desiredAccuracy)
+      // nhưng: mình vẫn trả best để user biết accuracy hiện tại
       if (best) finish(true);
       else finish(false);
     }, timeoutMs);
@@ -106,18 +112,34 @@ export default function CameraPost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ====== LOCATION UI ======
+  // ====== LOCATION SHEET (NEW UI) ======
   const [locOpen, setLocOpen] = useState(false);
+
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState("");
   const [coords, setCoords] = useState(null); // {lat,lng,accuracy}
+
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
 
   const [pickedPlace, setPickedPlace] = useState(null); // placeDoc
+
+  // create place section
+  const [createOpen, setCreateOpen] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customAddress, setCustomAddress] = useState("");
   const [customCategory, setCustomCategory] = useState("other");
+  const [createLoading, setCreateLoading] = useState(false);
+
+  // ✅ radius gợi ý (m) — bạn muốn gần => để nhỏ
+  const SUGGEST_RADIUS_METERS = 30; // 20-40m là hợp lý
+  const SUGGEST_LIMIT = 12;
+
+  // ✅ desired accuracy mục tiêu (m)
+  const DESIRED_ACCURACY = 20; // nếu muốn “gắt” hơn: 10 (nhưng dễ fail trong nhà)
+
+  // để tránh spam refresh liên tục
+  const lastScanAtRef = useRef(0);
 
   // preview url từ blob/file
   const previewUrl = useMemo(() => {
@@ -154,12 +176,24 @@ export default function CameraPost() {
   // ====== LOCATION actions ======
   const openLocationSheet = async () => {
     setLocOpen(true);
+    setCreateOpen(false);
+
+    // mở sheet: nếu chưa có GPS thì scan luôn
     if (!coords && !gpsLoading) {
-      await refreshGpsAndSuggest();
+      await scanGpsAndSuggest();
     }
   };
 
-  const refreshGpsAndSuggest = async () => {
+  /**
+   * ✅ Scan GPS + Suggest
+   * - KHÔNG set fallback coords khi fail (để tránh “Gia Lai”)
+   * - nếu accuracy xấu thì vẫn show coords + accuracy, user bấm scan lại
+   */
+  const scanGpsAndSuggest = async () => {
+    const now = Date.now();
+    if (now - lastScanAtRef.current < 800) return; // debounce nhẹ
+    lastScanAtRef.current = now;
+
     setGpsLoading(true);
     setGpsError("");
     setSuggestLoading(true);
@@ -167,18 +201,28 @@ export default function CameraPost() {
 
     try {
       const pos = await getBestPosition({
-        timeoutMs: 6500,
-        desiredAccuracy: 30,
+        timeoutMs: 12000,
+        desiredAccuracy: DESIRED_ACCURACY,
+        maxAgeMs: 0,
       });
+
       setCoords(pos);
 
-      const sRes = await suggestPlaces(pos.lat, pos.lng, 250, 12);
+      // gọi suggest gần (radius nhỏ)
+      const sRes = await suggestPlaces(
+        pos.lat,
+        pos.lng,
+        SUGGEST_RADIUS_METERS,
+        SUGGEST_LIMIT,
+      );
       const list = unwrapSuggestions(sRes);
       setSuggestions(list);
     } catch (e) {
-      setCoords({ ...DEFAULT_CENTER, accuracy: null });
+      // ✅ quan trọng: không set fallback coords
+      setCoords(null);
+      setSuggestions([]);
       setGpsError(
-        "Không lấy được GPS. Hãy bật quyền vị trí trong trình duyệt (Site settings) rồi thử lại.",
+        "Không lấy được GPS chính xác. Hãy bật quyền vị trí, ra nơi thoáng hơn và bấm quét lại.",
       );
     } finally {
       setGpsLoading(false);
@@ -214,40 +258,47 @@ export default function CameraPost() {
 
       setPickedPlace(placeDoc);
       setLocOpen(false);
+      setCreateOpen(false);
     } catch (e) {
       alert(e?.message || "Không thể chọn địa điểm");
     }
   };
 
-  const onUseCurrentPoint = async () => {
-    if (!coords) return;
-    try {
-      const r = await resolvePlace({ lat: coords.lat, lng: coords.lng });
-      const placeDoc = unwrapPlace(r);
+  const toggleCreate = async () => {
+    const next = !createOpen;
+    setCreateOpen(next);
 
-      if (!placeDoc?._id) {
-        alert(
-          r?.message ||
-            r?.error?.message ||
-            "Không thể resolve vị trí hiện tại",
-        );
-        return;
-      }
-
-      setPickedPlace(placeDoc);
-      setLocOpen(false);
-    } catch (e) {
-      alert(e?.message || "Không thể resolve vị trí hiện tại");
+    // mở create: tự scan GPS nếu chưa có
+    if (next && !coords && !gpsLoading) {
+      await scanGpsAndSuggest();
     }
   };
 
   const onCreateCustomPlace = async () => {
-    if (!coords) return;
+    // ✅ BẮT BUỘC có GPS thật — không fallback
+    if (!coords) {
+      setGpsError("Bạn cần quét GPS trước khi tạo vị trí.");
+      await scanGpsAndSuggest();
+      return;
+    }
+
+    // nếu accuracy quá tệ thì cảnh báo
+    if (coords?.accuracy && coords.accuracy > 50) {
+      const ok = window.confirm(
+        `GPS đang yếu (±${coords.accuracy}m). Tạo vị trí có thể sai lệch. Bạn có muốn quét lại không?`,
+      );
+      if (ok) {
+        await scanGpsAndSuggest();
+        return;
+      }
+    }
+
     if (!customName.trim() || !customAddress.trim()) {
       alert("Vui lòng nhập tên & địa chỉ");
       return;
     }
 
+    setCreateLoading(true);
     try {
       const r = await resolvePlace({
         lat: coords.lat,
@@ -266,8 +317,11 @@ export default function CameraPost() {
 
       setPickedPlace(placeDoc);
       setLocOpen(false);
+      setCreateOpen(false);
     } catch (e) {
       alert(e?.message || "Không thể tạo địa điểm");
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -275,10 +329,10 @@ export default function CameraPost() {
   const handlePost = async () => {
     if (!fileBlob) return;
 
-    // ✅ nếu chưa có place -> mở chọn vị trí (đây là lý do bạn thấy bị “lặp”)
     if (!pickedPlace?._id) {
       setError("Bạn cần chọn vị trí trước khi đăng bài.");
       setLocOpen(true);
+      setCreateOpen(false);
       return;
     }
 
@@ -286,18 +340,15 @@ export default function CameraPost() {
     setError("");
 
     try {
-      // 1) upload
       const up = await uploadMedia(fileBlob);
       const url = up?.secure_url || up?.url;
       if (!url) throw new Error("Upload thành công nhưng không nhận được URL");
 
-      // 2) create post
       await createPost({
         content: caption,
         type: mediaType,
         mediaUrl: [url],
-        placeId: pickedPlace._id, // ✅ QUAN TRỌNG
-        // timerValue: nếu backend có expireAt thì map ở đây
+        placeId: pickedPlace._id,
       });
 
       navigate("/home");
@@ -388,7 +439,7 @@ export default function CameraPost() {
             <span style={{ opacity: 0.8 }}>{pickedPlace.address}</span>
           </div>
         ) : (
-          <span style={{ opacity: 0.7 }}></span>
+          <span style={{ opacity: 0.7 }} />
         )}
       </div>
 
@@ -422,253 +473,182 @@ export default function CameraPost() {
           <i className="fa-solid fa-download"></i>
         </button>
 
-        {/* ✅ NÚT ĐĂNG */}
         <button className="send-btn" onClick={handlePost} disabled={loading}>
           <i className="fa-solid fa-paper-plane"></i>
         </button>
       </div>
 
-      {/* LOCATION SHEET */}
+      {/* ✅ LOCATION SHEET (MOBILE WIDTH) */}
       {locOpen && (
-        <div
-          onClick={() => setLocOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "flex-end",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              background: "#111",
-              borderTopLeftRadius: 18,
-              borderTopRightRadius: 18,
-              padding: 14,
-              maxHeight: "75vh",
-              overflow: "auto",
-              color: "white",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ fontWeight: 700, fontSize: 16 }}>
-                Chọn vị trí đăng
-              </div>
+        <div className="loc-overlay" onClick={() => setLocOpen(false)}>
+          <div className="loc-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="loc-sheet-header">
+              <div className="loc-title">Chọn vị trí đăng</div>
               <button
+                className="loc-close"
                 type="button"
                 onClick={() => setLocOpen(false)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "white",
-                  fontSize: 22,
-                  cursor: "pointer",
-                }}
               >
                 ×
               </button>
             </div>
 
-            <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
-              <button
-                type="button"
-                onClick={refreshGpsAndSuggest}
-                disabled={gpsLoading || suggestLoading}
-                style={{
-                  flex: 1,
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "#1b1b1b",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                {gpsLoading ? "Đang lấy GPS..." : "Refresh GPS & gợi ý"}
-              </button>
+            {/* ✅ Suggestions on top */}
+            <div className="loc-section">
+              <div className="loc-section-title">Gợi ý gần bạn</div>
 
-              <button
-                type="button"
-                onClick={onUseCurrentPoint}
-                disabled={!coords}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(43,208,208,0.4)",
-                  background: "#0f2020",
-                  color: "#2bd0d0",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Dùng điểm hiện tại
-              </button>
-            </div>
+              {/* ✅ radar row (không show full text dài) */}
+              <div className="loc-radar-row">
+                <div className="loc-radar-info">
+                  {gpsLoading ? (
+                    <span className="loc-muted">Đang quét vị trí...</span>
+                  ) : coords ? (
+                    <span className="loc-muted">
+                      Đã quét • độ chính xác{" "}
+                      {coords.accuracy ? `±${coords.accuracy}m` : "không rõ"}
+                      {" • "}bán kính gợi ý ~{SUGGEST_RADIUS_METERS}m
+                    </span>
+                  ) : (
+                    <span className="loc-muted">
+                      Chưa có GPS • bấm quét để tìm gợi ý
+                    </span>
+                  )}
+                </div>
 
-            {coords && (
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.85 }}>
-                GPS: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
-                {coords.accuracy ? ` • ±${coords.accuracy}m` : ""}
+                <button
+                  type="button"
+                  className={`loc-radar-btn ${gpsLoading ? "is-loading" : ""}`}
+                  onClick={scanGpsAndSuggest}
+                  disabled={gpsLoading || suggestLoading}
+                  title="Quét GPS"
+                  aria-label="Scan GPS"
+                >
+                  <span className="loc-radar-dot" />
+                  <i className="fa-solid fa-satellite-dish" />
+                </button>
               </div>
-            )}
 
-            {gpsError && (
-              <div style={{ marginTop: 10, color: "tomato", fontSize: 13 }}>
-                {gpsError}
-              </div>
-            )}
+              {gpsError && <div className="loc-error">{gpsError}</div>}
 
-            <div style={{ marginTop: 14, fontWeight: 700 }}>Gợi ý gần bạn</div>
-
-            {suggestLoading ? (
-              <div style={{ padding: "12px 0", opacity: 0.8 }}>
-                Đang tải gợi ý...
-              </div>
-            ) : suggestions.length ? (
-              <div
-                style={{
-                  marginTop: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                {suggestions.map((p, idx) => (
-                  <button
-                    key={`${p.providerId || "db"}-${idx}`}
-                    type="button"
-                    onClick={() => onPickSuggestion(p)}
-                    style={{
-                      textAlign: "left",
-                      padding: "12px 12px",
-                      borderRadius: 14,
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      background: "#161616",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                      }}
+              {suggestLoading ? (
+                <div className="loc-muted" style={{ padding: "10px 0" }}>
+                  Đang tải gợi ý...
+                </div>
+              ) : suggestions.length ? (
+                <div className="loc-suggest-list">
+                  {suggestions.map((p, idx) => (
+                    <button
+                      key={`${p.providerId || "db"}-${idx}`}
+                      type="button"
+                      className="loc-suggest-card"
+                      onClick={() => onPickSuggestion(p)}
                     >
-                      <span>
-                        <i
-                          className="fa-solid fa-location-dot"
-                          style={{ color: "#2bd0d0" }}
-                        ></i>{" "}
-                        {p.name}
-                      </span>
-                      {p.distanceMeters !== undefined && (
-                        <span style={{ opacity: 0.7, fontWeight: 500 }}>
-                          {p.distanceMeters}m
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ marginTop: 3, fontSize: 13, opacity: 0.8 }}>
-                      {p.address}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div style={{ padding: "12px 0", opacity: 0.75 }}>
-                Không có gợi ý. Bạn có thể “Dùng điểm hiện tại” hoặc tạo địa
-                điểm mới bên dưới.
-              </div>
-            )}
-
-            <div style={{ marginTop: 16, fontWeight: 700 }}>
-              Tạo địa điểm mới (nếu không có trong gợi ý)
+                      <div className="loc-suggest-top">
+                        <div className="loc-suggest-name">
+                          <i className="fa-solid fa-location-dot" /> {p.name}
+                        </div>
+                        {p.distanceMeters !== undefined && (
+                          <div className="loc-suggest-dist">
+                            {p.distanceMeters}m
+                          </div>
+                        )}
+                      </div>
+                      <div className="loc-suggest-addr">{p.address}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="loc-muted" style={{ padding: "10px 0" }}>
+                  Chưa có gợi ý. Hãy bấm quét lại hoặc tạo vị trí mới.
+                </div>
+              )}
             </div>
 
-            <div
-              style={{
-                marginTop: 10,
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-              <input
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                placeholder="Tên địa điểm (vd: Quán cà phê A)"
-                style={{
-                  padding: "12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "#0f0f0f",
-                  color: "white",
-                }}
-              />
-              <input
-                value={customAddress}
-                onChange={(e) => setCustomAddress(e.target.value)}
-                placeholder="Địa chỉ (vd: 12 Nguyễn Trãi, Q1)"
-                style={{
-                  padding: "12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "#0f0f0f",
-                  color: "white",
-                }}
-              />
-
-              <select
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                style={{
-                  padding: "12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "#0f0f0f",
-                  color: "white",
-                }}
-              >
-                <option value="cafe">☕</option>
-                <option value="restaurant">🍽</option>
-                <option value="bar">💃🕺</option>
-                <option value="shop">🛍️</option>
-                <option value="park">🏞</option>
-                <option value="museum">🏛</option>
-                <option value="hotel">🏩</option>
-                <option value="other">Other</option>
-              </select>
+            {/* ✅ Create location */}
+            <div className="loc-section">
+              <div className="loc-section-title">Tạo vị trí</div>
 
               <button
                 type="button"
-                onClick={onCreateCustomPlace}
-                disabled={!coords}
-                style={{
-                  padding: "12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(43,208,208,0.45)",
-                  background: "#0f2020",
-                  color: "#2bd0d0",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="loc-create-toggle"
+                onClick={toggleCreate}
               >
-                Tạo & chọn địa điểm này
+                <span className="loc-plus">+</span> Tạo vị trí
               </button>
+
+              {createOpen && (
+                <div className="loc-create-panel">
+                  <div className="loc-create-actions">
+                    <button
+                      type="button"
+                      className="loc-btn loc-btn-primary"
+                      onClick={scanGpsAndSuggest}
+                      disabled={gpsLoading || suggestLoading}
+                      title="Quét GPS cho vị trí mới"
+                    >
+                      <i className="fa-solid fa-crosshairs" />{" "}
+                      {gpsLoading ? "Đang quét..." : "Quét GPS"}
+                    </button>
+
+                    {coords?.accuracy ? (
+                      <div className="loc-accuracy-pill">
+                        ±{coords.accuracy}m
+                      </div>
+                    ) : (
+                      <div className="loc-accuracy-pill is-warn">
+                        Chưa có GPS
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="loc-form">
+                    <input
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder="Tên địa điểm (vd: Quán cà phê A)"
+                      className="loc-input"
+                    />
+                    <input
+                      value={customAddress}
+                      onChange={(e) => setCustomAddress(e.target.value)}
+                      placeholder="Địa chỉ (vd: 12 Nguyễn Trãi, Q1)"
+                      className="loc-input"
+                    />
+
+                    <select
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="loc-select"
+                    >
+                      <option value="cafe">☕ Cafe</option>
+                      <option value="restaurant">🍽 Restaurant</option>
+                      <option value="bar">💃 Bar</option>
+                      <option value="shop">🛍️ Shop</option>
+                      <option value="park">🏞 Park</option>
+                      <option value="museum">🏛 Museum</option>
+                      <option value="hotel">🏩 Hotel</option>
+                      <option value="other">Other</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      className="loc-btn loc-btn-success"
+                      onClick={onCreateCustomPlace}
+                      disabled={createLoading}
+                    >
+                      {createLoading ? "Đang tạo..." : "Tạo & chọn vị trí này"}
+                    </button>
+
+                    <div className="loc-hint">
+                      * Vị trí tạo sẽ dùng GPS vừa quét. Nếu GPS yếu, hãy quét
+                      lại để chính xác hơn.
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div style={{ height: 10 }} />
+            <div style={{ height: 8 }} />
           </div>
         </div>
       )}
