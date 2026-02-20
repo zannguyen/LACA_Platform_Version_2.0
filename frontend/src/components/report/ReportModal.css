@@ -1,0 +1,266 @@
+/* src/components/report/ReportModal.css */
+
+.report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 12px;
+}
+
+.report-modal {
+  width: min(680px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+  color: #0f172a;
+}
+
+.report-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.report-modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.report-modal-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(15, 23, 42, 0.6);
+  padding: 8px;
+  border-radius: 10px;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.report-modal-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.9);
+  transform: rotate(6deg) scale(1.05);
+}
+
+.report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.report-field label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.report-field input,
+.report-field textarea {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.report-counter {
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.6);
+  text-align: right;
+}
+
+/* ===== Category chips ===== */
+.report-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  padding: 9px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    filter 140ms ease;
+  position: relative;
+  user-select: none;
+}
+
+.chip:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+.chip:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+.chip.active {
+  border-color: rgba(15, 23, 42, 0.18);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
+  filter: saturate(1.15);
+}
+
+/* màu theo category */
+.chip-spam.active {
+  background: linear-gradient(135deg, #ff6a00, #ff3d6e);
+  color: #fff;
+}
+.chip-harassment.active {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  color: #fff;
+}
+.chip-inappropriate.active {
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  color: #fff;
+}
+.chip-false_info.active {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  color: #fff;
+}
+.chip-other.active {
+  background: linear-gradient(135deg, #334155, #0f172a);
+  color: #fff;
+}
+
+.chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== Inputs ===== */
+.report-field input {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+  outline: none;
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.report-field textarea {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+  outline: none;
+  overflow: auto;
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.report-field textarea:focus,
+.report-field input:focus {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+/* ✅ Description cố định, không resize */
+textarea.report-desc {
+  resize: none !important;
+  height: 160px;
+  min-height: 160px;
+  max-height: 160px;
+}
+
+/* ===== error ===== */
+.report-error {
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: -4px;
+  margin-bottom: 10px;
+}
+
+/* ===== actions: submit + X đỏ nhỏ bên phải ===== */
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.report-cancel-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.report-cancel-icon:hover {
+  transform: scale(1.05);
+  background: rgba(220, 38, 38, 0.12);
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.18);
+}
+
+.report-cancel-icon:active {
+  transform: scale(0.98);
+}
+
+.report-cancel-icon:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+/* FORCE description full width trong modal */
+.report-field .input-group {
+  width: 100%;
+}
+
+.report-field textarea.report-desc {
+  width: 100% !important;
+  display: block;
+  box-sizing: border-box;
+
+  resize: none !important;
+  height: 180px; /* bạn muốn to hơn thì tăng */
+  min-height: 180px;
+  max-height: 180px;
+}

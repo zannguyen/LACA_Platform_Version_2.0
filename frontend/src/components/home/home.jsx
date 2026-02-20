@@ -1,7 +1,8 @@
 // src/components/home/home.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate } from "react-router-dom";
+import ReportModal from "../report/ReportModal";
 import "./home.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
@@ -16,7 +17,11 @@ const Home = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // ✅ NEW: top search + filter UI (frontend only)
+  // report modal
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+
+  // top search + filter UI (frontend-only)
   const [searchText, setSearchText] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [onlyNearby, setOnlyNearby] = useState(false);
@@ -28,6 +33,19 @@ const Home = () => {
   const { enabled: locationEnabled, requestCurrentPosition } =
     useLocationAccess();
 
+  // ✅ HARD RESET report modal when Home mounts (ngăn auto-open do state rác)
+  useEffect(() => {
+    setReportOpen(false);
+    setReportTarget(null);
+  }, []);
+
+  // (debug, xoá cũng được)
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("reportOpen:", reportOpen, "reportTarget:", reportTarget?._id);
+  }, [reportOpen, reportTarget]);
+
+  // ================== LOCATION ==================
   useEffect(() => {
     if (!locationEnabled) {
       setLocation(null);
@@ -44,9 +62,7 @@ const Home = () => {
       timeout: 10000,
       maximumAge: 0,
     })
-      .then((pos) => {
-        setLocation({ lat: pos.lat, lng: pos.lng });
-      })
+      .then((pos) => setLocation({ lat: pos.lat, lng: pos.lng }))
       .catch(() => {
         setErrMsg("Vui lòng bật quyền vị trí để xem bài đăng gần bạn");
         setLoading(false);
@@ -105,6 +121,7 @@ const Home = () => {
     }
   };
 
+  // ================== HELPERS ==================
   const getDisplayName = (post) =>
     post?.user?.fullname || post?.user?.username || "User";
 
@@ -126,43 +143,6 @@ const Home = () => {
     navigate("/chat/detail");
   };
 
-  const toggleReportMenu = (e) => {
-    e.stopPropagation();
-    const dropdown = e.currentTarget.nextElementSibling;
-    document.querySelectorAll(".report-dropdown.show").forEach((d) => {
-      if (d !== dropdown) d.classList.remove("show");
-    });
-    dropdown.classList.toggle("show");
-  };
-
-  const handleAction = (type) => {
-    alert(type === "block" ? "Đã chặn người dùng" : "Đã báo cáo bài viết");
-    document
-      .querySelectorAll(".report-dropdown.show")
-      .forEach((d) => d.classList.remove("show"));
-  };
-
-  useEffect(() => {
-    const close = (e) => {
-      if (!e.target.closest(".report-wrapper")) {
-        document
-          .querySelectorAll(".report-dropdown.show")
-          .forEach((d) => d.classList.remove("show"));
-      }
-    };
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, []);
-
-  useEffect(() => {
-    const main = document.querySelector(".home-main");
-    if (!main) return;
-    main.style.overflowY = menuOpen ? "hidden" : "auto";
-    return () => {
-      main.style.overflowY = "auto";
-    };
-  }, [menuOpen]);
-
   const formatDistance = (kilometers) => {
     if (kilometers === undefined || kilometers === null) return "";
     if (kilometers < 1) return `${Math.round(kilometers * 1000)} m`;
@@ -175,10 +155,6 @@ const Home = () => {
   const isVideoUrl = (url) =>
     url?.endsWith(".mp4") || url?.includes("/video/upload/");
 
-  const closeMenu = () => setMenuOpen(false);
-  const openMenu = () => setMenuOpen(true);
-
-  // ✅ FIX: backend trả place.location.lat/lng
   const getPostLatLng = (post) => {
     const lat = post?.place?.location?.lat;
     const lng = post?.place?.location?.lng;
@@ -186,7 +162,6 @@ const Home = () => {
     return null;
   };
 
-  // ✅ click icon -> qua MapView + focus (match MapView parse focusLat/focusLng)
   const goToPostOnMap = (post) => {
     const p = getPostLatLng(post);
     if (!p) return;
@@ -195,7 +170,91 @@ const Home = () => {
     );
   };
 
-  // ✅ frontend-only demo filter/search (KHÔNG gọi backend)
+  // ================== MENU ==================
+  const closeMenu = () => setMenuOpen(false);
+  const openMenu = () => setMenuOpen(true);
+
+  useEffect(() => {
+    const main = document.querySelector(".home-main");
+    if (!main) return;
+    main.style.overflowY = menuOpen ? "hidden" : "auto";
+    return () => {
+      main.style.overflowY = "auto";
+    };
+  }, [menuOpen]);
+
+  // ================== REPORT DROPDOWN ==================
+  const toggleReportMenu = (e) => {
+    e.stopPropagation();
+    const dropdown = e.currentTarget.nextElementSibling;
+
+    document.querySelectorAll(".report-dropdown.show").forEach((d) => {
+      if (d !== dropdown) d.classList.remove("show");
+    });
+
+    dropdown.classList.toggle("show");
+  };
+
+  const closeAllReportDropdowns = () => {
+    document
+      .querySelectorAll(".report-dropdown.show")
+      .forEach((d) => d.classList.remove("show"));
+  };
+
+  const handleAction = (type, post, e) => {
+    if (e) e.stopPropagation();
+    closeAllReportDropdowns();
+
+    if (type === "block") {
+      alert("Đã chặn người dùng");
+      return;
+    }
+
+    if (type === "report") {
+      setReportTarget(post);
+      setReportOpen(true);
+    }
+  };
+
+  useEffect(() => {
+    const close = (e) => {
+      if (!e.target.closest(".report-wrapper")) closeAllReportDropdowns();
+    };
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, []);
+
+  // ✅ ESC đóng modal
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" && reportOpen) {
+        setReportOpen(false);
+        setReportTarget(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [reportOpen]);
+
+  // ================== FRONTEND-ONLY FILTER/SEARCH ==================
+  const visiblePosts = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+
+    return (feedPosts || [])
+      .filter((p) => {
+        if (!q) return true;
+        const name = (getDisplayName(p) || "").toLowerCase();
+        const content = (p?.content || "").toLowerCase();
+        return name.includes(q) || content.includes(q);
+      })
+      .filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)))
+      .filter((p) => {
+        if (!onlyNearby) return true;
+        const d = p?.distanceKm;
+        if (typeof d !== "number") return false;
+        return d <= 5;
+      });
+  }, [feedPosts, searchText, onlyHasLocation, onlyNearby]);
 
   return (
     <div className="mobile-wrapper">
@@ -236,7 +295,7 @@ const Home = () => {
         </Link>
       </header>
 
-      {/* ✅ NEW: thanh tìm kiếm + filter (theo ý 1: nằm dưới header, không sticky) */}
+      {/* search + filter */}
       <div className="home-topbar" onClick={() => menuOpen && closeMenu()}>
         <div className="home-search">
           <i className="fa-solid fa-magnifying-glass home-search-icon" />
@@ -335,7 +394,7 @@ const Home = () => {
 
         {!loading &&
           !errMsg &&
-          feedPosts.map((post) => {
+          visiblePosts.map((post) => {
             const media = getFirstMedia(post);
             const isVideo = post.type === "video" || isVideoUrl(media);
             const hasPlace = !!getPostLatLng(post);
@@ -372,7 +431,6 @@ const Home = () => {
                     </div>
                   </Link>
 
-                  {/* ✅ cụm icon góc phải: location + report */}
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 10 }}
                   >
@@ -400,21 +458,27 @@ const Home = () => {
                     )}
 
                     <div className="report-wrapper">
-                      <div className="report-btn" onClick={toggleReportMenu}>
+                      <button
+                        type="button"
+                        className="report-btn"
+                        onClick={toggleReportMenu}
+                        aria-label="Report menu"
+                        title="Report menu"
+                      >
                         <i className="fa-solid fa-circle-exclamation"></i>
-                      </div>
+                      </button>
 
                       <div className="report-dropdown">
                         <div
                           className="dropdown-item"
-                          onClick={() => handleAction("block")}
+                          onClick={(e) => handleAction("block", post, e)}
                         >
                           <i className="fa-solid fa-ban"></i> Block
                         </div>
 
                         <div
                           className="dropdown-item warning"
-                          onClick={() => handleAction("report")}
+                          onClick={(e) => handleAction("report", post, e)}
                         >
                           <i className="fa-solid fa-flag"></i> Report
                         </div>
@@ -463,6 +527,17 @@ const Home = () => {
             );
           })}
       </main>
+
+      <ReportModal
+        open={reportOpen}
+        targetType="post"
+        targetId={reportTarget?._id}
+        onClose={(ok) => {
+          setReportOpen(false);
+          setReportTarget(null);
+          if (ok) alert("Đã gửi report");
+        }}
+      />
     </div>
   );
 };

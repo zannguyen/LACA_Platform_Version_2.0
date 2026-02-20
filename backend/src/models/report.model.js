@@ -62,12 +62,10 @@ const ReportSchema = new mongoose.Schema(
 
     handledBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // admin cũng là user (nếu bạn tách admin model thì đổi)
+      ref: "User",
     },
 
-    handledAt: {
-      type: Date,
-    },
+    handledAt: { type: Date },
 
     note: {
       type: String,
@@ -82,14 +80,9 @@ const ReportSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  {
-    // bạn đã có createdAt thủ công, nên tắt timestamps để tránh trùng
-    timestamps: false,
-    versionKey: false,
-  },
+  { timestamps: false, versionKey: false },
 );
 
-// index gợi ý cho dashboard/moderation
 ReportSchema.index({ status: 1, createdAt: -1 });
 ReportSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 ReportSchema.index({ reporterId: 1, createdAt: -1 });
