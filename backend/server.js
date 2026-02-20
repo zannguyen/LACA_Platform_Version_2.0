@@ -5,15 +5,41 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const port = process.env.PORT || 4000;
-
 const server = http.createServer(app);
 
-// ✅ CORS cho Socket.IO (quan trọng: credentials: true)
+/**
+ * ✅ Parse origins từ ENV
+ * - Ưu tiên SOCKET_ORIGINS
+ * - fallback sang CORS_ORIGINS
+ * - nếu không set gì => allow all (để khỏi chết khi quên set ENV)
+ */
+const allowedOrigins = (
+  process.env.SOCKET_ORIGINS ||
+  process.env.CORS_ORIGINS ||
+  ""
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const corsOrigin = (origin, cb) => {
+  // Cho phép request không có origin (Postman/cURL/server-to-server)
+  if (!origin) return cb(null, true);
+
+  // Nếu chưa set ENV => allow all (bạn có thể siết lại nếu muốn)
+  if (allowedOrigins.length === 0) return cb(null, true);
+
+  if (allowedOrigins.includes(origin)) return cb(null, true);
+
+  return cb(new Error("Not allowed by CORS: " + origin));
+};
+
+// ✅ CORS cho Socket.IO (credentials true nếu FE dùng withCredentials / cookie)
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: corsOrigin,
     methods: ["GET", "POST"],
-    credentials: true, // ✅ FIX lỗi Access-Control-Allow-Credentials
+    credentials: true,
   },
 });
 
@@ -48,6 +74,7 @@ io.on("connection", (socket) => {
     if (key && onlineUsers.has(key)) {
       const sockets = onlineUsers.get(key);
       sockets.delete(socket.id);
+
       if (sockets.size === 0) {
         onlineUsers.delete(key);
         io.emit("user_status", { userId: key, status: "offline" });
@@ -64,12 +91,12 @@ io.on("connection", (socket) => {
   try {
     await connectDB();
 
-    // ✅ Listen bình thường (đừng ép "localhost" để khỏi lỗi môi trường)
     server.listen(port, () => {
       console.log(`>>> Server đang chạy tại port ${port}`);
       console.log(`>>> Local: http://localhost:${port}`);
     });
   } catch (err) {
     console.error("Server tạch rồi:", err);
+    process.exit(1);
   }
 })();
