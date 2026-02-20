@@ -1,3 +1,13 @@
-import ReportPage from "../components/report/ReportPage";
+import React from "react";
+import ReportModal from "../components/report/ReportModal";
 
-export default ReportPage;
+export default function ReportPage() {
+  return (
+    <ReportModal
+      open={true}
+      targetType="post"
+      targetId={null}
+      onClose={() => {}}
+    />
+  );
+}
