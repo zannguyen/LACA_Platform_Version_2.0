@@ -26,3 +26,32 @@
   margin: 0;
   color: #333;
 }
+
+/* Input group để textarea có width đầy đủ */
+.input-group {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+/* Textarea rộng */
+.rounded-textarea {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.rounded-textarea:focus {
+  border-color: #5f5758;
+}
+
+.rounded-textarea:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}

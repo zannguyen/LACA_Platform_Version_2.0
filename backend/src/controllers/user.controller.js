@@ -1,5 +1,6 @@
 const asyncHandler = require("../utils/asyncHandler");
 const UserService = require("../services/user.service");
+const notifService = require("../services/notification.service");
 
 /**
  * GET /api/user/me/profile
@@ -37,7 +38,9 @@ exports.updateMyProfile = asyncHandler(async (req, res) => {
     userId: req.user.id,
     body: req.body,
   });
-  return res.status(200).json({ success: true, message: "Profile updated", data: user });
+  return res
+    .status(200)
+    .json({ success: true, message: "Profile updated", data: user });
 });
 
 // ===== Block / Unblock (Auth required) =====
@@ -52,7 +55,9 @@ exports.unblockUser = asyncHandler(async (req, res) => {
   const blockedId = req.params.id;
   const blockerId = req.user.id;
   await UserService.unblockUser(blockerId, blockedId);
-  res.status(200).json({ success: true, message: "User unblocked successfully" });
+  res
+    .status(200)
+    .json({ success: true, message: "User unblocked successfully" });
 });
 
 // ===== Follow / Unfollow (Auth required) =====
@@ -62,6 +67,28 @@ exports.followUser = asyncHandler(async (req, res) => {
 
   const result = await UserService.followUser(me, targetId);
   const followers = await UserService.getFollowersCount(targetId);
+
+  // Notify the target user
+  try {
+    const io = req.app.get("io");
+    const followerUser = await require("../models/user.model")
+      .findById(me)
+      .select("fullname username");
+    const followerName =
+      followerUser?.fullname || followerUser?.username || "Ai đó";
+    await notifService.createAndEmit(io, {
+      recipientId: targetId,
+      senderId: me,
+      type: "new_follower",
+      title: `${followerName} đã theo dõi bạn`,
+      body: "",
+      link: `/profile/${me}`,
+      refId: me,
+      refModel: "User",
+    });
+  } catch (notifErr) {
+    console.error("[Notification] new_follower error:", notifErr.message);
+  }
 
   res.status(200).json({
     success: true,

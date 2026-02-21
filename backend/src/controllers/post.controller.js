@@ -7,6 +7,8 @@ const AppError = require("../utils/appError");
 const mongoose = require("mongoose");
 
 const UserService = require("../services/user.service");
+const Follow = require("../models/follow.model");
+const notifService = require("../services/notification.service");
 
 const create = async (req, res) => {
   try {
@@ -17,8 +19,8 @@ const create = async (req, res) => {
     const mediaUrl = Array.isArray(rawMediaUrl)
       ? rawMediaUrl
       : rawMediaUrl
-      ? [rawMediaUrl]
-      : [];
+        ? [rawMediaUrl]
+        : [];
 
     const post = await service.createPost({
       userId: req.user.id,
@@ -30,6 +32,35 @@ const create = async (req, res) => {
       reportCount: 0,
       expireAt: req.body.expireAt || null,
     });
+
+    // Notify all followers (fire & forget)
+    try {
+      const io = req.app.get("io");
+      const author = await require("../models/user.model")
+        .findById(req.user.id)
+        .select("fullname username");
+      const followers = await Follow.find({ followingUserId: req.user.id })
+        .select("followerUserId")
+        .lean();
+
+      const notifyName = author?.fullname || author?.username || "Ai đó";
+      await Promise.all(
+        followers.map((f) =>
+          notifService.createAndEmit(io, {
+            recipientId: f.followerUserId,
+            senderId: req.user.id,
+            type: "new_post",
+            title: `${notifyName} vừa đăng bài viết mới`,
+            body: post.content ? post.content.substring(0, 100) : "Xem ngay!",
+            link: `/posts/${post._id}`,
+            refId: post._id,
+            refModel: "Post",
+          }),
+        ),
+      );
+    } catch (notifErr) {
+      console.error("[Notification] new_post error:", notifErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -52,7 +83,8 @@ const createWithMedia = async (req, res) => {
 
     let type = req.body.type;
     if (!type) {
-      if (files.some((f) => (f.mimetype || "").startsWith("video/"))) type = "video";
+      if (files.some((f) => (f.mimetype || "").startsWith("video/")))
+        type = "video";
       else if (mediaUrl.length > 0) type = "image";
       else type = "text";
     }
@@ -67,6 +99,35 @@ const createWithMedia = async (req, res) => {
       reportCount: 0,
       expireAt: null,
     });
+
+    // Notify all followers (fire & forget)
+    try {
+      const io = req.app.get("io");
+      const author = await require("../models/user.model")
+        .findById(req.user.id)
+        .select("fullname username");
+      const followers = await Follow.find({ followingUserId: req.user.id })
+        .select("followerUserId")
+        .lean();
+
+      const notifyName = author?.fullname || author?.username || "Ai đó";
+      await Promise.all(
+        followers.map((f) =>
+          notifService.createAndEmit(io, {
+            recipientId: f.followerUserId,
+            senderId: req.user.id,
+            type: "new_post",
+            title: `${notifyName} vừa đăng bài viết mới`,
+            body: post.content ? post.content.substring(0, 100) : "Xem ngay!",
+            link: `/posts/${post._id}`,
+            refId: post._id,
+            refModel: "Post",
+          }),
+        ),
+      );
+    } catch (notifErr) {
+      console.error("[Notification] new_post (media) error:", notifErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -113,10 +174,13 @@ const deletePost = asyncHandler(async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) throw new AppError("Unauthorized", 401);
-  if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid postId", 400);
+  if (!mongoose.Types.ObjectId.isValid(postId))
+    throw new AppError("Invalid postId", 400);
 
   const result = await service.deletePost({ postId, userId });
-  return res.status(200).json({ success: true, message: "Post deleted", ...result });
+  return res
+    .status(200)
+    .json({ success: true, message: "Post deleted", ...result });
 });
 
 module.exports = { create, createWithMedia, getHomePosts, deletePost };

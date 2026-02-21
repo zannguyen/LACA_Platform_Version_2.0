@@ -5,18 +5,6 @@ import userApi from "../../api/userApi";
 import "./stranger_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
-const IconBack = ({ size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <path
-      d="M15 18l-6-6 6-6"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const IconMoreVertical = ({ size = 22 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <path
@@ -32,7 +20,12 @@ const IconMoreVertical = ({ size = 22 }) => (
 const IconBlock = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-    <path d="M7.5 16.5L16.5 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M7.5 16.5L16.5 7.5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -70,12 +63,20 @@ export default function StrangerProfile() {
   // hỗ trợ cả 2 route param:
   // - /profile/:userId  -> params.userId
   // - /stranger_profile/:id -> params.id
-  const targetUserId = useMemo(() => params.userId || params.id || null, [params]);
+  const targetUserId = useMemo(
+    () => params.userId || params.id || null,
+    [params],
+  );
 
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({ posts: 0, followers: 0 });
   const [posts, setPosts] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -98,7 +99,11 @@ export default function StrangerProfile() {
       setErr("");
 
       // API: { success, data: { user, stats, posts, pagination } }
-      const res = await userApi.getUserProfile({ userId: targetUserId, page, limit: 10 });
+      const res = await userApi.getUserProfile({
+        userId: targetUserId,
+        page,
+        limit: 10,
+      });
       const payload = res.data?.data;
 
       setProfile(payload?.user || null);
@@ -106,9 +111,12 @@ export default function StrangerProfile() {
       setIsFollowing(Boolean(payload?.relationship?.isFollowing));
       setIsOwner(Boolean(payload?.relationship?.isOwner));
       setPosts(payload?.posts || []);
-      setPagination(payload?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
+      setPagination(
+        payload?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 },
+      );
     } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || "Failed to load profile";
+      const msg =
+        e?.response?.data?.message || e?.message || "Failed to load profile";
       setErr(msg);
     } finally {
       setLoading(false);
@@ -160,7 +168,10 @@ export default function StrangerProfile() {
         if (typeof newCount === "number") {
           setStats((s) => ({ ...s, followers: newCount }));
         } else {
-          setStats((s) => ({ ...s, followers: Math.max(0, (s.followers || 0) - 1) }));
+          setStats((s) => ({
+            ...s,
+            followers: Math.max(0, (s.followers || 0) - 1),
+          }));
         }
       } else {
         const res = await userApi.followUser(profile._id);
@@ -183,7 +194,9 @@ export default function StrangerProfile() {
   if (loading) {
     return (
       <div className="mobile-wrapper stranger-profile">
-        <div style={{ color: "black", textAlign: "center", marginTop: 50 }}>Loading...</div>
+        <div style={{ color: "black", textAlign: "center", marginTop: 50 }}>
+          Loading...
+        </div>
       </div>
     );
   }
@@ -193,7 +206,7 @@ export default function StrangerProfile() {
       <div className="mobile-wrapper stranger-profile">
         <header className="top-nav">
           <Link to="/home" className="nav-btn" aria-label="Back">
-            <IconBack />
+            <i className="fa-solid fa-arrow-left"></i>
           </Link>
         </header>
 
@@ -211,7 +224,7 @@ export default function StrangerProfile() {
     <div className="mobile-wrapper stranger-profile">
       <header className="top-nav">
         <Link to="/home" className="nav-btn" aria-label="Back">
-          <IconBack />
+          <i className="fa-solid fa-arrow-left"></i>
         </Link>
 
         <div className="header-actions" ref={menuRef}>
@@ -232,7 +245,11 @@ export default function StrangerProfile() {
               <IconBlock />
               <span>Block</span>
             </button>
-            <button type="button" className="menu-item danger" onClick={handleReport}>
+            <button
+              type="button"
+              className="menu-item danger"
+              onClick={handleReport}
+            >
               <IconFlag />
               <span>Report</span>
             </button>
@@ -289,14 +306,18 @@ export default function StrangerProfile() {
             const media = Array.isArray(p.mediaUrl) ? p.mediaUrl[0] : "";
             const isVideo = p.type === "video" || isVideoUrl(media);
 
-            const createdAt = p.createdAt ? new Date(p.createdAt).toLocaleString() : "";
+            const createdAt = p.createdAt
+              ? new Date(p.createdAt).toLocaleString()
+              : "";
 
             return (
               <div className="post-item" key={p._id}>
                 <div className="mini-post-header">
                   <div className="mini-user">
                     <div className="mini-avatar">
-                      {profile?.avatar ? <img src={profile.avatar} alt="" /> : null}
+                      {profile?.avatar ? (
+                        <img src={profile.avatar} alt="" />
+                      ) : null}
                     </div>
                     <span className="mini-username">{displayName}</span>
                     {createdAt ? (

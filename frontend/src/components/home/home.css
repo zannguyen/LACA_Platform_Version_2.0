@@ -75,6 +75,38 @@
   border: none;
   padding: 0;
   line-height: 1;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-wrapper .icon-btn:hover {
+  opacity: 0.7;
+}
+
+/* Notification icon with badge */
+.mobile-wrapper .notif-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-wrapper .notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 1;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid #fff;
 }
 
 /* =========================

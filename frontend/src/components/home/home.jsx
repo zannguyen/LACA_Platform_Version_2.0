@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate } from "react-router-dom";
 import ReportModal from "../report/ReportModal";
+import { getUnreadCount } from "../../api/notificationApi";
 import "./home.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
@@ -14,6 +15,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState("");
   const [location, setLocation] = useState(null);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -37,6 +39,26 @@ const Home = () => {
   useEffect(() => {
     setReportOpen(false);
     setReportTarget(null);
+  }, []);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await getUnreadCount();
+        if (data?.success) {
+          setUnreadNotifCount(data.unreadCount || 0);
+        }
+      } catch (err) {
+        console.error("Fetch unread count error:", err);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Poll every 30 seconds để cập nhật số lượng thông báo chưa đọc
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // (debug, xoá cũng được)
@@ -290,8 +312,17 @@ const Home = () => {
 
         <div className="header-title">LACA</div>
 
-        <Link to="/notification" className="icon-btn" onClick={closeMenu}>
+        <Link
+          to="/notification"
+          className="icon-btn notif-icon-wrapper"
+          onClick={closeMenu}
+        >
           <i className="fa-regular fa-bell"></i>
+          {unreadNotifCount > 0 && (
+            <span className="notif-badge">
+              {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+            </span>
+          )}
         </Link>
       </header>
 

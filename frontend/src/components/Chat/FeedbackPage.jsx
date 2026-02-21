@@ -53,7 +53,7 @@ const FeedbackPage = () => {
     <div className="auth-form">
       <div className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
-          ←
+          <i className="fa-solid fa-arrow-left"></i>
         </button>
         <h2 className="page-title">Feedback</h2>
       </div>
@@ -62,8 +62,9 @@ const FeedbackPage = () => {
         placeholder="Hi LACA team, I want LACA has a function that..."
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        rows={12}
+        rows={15}
         disabled={isLoading} // Khóa ô nhập khi đang gửi
+        style={{ minHeight: "300px" }}
       />
 
       <div style={{ marginTop: "20px" }}>

@@ -210,7 +210,7 @@ const ChatDetailPage = () => {
     <div className="auth-form chat-detail-page">
       <div className="page-header" style={{ borderBottom: "1px solid #ccc" }}>
         <button className="back-btn" onClick={() => navigate(-1)}>
-          ←
+          <i className="fa-solid fa-arrow-left"></i>
         </button>
 
         <div className="avatar-circle" style={{ width: 40, height: 40 }}>
@@ -244,33 +244,33 @@ const ChatDetailPage = () => {
                 key={msg._id || msg.createdAt || idx}
                 className={`message-row ${msg.isSent ? "me" : ""}`}
               >
-              {!msg.isSent && (
-                <div
-                  className="avatar-circle"
-                  style={{ width: 30, height: 30, marginRight: 8 }}
-                />
-              )}
-
-              <div className="message-content">
-                {msg.image ? (
-                  <div className="message-image">
-                    <img
-                      src={msg.image}
-                      alt="Message"
-                      style={{ maxWidth: 200 }}
-                    />
-                  </div>
-                ) : (
+                {!msg.isSent && (
                   <div
-                    className={`bubble ${msg.isSent ? "sent" : "received"}`}
-                  >
-                    {msg.text}
-                  </div>
+                    className="avatar-circle"
+                    style={{ width: 30, height: 30, marginRight: 8 }}
+                  />
                 )}
 
-                {showUnread && <div className="message-status">Unread</div>}
+                <div className="message-content">
+                  {msg.image ? (
+                    <div className="message-image">
+                      <img
+                        src={msg.image}
+                        alt="Message"
+                        style={{ maxWidth: 200 }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className={`bubble ${msg.isSent ? "sent" : "received"}`}
+                    >
+                      {msg.text}
+                    </div>
+                  )}
+
+                  {showUnread && <div className="message-status">Unread</div>}
+                </div>
               </div>
-            </div>
             );
           })
         )}
