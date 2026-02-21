@@ -465,29 +465,6 @@ const Home = () => {
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 10 }}
                   >
-                    {hasPlace && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          goToPostOnMap(post);
-                        }}
-                        title="Xem vị trí trên bản đồ"
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          padding: 0,
-                          cursor: "pointer",
-                          color: "#666",
-                          fontSize: 18,
-                          lineHeight: 1,
-                        }}
-                        aria-label="View location"
-                      >
-                        <i className="fa-solid fa-location-dot" />
-                      </button>
-                    )}
-
                     <div className="report-wrapper">
                       <button
                         type="button"

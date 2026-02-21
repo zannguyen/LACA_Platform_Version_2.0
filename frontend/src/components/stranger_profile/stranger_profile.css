@@ -5,28 +5,37 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
 }
 
-/* Wrapper chính */
 .stranger-profile.mobile-wrapper {
-  width: 375px;
-  height: 800px;
-  background-color: #fff;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg-card);
   position: relative;
-  border-radius: 30px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0 auto;
 }
 
-/* --- HEADER --- */
+@media (min-width: 768px) {
+  .stranger-profile.mobile-wrapper {
+    min-height: 92vh;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    margin: 20px auto;
+  }
+}
+
 .stranger-profile .top-nav {
-  padding: 15px 20px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-md) var(--space-xl);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -35,8 +44,10 @@
 }
 
 .stranger-profile .nav-btn {
-  font-size: 24px;
-  color: #333;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  font-size: 20px;
+  color: var(--text-primary);
   cursor: pointer;
   background: none;
   border: none;
@@ -44,6 +55,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-md);
+  transition: background 0.2s, color 0.2s;
+}
+
+.stranger-profile .nav-btn:hover,
+.stranger-profile .nav-btn:active {
+  background: var(--bg-input);
+  color: var(--primary);
 }
 
 .stranger-profile .header-actions {
@@ -54,13 +73,14 @@
 .stranger-profile .header-menu {
   display: none;
   position: absolute;
-  top: 44px;
+  top: 100%;
   right: 0;
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
-  border-radius: 10px;
+  margin-top: 4px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid #eee;
+  border: 1px solid var(--border);
   min-width: 160px;
   z-index: 80;
 }
@@ -70,23 +90,24 @@
 }
 .stranger-profile .menu-item {
   width: 100%;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #333;
+  padding: var(--space-md) var(--space-lg);
+  font-size: 14px;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #fff;
+  gap: var(--space-md);
+  background: var(--bg-card);
   border: none;
-  border-bottom: 1px solid #f7f7f7;
+  border-bottom: 1px solid var(--border);
   text-align: left;
+  font-family: var(--font-sans);
 }
 .stranger-profile .menu-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-input);
 }
 .stranger-profile .menu-item.danger {
-  color: #dc3545;
+  color: var(--error);
   font-weight: 600;
 }
 .stranger-profile .menu-item:last-child {
@@ -129,9 +150,9 @@
 .stranger-profile .avatar-large {
   width: 80px;
   height: 80px;
-  background-color: #d9d9d9;
-  border-radius: 50%;
-  border: 1px solid #ccc;
+  background: var(--bg-input);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -174,14 +195,14 @@
 .stranger-profile .user-name {
   font-size: 18px;
   font-weight: 700;
-  color: #000;
+  color: var(--text-primary);
   margin-bottom: 4px;
   overflow-wrap: break-word;
 }
 
 .stranger-profile .user-id {
   font-size: 14px;
-  color: #000;
+  color: var(--text-primary);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -191,7 +212,7 @@
 
 .stranger-profile .user-bio {
   font-size: 14px;
-  color: #000;
+  color: var(--text-primary);
 }
 
 /* Stats giống user_profile: posts + followers sát nhau */
@@ -210,39 +231,39 @@
 
 .stranger-profile .stat-item {
   font-size: 13px;
-  color: #000;
+  color: var(--text-primary);
 }
 
 /* Follow button giữ design cũ */
 .stranger-profile .follow-btn {
-  background: #fff;
-  color: #000;
-  border: 1px solid #000;
-  padding: 8px 25px;
-  border-radius: 5px;
-  font-size: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--text-primary);
+  padding: var(--space-sm) var(--space-xl);
+  border-radius: var(--radius-md);
+  font-size: 13px;
   font-weight: 700;
+  font-family: var(--font-sans);
   cursor: pointer;
-  text-transform: uppercase;
-  transition: 0.2s;
-  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
 }
 .stranger-profile .follow-btn.following {
-  background: #000;
+  background: var(--gradient-main);
   color: #fff;
+  border-color: transparent;
 }
 .stranger-profile .follow-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
 }
 
 /* Title */
 .stranger-profile .post-title {
   font-size: 12px;
-  color: #000;
+  color: var(--text-muted);
   margin-bottom: 15px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: bold;
+  letter-spacing: 0.05em;
+  font-weight: 700;
 }
 
 /* Posts list */
@@ -271,13 +292,13 @@
 }
 
 .stranger-profile .mini-avatar {
-  width: 30px;
-  height: 30px;
-  background-color: #d9d9d9;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-input);
+  border-radius: var(--radius-pill);
   overflow: hidden;
-  margin-right: 10px;
-  border: 1px solid #ccc;
+  margin-right: var(--space-md);
+  border: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -291,7 +312,7 @@
 .stranger-profile .mini-username {
   font-size: 14px;
   font-weight: 600;
-  color: #000;
+  color: var(--text-primary);
   max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
@@ -299,9 +320,9 @@
 }
 
 .stranger-profile .mini-date {
-  margin-left: 10px;
+  margin-left: var(--space-md);
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -333,9 +354,12 @@
   left: 0;
   width: 100%;
   text-align: center;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   z-index: 5;
   padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

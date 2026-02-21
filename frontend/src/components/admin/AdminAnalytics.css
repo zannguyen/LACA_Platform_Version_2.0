@@ -1,151 +1,195 @@
-/* =========================
-   ROOT
-========================= */
+/* Admin Analytics - Modern, Minimalist, Mobile-first */
+@import url("../../styles/design-tokens.css");
+
 .analytics {
-  padding: 24px;
-  background: #f7f8fc;
+  padding: var(--space-lg);
+  background: var(--bg-page);
   min-height: 100vh;
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
-  color: #111;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
 }
 
-/* =========================
-   HEADER
-========================= */
 .analytics-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-2xl);
+  flex-wrap: wrap;
+  gap: var(--space-md);
 }
 
 .analytics-header h1 {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.range-filter {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .range-filter button {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   cursor: pointer;
-  margin-left: 8px;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
+}
+
+.range-filter button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .range-filter button.active {
-  background: #111;
-  color: #fff;
-  border-color: #111;
+  background: var(--gradient-main);
+  color: white;
+  border-color: transparent;
 }
 
-/* =========================
-   KPI CARDS
-========================= */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-2xl);
 }
 
 .kpi-card {
-  background: #fff;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.kpi-card:hover::before {
+  transform: scaleY(1);
 }
 
 .kpi-card span {
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .kpi-card strong {
   display: block;
-  margin-top: 8px;
-  font-size: 30px;
-  font-weight: 700;
+  margin-top: var(--space-sm);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
-.kpi-card.users {
-  border-left: 5px solid #6366f1;
+.kpi-card.users::before {
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
 }
 
-.kpi-card.online {
-  border-left: 5px solid #22c55e;
+.kpi-card.online::before {
+  background: linear-gradient(180deg, #22c55e, #10b981);
 }
 
-.kpi-card.new {
-  border-left: 5px solid #f97316;
+.kpi-card.new::before {
+  background: linear-gradient(180deg, #f97316, #fb923c);
 }
 
-.kpi-card.places {
-  border-left: 5px solid #3b82f6;
+.kpi-card.places::before {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
 }
 
-/* =========================
-   CHART CARD
-========================= */
 .chart-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 28px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
 }
 
 .chart-card h3 {
   font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 16px;
+  font-weight: 800;
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
-/* =========================
-   USER GROWTH (LINE MOCK)
-========================= */
 .line-chart {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   height: 180px;
-  padding: 12px 0;
+  padding: var(--space-md) 0;
 }
 
 .line-point {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1;
 }
 
 .line-dot {
   width: 10px;
   height: 10px;
-  background: #6366f1;
-  border-radius: 50%;
-  margin-bottom: 6px;
+  background: var(--primary);
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-xs);
+  box-shadow: 0 0 0 4px rgba(233, 64, 87, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.line-point:hover .line-dot {
+  transform: scale(1.5);
 }
 
 .line-point span {
   font-size: 12px;
-  color: #111;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .line-point small {
-  font-size: 12px;
-  color: #777;
-  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
 }
 
-/* =========================
-   BAR CHART – ACTIVE REGIONS
-========================= */
 .bar-chart {
   display: flex;
   align-items: flex-end;
   height: 200px;
-  gap: 18px;
+  gap: var(--space-md);
 }
 
 .bar-item {
@@ -155,32 +199,39 @@
 
 .bar {
   width: 100%;
-  background: linear-gradient(180deg, #4f46e5, #818cf8);
-  border-radius: 8px 8px 0 0;
-  transition: height 0.3s ease;
+  background: var(--gradient-main);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.bar-item:hover .bar {
+  opacity: 0.9;
+  transform: scaleY(1.05);
 }
 
 .bar-item span {
   display: block;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #555;
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
-/* =========================
-   TABLE – TOP LOCATIONS
-========================= */
 .table-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
 }
 
 .table-card h3 {
   font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 16px;
+  font-weight: 800;
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .table-card table {
@@ -189,36 +240,89 @@
 }
 
 .table-card thead {
-  background: #f1f3f7;
+  background: var(--bg-input);
 }
 
 .table-card th,
 .table-card td {
-  padding: 12px 10px;
+  padding: var(--space-md) var(--space-sm);
   font-size: 14px;
   text-align: left;
 }
 
-.table-card tbody tr:not(:last-child) {
-  border-bottom: 1px solid #eee;
+.table-card th {
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
 }
 
-/* =========================
-   LOADING
-========================= */
+.table-card tbody tr {
+  transition: background 0.2s ease;
+}
+
+.table-card tbody tr:hover {
+  background: var(--gradient-soft);
+}
+
+.table-card tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
 .analytics-loading {
-  padding: 40px;
+  padding: var(--space-3xl);
   text-align: center;
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
-@media (max-width: 1024px) {
+@media (min-width: 1024px) {
   .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+  }
+}
+
+@media (min-width: 769px) {
+  .analytics {
+    padding: var(--space-2xl);
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .analytics-header {
+    margin-bottom: var(--space-3xl);
+  }
+
+  .analytics-header h1 {
+    font-size: 32px;
+  }
+
+  .range-filter button {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 14px;
+  }
+
+  .kpi-card {
+    padding: var(--space-2xl);
+  }
+
+  .kpi-card strong {
+    font-size: 32px;
+  }
+
+  .chart-card {
+    padding: var(--space-2xl);
+  }
+
+  .chart-card h3 {
+    font-size: 20px;
+  }
+
+  .bar-chart {
+    height: 220px;
   }
 }
 
@@ -230,10 +334,11 @@
   .analytics-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-md);
   }
 
   .bar-chart {
     height: 160px;
+    gap: var(--space-sm);
   }
 }

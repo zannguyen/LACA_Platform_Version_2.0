@@ -12,9 +12,11 @@ const toObjectId = (id) => {
 
 const pickUser = (u) => ({
   id: String(u._id),
+  _id: u._id,
   fullname: u.fullname || "",
   username: u.username || "",
   email: u.email || "",
+  avatar: u.avatar || null,
   isActive: !!u.isActive,
   isEmailVerified: !!u.isEmailVerified,
   deletedAt: u.deletedAt || null,
@@ -72,7 +74,7 @@ exports.listUsers = async (query) => {
   } // status=all => không add gì thêm
 
   const selectFields =
-    "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt updatedAt";
+    "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt updatedAt";
 
   const [total, users] = await Promise.all([
     User.countDocuments(filter),
@@ -98,7 +100,7 @@ exports.getUserById = async (userId) => {
 
   const user = await User.findById(oid)
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt updatedAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt updatedAt",
     )
     .lean();
 
@@ -126,7 +128,7 @@ exports.updateUserStatus = async (userId, body) => {
     { new: true },
   )
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt",
     )
     .lean();
 
@@ -160,7 +162,7 @@ exports.updateUser = async (userId, body) => {
 
   const user = await User.findByIdAndUpdate(oid, allowed, { new: true })
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt",
     )
     .lean();
 
@@ -194,7 +196,7 @@ exports.setSuspendUntil = async (userId, body) => {
     { new: true },
   )
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt",
     )
     .lean();
 
@@ -223,7 +225,7 @@ exports.setDeleted = async (userId, body) => {
     { new: true },
   )
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt",
     )
     .lean();
 
@@ -249,7 +251,7 @@ exports.deleteUser = async (userId) => {
     { new: true },
   )
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt",
     )
     .lean();
 
@@ -268,7 +270,7 @@ exports.restoreUser = async (userId) => {
     { new: true },
   )
     .select(
-      "fullname username email isActive isEmailVerified deletedAt suspendUntil role createdAt",
+      "fullname username email avatar isActive isEmailVerified deletedAt suspendUntil role createdAt",
     )
     .lean();
 

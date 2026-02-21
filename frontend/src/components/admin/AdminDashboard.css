@@ -1,71 +1,96 @@
-/* ==================== MOBILE-FIRST DESIGN ==================== */
-/* Default styles target mobile (≤430px) */
+/* Admin Dashboard - Modern, Minimalist, Mobile-first */
+@import url("../../styles/design-tokens.css");
 
 .admin-dashboard {
-  padding: 16px;
+  padding: var(--space-lg);
+  min-height: 100vh;
   min-height: 100dvh;
-  background: #fafafa;
+  background: var(--bg-page);
+  font-family: var(--font-sans);
 }
-
-/* ==================== HEADER ==================== */
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-xl);
 }
 
 .dashboard-header h1 {
   font-size: 24px;
-  font-weight: 700;
-  color: #333;
+  font-weight: 800;
+  color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .btn-refresh {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   border: none;
-  background: white;
-  color: #667eea;
+  background: var(--bg-card);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  font-size: 20px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-.btn-refresh:active {
-  transform: scale(0.95);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+.btn-refresh:hover {
+  background: var(--gradient-main);
+  color: white;
+  transform: rotate(180deg) scale(1.05);
+  box-shadow: var(--shadow-md);
 }
 
-/* ==================== STATS GRID ==================== */
+.btn-refresh:active {
+  transform: rotate(180deg) scale(0.98);
+}
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-2xl);
 }
 
 .stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   align-items: flex-start;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   touch-action: manipulation;
-  animation: fadeInUp 0.5s ease-out forwards;
+  animation: adminFadeInUp 0.5s ease-out forwards;
   opacity: 0;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--gradient-main);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover::before {
+  transform: scaleY(1);
 }
 
 .stat-card:nth-child(1) { animation-delay: 0.1s; }
@@ -78,9 +103,15 @@
 }
 
 .stat-icon {
-  font-size: 28px;
+  font-size: 32px;
   line-height: 1;
   flex-shrink: 0;
+  filter: grayscale(0.2);
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.1);
 }
 
 .stat-content {
@@ -91,112 +122,122 @@
 .stat-label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #999;
-  margin-bottom: 4px;
-  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+  font-weight: 700;
 }
 
 .stat-value {
   font-size: 24px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .stat-change {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 2px;
 }
 
 .stat-change.positive {
-  color: #4CAF50;
+  color: var(--success);
 }
 
 .stat-change.negative {
-  color: #ff4444;
+  color: var(--error);
 }
 
 .stat-change.neutral {
-  color: #999;
+  color: var(--text-muted);
 }
 
-/* ==================== ACTIVITY SECTION ==================== */
-
 .activity-section {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  animation: fadeInUp 0.6s ease-out 0.5s forwards;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+  animation: adminFadeInUp 0.6s ease-out 0.5s forwards;
   opacity: 0;
+  border: 1px solid var(--border);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
 }
 
 .section-header h2 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .btn-view-all {
   font-size: 13px;
-  color: #667eea;
+  color: var(--primary);
   background: none;
   border: none;
   cursor: pointer;
-  font-weight: 600;
-  padding: 4px 8px;
+  font-weight: 700;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, color 0.2s;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
+.btn-view-all:hover,
 .btn-view-all:active {
-  opacity: 0.7;
+  background: var(--gradient-soft);
+  color: var(--primary);
 }
-
-/* ==================== ACTIVITY LIST ==================== */
 
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .activity-item {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   align-items: flex-start;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background 0.2s ease;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
   touch-action: manipulation;
+  border: 1px solid transparent;
+}
+
+.activity-item:hover {
+  background: var(--gradient-soft);
+  border-color: var(--border);
 }
 
 .activity-item:active {
-  background: #f8f8f8;
+  transform: scale(0.99);
 }
 
 .activity-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-main);
+  border: 2px solid var(--border);
 }
 
 .activity-avatar img {
@@ -212,7 +253,7 @@
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 16px;
 }
 
@@ -223,30 +264,29 @@
 
 .activity-user {
   font-size: 14px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .activity-action {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 2px;
 }
 
 .activity-location {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .activity-time {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+  font-weight: 600;
 }
-
-/* ==================== LOADING & ERROR STATES ==================== */
 
 .loading-container,
 .error-container {
@@ -255,63 +295,72 @@
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--bg-input);
+  border-top-color: var(--primary);
+  border-radius: var(--radius-pill);
+  animation: adminSpin 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes adminSpin {
   to { transform: rotate(360deg); }
 }
 
 .loading-container p {
-  font-size: 14px;
-  color: #999;
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .error-text {
-  font-size: 14px;
-  color: #ff4444;
+  font-size: 15px;
+  color: var(--error);
   text-align: center;
+  font-weight: 600;
 }
 
 .btn-retry {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: var(--space-md) var(--space-2xl);
+  background: var(--gradient-main);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-sans);
   cursor: pointer;
+  transition: all 0.2s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
+.btn-retry:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 .btn-retry:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
-  color: #999;
+  padding: var(--space-3xl) var(--space-xl);
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .empty-state p {
   font-size: 14px;
 }
 
-/* ==================== ANIMATIONS ==================== */
-
-@keyframes fadeInUp {
+@keyframes adminFadeInUp {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -322,12 +371,10 @@
   }
 }
 
-/* ==================== DESKTOP OVERRIDES ==================== */
-
 @media (min-width: 769px) {
   .admin-dashboard {
-    padding: 24px;
-    max-width: 1200px;
+    padding: var(--space-2xl);
+    max-width: 1400px;
     margin: 0 auto;
   }
 
@@ -337,16 +384,16 @@
 
   .stats-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-3xl);
   }
 
   .stat-card {
-    padding: 20px;
+    padding: var(--space-xl);
   }
 
   .stat-icon {
-    font-size: 32px;
+    font-size: 36px;
   }
 
   .stat-value {
@@ -354,18 +401,14 @@
   }
 
   .activity-section {
-    padding: 24px;
+    padding: var(--space-2xl);
   }
 
   .section-header h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .activity-item {
-    padding: 16px;
-  }
-
-  .activity-item:hover {
-    background: #f8f8f8;
+    padding: var(--space-lg);
   }
 }

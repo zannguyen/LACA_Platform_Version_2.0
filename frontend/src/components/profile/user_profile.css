@@ -1,32 +1,39 @@
-/* frontend/src/components/profile/user_profile.css */
-/* ✅ Làm giống stranger_profile – scope toàn bộ vào .my-profile */
-
+/* user_profile - design system */
 .my-profile * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
 }
 
-/* Wrapper chính */
 .my-profile.mobile-wrapper {
-  width: 375px;
-  height: 800px;
-  background-color: #fff;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg-card);
   position: relative;
-  border-radius: 30px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0 auto;
 }
 
-/* --- HEADER (giống stranger_profile) --- */
+@media (min-width: 768px) {
+  .my-profile.mobile-wrapper {
+    min-height: 92vh;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    margin: 20px auto;
+  }
+}
+
 .my-profile .top-nav {
-  padding: 15px 20px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-md) var(--space-xl);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -35,8 +42,10 @@
 }
 
 .my-profile .nav-btn {
-  font-size: 24px;
-  color: #333;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  font-size: 20px;
+  color: var(--text-primary);
   cursor: pointer;
   background: none;
   border: none;
@@ -44,33 +53,40 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-md);
+  transition: background 0.2s, color 0.2s;
+}
+
+.my-profile .nav-btn:hover,
+.my-profile .nav-btn:active {
+  background: var(--bg-input);
+  color: var(--primary);
 }
 
 /* --- MAIN (giống stranger_profile) --- */
 .my-profile .profile-container {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 20px 20px;
+  padding: var(--space-lg) var(--space-xl) var(--space-2xl);
 }
 
 .my-profile .profile-container::-webkit-scrollbar {
   display: none;
 }
 
-/* Header user info (giống stranger_profile) */
 .my-profile .details-section {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
-  gap: 14px;
+  margin-bottom: var(--space-xl);
+  gap: var(--space-lg);
 }
 
 .my-profile .avatar-large {
   width: 80px;
   height: 80px;
-  background-color: #d9d9d9;
-  border-radius: 50%;
-  border: 1px solid #ccc;
+  background: var(--bg-input);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -96,9 +112,9 @@
 .my-profile .avatar-dot {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: #333;
-  opacity: 0.25;
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
+  opacity: 0.5;
 }
 
 .my-profile .user-name-distance {
@@ -113,7 +129,7 @@
 .my-profile .user-name {
   font-size: 18px;
   font-weight: 700;
-  color: #000;
+  color: var(--text-primary);
   margin-bottom: 4px;
   overflow-wrap: break-word;
   width: 100%;
@@ -121,7 +137,7 @@
 
 .my-profile .user-id {
   font-size: 14px;
-  color: #000;
+  color: var(--text-primary);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -131,25 +147,29 @@
 
 .my-profile .user-bio {
   font-size: 14px;
-  color: #000;
+  color: var(--text-primary);
   width: 100%;
 }
 
 .my-profile .edit-hint {
-  margin-top: 6px;
-  font-size: 11px;
-  color: #333;
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-/* Editable giống tinh thần stranger_profile nhưng vẫn đẹp */
 .my-profile .editable {
-  border: 1px solid #000;
-  border-radius: 8px;
-  padding: 8px 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
   width: 100%;
   outline: none;
-  background: #fff;
+  background: var(--bg-card);
   font-size: 14px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+.my-profile .editable:focus {
+  border-color: var(--primary);
 }
 .my-profile .user-name.editable {
   font-size: 16px;
@@ -159,59 +179,57 @@
   resize: none;
 }
 
-/* Stats giống stranger_profile */
 .my-profile .stats-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  margin-bottom: var(--space-2xl);
 }
 
 .my-profile .stats-group {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .my-profile .stat-item {
   font-size: 13px;
-  color: #000;
+  color: var(--text-primary);
 }
 
-/* nút giống follow-btn (dùng cho EDIT/DONE) */
 .my-profile .follow-btn {
-  background: #fff;
-  color: #000;
-  border: 1px solid #000;
-  padding: 8px 25px;
-  border-radius: 5px;
-  font-size: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--text-primary);
+  padding: var(--space-sm) var(--space-xl);
+  border-radius: var(--radius-md);
+  font-size: 13px;
   font-weight: 700;
+  font-family: var(--font-sans);
   cursor: pointer;
-  text-transform: uppercase;
-  transition: 0.2s;
-  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
 }
 .my-profile .follow-btn.following {
-  background: #000;
+  background: var(--gradient-main);
   color: #fff;
+  border-color: transparent;
 }
 .my-profile .follow-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: default;
 }
 .my-profile .follow-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
 }
 
 /* Title */
 .my-profile .post-title {
   font-size: 12px;
-  color: #000;
-  margin-bottom: 15px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-lg);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: bold;
+  letter-spacing: 0.05em;
+  font-weight: 700;
 }
 
 /* Posts list */
@@ -240,13 +258,13 @@
 }
 
 .my-profile .mini-avatar {
-  width: 30px;
-  height: 30px;
-  background-color: #d9d9d9;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-input);
+  border-radius: var(--radius-pill);
   overflow: hidden;
-  margin-right: 10px;
-  border: 1px solid #ccc;
+  margin-right: var(--space-md);
+  border: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -260,7 +278,7 @@
 .my-profile .mini-username {
   font-size: 14px;
   font-weight: 600;
-  color: #000;
+  color: var(--text-primary);
   max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
@@ -268,9 +286,9 @@
 }
 
 .my-profile .mini-date {
-  margin-left: 10px;
+  margin-left: var(--space-md);
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -279,7 +297,7 @@
   position: relative;
   width: 100%;
   height: 350px;
-  background-color: #000;
+  background: var(--text-primary);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -302,11 +320,14 @@
   left: 0;
   width: 100%;
   text-align: center;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   z-index: 5;
   padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===== 3-dots menu cho post (giữ chức năng của user_profile) ===== */
@@ -316,16 +337,17 @@
 
 .my-profile .post-options-btn {
   font-size: 18px;
-  color: #333;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 6px 10px;
+  padding: var(--space-sm) var(--space-md);
   background: transparent;
   border: none;
-  border-radius: 999px;
-  transition: background 0.2s;
+  border-radius: var(--radius-md);
+  transition: background 0.2s, color 0.2s;
 }
 .my-profile .post-options-btn:active {
-  background: #f0f0f0;
+  background: var(--bg-input);
+  color: var(--primary);
 }
 .my-profile .post-options-btn svg {
   display: block;
@@ -334,13 +356,14 @@
 .my-profile .post-options-menu {
   display: none;
   position: absolute;
-  top: 34px;
+  top: 100%;
   right: 0;
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  border-radius: 10px;
+  margin-top: 4px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid #eee;
+  border: 1px solid var(--border);
   min-width: 140px;
   z-index: 80;
 }
@@ -351,23 +374,24 @@
 
 .my-profile .option-item {
   width: 100%;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #333;
+  padding: var(--space-md) var(--space-lg);
+  font-size: 14px;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #fff;
+  gap: var(--space-md);
+  background: var(--bg-card);
   border: none;
-  border-bottom: 1px solid #f7f7f7;
+  border-bottom: 1px solid var(--border);
   text-align: left;
+  font-family: var(--font-sans);
 }
 .my-profile .option-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-input);
 }
 .my-profile .option-item.danger {
-  color: #dc3545;
+  color: var(--error);
   font-weight: 600;
 }
 .my-profile .option-item:last-child {
@@ -395,8 +419,8 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(90deg, #ff4b6e 0%, #2bd0d0 100%);
-  padding: 20px;
+  background: var(--gradient-main);
+  padding: var(--space-xl);
   z-index: 100;
   transform: translateY(100%);
   transition: transform 0.3s ease-out;
@@ -408,35 +432,36 @@
   text-align: center;
 }
 .my-profile .modal-text {
-  color: #000;
-  font-weight: bold;
-  margin-bottom: 15px;
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: var(--space-lg);
   font-size: 14px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
 }
 .my-profile .modal-actions {
   display: flex;
   justify-content: center;
-  gap: 30px;
+  gap: var(--space-xl);
 }
 .my-profile .btn-modal {
-  padding: 8px 30px;
-  border: 1px solid #000;
-  border-radius: 6px;
-  font-weight: bold;
+  padding: var(--space-md) var(--space-2xl);
+  border: 2px solid rgba(255,255,255,0.8);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-family: var(--font-sans);
   cursor: pointer;
   font-size: 14px;
-  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.2s, transform 0.1s;
 }
 .my-profile .btn-no {
-  background-color: #ff4b6e;
+  background: rgba(255,255,255,0.2);
   color: #fff;
-  border-color: #fff;
 }
 .my-profile .btn-yes {
-  background-color: #00cba9;
-  color: #000;
-  border-color: #000;
+  background: #fff;
+  color: var(--text-primary);
+}
+.my-profile .btn-modal:active {
+  transform: scale(0.98);
 }

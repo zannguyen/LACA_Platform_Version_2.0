@@ -1,8 +1,13 @@
 import React from "react";
 
-const GradientButton = ({ text, onClick, type = "button" }) => {
+const GradientButton = ({ text, onClick, type = "button", disabled = false }) => {
   return (
-    <button type={type} className="btn-gradient" onClick={onClick}>
+    <button
+      type={type}
+      className="btn-gradient"
+      onClick={onClick}
+      disabled={disabled}
+    >
       {text}
     </button>
   );

@@ -387,14 +387,23 @@ export default function UserProfile() {
           aria-label="Back"
           onClick={handleBack}
         >
-          <i
-            className="fa-solid fa-arrow-left"
-            style={{ fontFamily: "Font Awesome 6 Free", fontWeight: 900 }}
-          ></i>
+          <i className="fa-solid fa-arrow-left"></i>
         </button>
 
-        {/* giữ layout justify-between giống stranger_profile */}
-        <div style={{ width: 44 }} />
+        <button
+          type="button"
+          className="nav-btn"
+          aria-label="Logout"
+          onClick={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("user");
+            navigate("/login");
+          }}
+          style={{ marginLeft: "auto" }}
+        >
+          <i className="fa-solid fa-right-from-bracket"></i>
+        </button>
       </header>
 
       {/* ✅ MAIN giống stranger_profile */}
