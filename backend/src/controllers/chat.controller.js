@@ -3,6 +3,7 @@ const Conversation = require("../models/conversation.model");
 const Message = require("../models/message.model");
 const User = require("../models/user.model");
 const asyncHandler = require("../utils/asyncHandler");
+const notifService = require("../services/notification.service");
 
 const toObjectId = (v) => {
   try {
@@ -64,6 +65,23 @@ const sendMessage = asyncHandler(async (req, res) => {
   const io = req.app.get("io");
   if (io) {
     io.to(String(rid)).emit("receive_message", newMessage); // ✅ emit theo room userId
+  }
+
+  // E) Notification new_message – upsert (chỉ 1 notif/conversation chưa đọc)
+  try {
+    const sender = await User.findById(senderId).select("fullname username");
+    const senderName = sender?.fullname || sender?.username || "Ai đó";
+    await notifService.upsertMessageNotif(io, {
+      recipientId: rid,
+      senderId,
+      senderName,
+      previewText: newMessage.text
+        ? newMessage.text.substring(0, 100)
+        : "Đã gửi một ảnh",
+      conversationId: conversation._id,
+    });
+  } catch (notifErr) {
+    console.error("[Notification] new_message error:", notifErr.message);
   }
 
   return res.status(200).json(newMessage);
@@ -205,6 +223,23 @@ const markRead = asyncHandler(async (req, res) => {
         readerId: String(currentUserId),
       });
     }
+  }
+
+  // G) Tự động đánh dấu notification new_message của conversation này là đã đọc
+  try {
+    const Notification = require("../models/notification.model");
+    await Notification.updateMany(
+      {
+        recipientId: currentUserId,
+        senderId: rid,
+        type: "new_message",
+        refId: conversation._id,
+        isRead: false,
+      },
+      { $set: { isRead: true } },
+    );
+  } catch (notifErr) {
+    console.error("[Notification] markRead sync error:", notifErr.message);
   }
 
   return res.status(200).json({ updated: result.modifiedCount || 0 });

@@ -179,7 +179,7 @@ const ChatListPage = () => {
     <div className="auth-form">
       <div className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
-          ←
+          <i className="fa-solid fa-arrow-left"></i>
         </button>
         <h2 className="page-title">Chat</h2>
       </div>

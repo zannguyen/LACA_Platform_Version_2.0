@@ -287,7 +287,7 @@ export default function Setting() {
     <div className="setting-page">
       <div className="st-header">
         <button className="st-back" onClick={goBack} aria-label="Back">
-          ←
+          <i className="fa-solid fa-arrow-left"></i>
         </button>
         <div className="st-title">Setting</div>
       </div>

@@ -1,4 +1,5 @@
 const adminUsersService = require("../services/admin.users.service");
+const notifService = require("../services/notification.service");
 
 exports.adminListUsers = async (req, res) => {
   try {
@@ -60,6 +61,29 @@ exports.adminSuspendUser = async (req, res) => {
       req.params.userId,
       req.body,
     );
+
+    // Notify the user about suspension
+    try {
+      const io = req.app.get("io");
+      const isSuspending =
+        req.body.suspendUntil && req.body.suspendUntil !== null;
+      if (isSuspending) {
+        const until = new Date(req.body.suspendUntil).toLocaleDateString(
+          "vi-VN",
+        );
+        await notifService.createAndEmit(io, {
+          recipientId: req.params.userId,
+          senderId: null,
+          type: "system",
+          title: `Tài khoản của bạn bị tạm khóa`,
+          body: `Tài khoản của bạn đã bị tạm khóa đến ngày ${until}. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.`,
+          link: "/support",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] suspend user error:", notifErr.message);
+    }
+
     return res.json(data);
   } catch (e) {
     return res
@@ -77,6 +101,24 @@ exports.adminSoftDeleteUser = async (req, res) => {
       req.params.userId,
       req.body,
     );
+
+    // Notify the user if being deleted
+    try {
+      const io = req.app.get("io");
+      if (req.body.deleted === true) {
+        await notifService.createAndEmit(io, {
+          recipientId: req.params.userId,
+          senderId: null,
+          type: "system",
+          title: `Tài khoản của bạn đã bị xóa`,
+          body: `Tài khoản của bạn đã bị xóa bởi quản trị viên. Nếu bạn cho rằng đây là lỗi, vui lòng liên hệ bộ phận hỗ trợ.`,
+          link: "/support",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] soft delete user error:", notifErr.message);
+    }
+
     return res.json(data);
   } catch (e) {
     return res
