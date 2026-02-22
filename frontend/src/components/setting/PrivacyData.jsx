@@ -25,6 +25,9 @@ export default function PrivacyData() {
 
       <div className="privacy-list">
         <div className="privacy-item">
+          <div className="privacy-label">
+            <p>Allow follow from strangers</p>
+          </div>
           <label className="privacy-toggle">
             <input
               type="checkbox"
@@ -33,12 +36,12 @@ export default function PrivacyData() {
             />
             <span className="toggle-switch"></span>
           </label>
-          <div className="privacy-label">
-            <p>Allow follow from strangers</p>
-          </div>
         </div>
 
         <div className="privacy-item">
+          <div className="privacy-label">
+            <p>Allow people interaction to your posts</p>
+          </div>
           <label className="privacy-toggle">
             <input
               type="checkbox"
@@ -47,12 +50,12 @@ export default function PrivacyData() {
             />
             <span className="toggle-switch"></span>
           </label>
-          <div className="privacy-label">
-            <p>Allow people interaction to your posts</p>
-          </div>
         </div>
 
         <div className="privacy-item">
+          <div className="privacy-label">
+            <p>Allow people to see your profile</p>
+          </div>
           <label className="privacy-toggle">
             <input
               type="checkbox"
@@ -61,9 +64,6 @@ export default function PrivacyData() {
             />
             <span className="toggle-switch"></span>
           </label>
-          <div className="privacy-label">
-            <p>Allow people to see your profile</p>
-          </div>
         </div>
       </div>
     </div>
