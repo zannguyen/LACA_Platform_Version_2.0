@@ -21,6 +21,8 @@ import ChatListPage from "../pages/ChatListPage";
 import ChatDetailPage from "../pages/ChatDetailPage";
 import DeleteAccountConfirmPage from "../pages/DeleteAccountConfirmPage";
 import SettingPage from "../pages/SettingPage";
+import Blocked from "../components/setting/Blocked";
+import PrivacyData from "../components/setting/PrivacyData";
 import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
@@ -78,6 +80,22 @@ export default function AppRoutes() {
       <Route
         path="/delete-account-confirm"
         element={<DeleteAccountConfirmPage />}
+      />
+      <Route
+        path="/blocked"
+        element={
+          <RequireAuth>
+            <Blocked />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/privacy"
+        element={
+          <RequireAuth>
+            <PrivacyData />
+          </RequireAuth>
+        }
       />
       {/* Admin */}
       <Route path="/admin" element={<AdminLayout />}>

@@ -19,6 +19,18 @@ const Home = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Popup chat
+  const [chatPopupOpen, setChatPopupOpen] = useState(false);
+  const [chatTarget, setChatTarget] = useState({
+    receiverId: "",
+    receiverName: "User",
+    postId: "",
+    isSelf: false,
+  });
+
+  // Heart reaction
+  const [reactionMeta, setReactionMeta] = useState({});
+
   // report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
@@ -141,7 +153,23 @@ const Home = () => {
 
       if (!res.ok) throw new Error(json?.message || "Get posts failed");
 
-      setFeedPosts(json?.data || []);
+      const posts = json?.data || [];
+      setFeedPosts(posts);
+
+      // Fetch reaction counts for each post
+      const reactions = {};
+      for (const post of posts) {
+        try {
+          const countRes = await fetch(`${API_BASE}/reactions/count/${post._id}`);
+          if (countRes.ok) {
+            const countData = await countRes.json();
+            reactions[post._id] = { count: countData.total || 0, reacted: false };
+          }
+        } catch (err) {
+          console.error("Fetch reaction count error:", err);
+        }
+      }
+      setReactionMeta(reactions);
     } catch (err) {
       console.error("Fetch home posts error:", err);
       setErrMsg(err?.message || "Không thể tải bài đăng");
@@ -162,15 +190,89 @@ const Home = () => {
 
     try {
       const me = JSON.parse(localStorage.getItem("user") || "{}")?._id;
-      if (me && String(me) === String(receiverId)) return;
+      if (me && String(me) === String(receiverId)) {
+        setChatTarget({
+          receiverId,
+          receiverName,
+          postId: post._id,
+          isSelf: true,
+        });
+        setChatPopupOpen(true);
+        return;
+      }
     } catch {
       // ignore
     }
 
-    localStorage.setItem("chatReceiverId", receiverId);
-    localStorage.setItem("chatReceiverName", receiverName);
+    setChatTarget({
+      receiverId,
+      receiverName,
+      postId: post._id,
+      isSelf: false,
+    });
+    setChatPopupOpen(true);
+  };
 
+  const handleChoosePrivateChat = () => {
+    if (chatTarget.isSelf) {
+      alert("Bạn không thể chat riêng tư với chính mình");
+      setChatPopupOpen(false);
+      return;
+    }
+    localStorage.setItem("chatReceiverId", chatTarget.receiverId);
+    localStorage.setItem("chatReceiverName", chatTarget.receiverName);
+    setChatPopupOpen(false);
     navigate("/chat/detail");
+  };
+
+  const handleChooseCommunityChat = () => {
+    alert("Chat công khai đang được phát triển");
+    setChatPopupOpen(false);
+    navigate("/chat");
+  };
+
+  const closeChatPopup = () => {
+    setChatPopupOpen(false);
+  };
+
+  const reactHeart = async (postId) => {
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`${API_BASE}/reactions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ postId, type: "heart" }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("React error:", err);
+        return;
+      }
+
+      // Fetch count after reaction
+      await fetchReactionCount(postId);
+    } catch (err) {
+      console.error("React heart error:", err);
+    }
+  };
+
+  const fetchReactionCount = async (postId) => {
+    try {
+      const res = await fetch(`${API_BASE}/reactions/count/${postId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReactionMeta((prev) => ({
+          ...prev,
+          [postId]: { count: data.total || 0, reacted: true },
+        }));
+      }
+    } catch (err) {
+      console.error("Fetch reaction count error:", err);
+    }
   };
 
   const formatDistance = (kilometers) => {
@@ -543,7 +645,16 @@ const Home = () => {
                   <div className="post-actions">
                     <button
                       type="button"
-                      className="left-actions"
+                      className={`heart-btn ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
+                      onClick={() => reactHeart(post._id)}
+                      aria-label="Heart"
+                    >
+                      <i className="fa-solid fa-heart action-icon"></i>
+                      <span className="like-count">{reactionMeta[post._id]?.count || 0}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="left-actions chat-only"
                       onClick={() => openChatWithPostUser(post)}
                       aria-label="Chat"
                     >
@@ -556,6 +667,31 @@ const Home = () => {
             );
           })}
       </main>
+
+      {/* Chat option popup modal */}
+      {chatPopupOpen && (
+        <div className="chat-option-modal-overlay" onClick={closeChatPopup}>
+          <div
+            className="chat-option-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="chat-option-modal-btn"
+              onClick={handleChoosePrivateChat}
+            >
+              Riêng tư
+            </button>
+            <button
+              type="button"
+              className="chat-option-modal-btn"
+              onClick={handleChooseCommunityChat}
+            >
+              Công khai
+            </button>
+          </div>
+        </div>
+      )}
 
       <ReportModal
         open={reportOpen}

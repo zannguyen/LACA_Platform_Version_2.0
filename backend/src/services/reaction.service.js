@@ -3,7 +3,7 @@ const Reaction = require("../models/reaction.model");
 const reactPost = (postId, userId, type) => {
   return Reaction.findOneAndUpdate(
     { postId, userId },
-    { type },
+    { $set: { postId, userId, type } },
     { upsert: true, new: true },
   );
 };
