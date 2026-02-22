@@ -55,7 +55,7 @@ export default function Blocked() {
         <button className="blocked-back" onClick={() => navigate(-1)}>
           ←
         </button>
-        <h1>Blocked Users</h1>
+        <h1>Blocked</h1>
       </div>
 
       <div className="blocked-list">
@@ -65,26 +65,37 @@ export default function Blocked() {
           <p className="blocked-empty">No blocked users</p>
         ) : (
           blockedUsers.map((user) => (
-            <div key={user._id} className="blocked-item">
-              <div className="blocked-user-info">
+            <div key={user._id} className="blocked-user-card">
+              <div className="blocked-user-header">
+                <button
+                  className="blocked-unblock-btn"
+                  onClick={() => unblockUser(user._id)}
+                >
+                  Unblock
+                </button>
+              </div>
+
+              <div className="blocked-user-content">
                 <img
-                  src={user.avatar || "/default-avatar.png"}
+                  src={user.profileImage || user.avatar || "/default-avatar.png"}
                   alt={user.username}
                   className="blocked-avatar"
                 />
-                <div>
+
+                <div className="blocked-user-info">
                   <p className="blocked-name">
                     {user.fullname || user.username}
                   </p>
-                  <p className="blocked-username">@{user.username}</p>
                 </div>
+
+                <button
+                  className="blocked-close-btn"
+                  onClick={() => unblockUser(user._id)}
+                  aria-label="Remove"
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                className="blocked-unblock-btn"
-                onClick={() => unblockUser(user._id)}
-              >
-                Unblock
-              </button>
             </div>
           ))
         )}

@@ -25,7 +25,7 @@
 .blocked-back {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
   padding: 0;
 }
@@ -36,35 +36,44 @@
   padding: 16px;
 }
 
-.blocked-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.blocked-user-card {
   background: white;
-  padding: 12px;
-  margin-bottom: 8px;
   border-radius: 8px;
-  gap: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
 }
 
-.blocked-user-info {
+.blocked-user-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.blocked-user-content {
+  padding: 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
 }
 
 .blocked-avatar {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
+  background: #e0e0e0;
+}
+
+.blocked-user-info {
+  flex: 1;
 }
 
 .blocked-name {
   margin: 0;
   font-weight: 600;
   font-size: 14px;
+  color: #000;
 }
 
 .blocked-username {
@@ -74,23 +83,47 @@
 }
 
 .blocked-unblock-btn {
-  background: #e94057;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+  background: white;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 6px 12px;
+  border-radius: 4px;
   font-weight: 600;
   cursor: pointer;
   font-size: 12px;
+  transition: all 0.2s;
 }
 
 .blocked-unblock-btn:hover {
-  background: #d63045;
+  background: #f9f9f9;
+  border-color: #bbb;
+}
+
+.blocked-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  color: #999;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  transition: color 0.2s;
+}
+
+.blocked-close-btn:hover {
+  color: #000;
 }
 
 .blocked-empty,
 .blocked-loading {
   text-align: center;
   color: #999;
-  padding: 20px;
+  padding: 40px 20px;
+  font-size: 14px;
 }
+

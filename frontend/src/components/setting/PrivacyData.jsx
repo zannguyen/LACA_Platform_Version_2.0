@@ -5,9 +5,9 @@ import "./PrivacyData.css";
 export default function PrivacyData() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState({
-    allowMessages: true,
-    allowNotifications: true,
-    dataCollection: false,
+    allowFollowFromStrangers: false,
+    allowPeopleInteraction: false,
+    allowPeopleToSeeProfile: false,
   });
 
   const handleToggle = (key) => {
@@ -20,53 +20,50 @@ export default function PrivacyData() {
         <button className="privacy-back" onClick={() => navigate(-1)}>
           ←
         </button>
-        <h1>Privacy & Data</h1>
+        <h1>Privacy and Data</h1>
       </div>
 
       <div className="privacy-list">
         <div className="privacy-item">
-          <div className="privacy-label">
-            <h3>Allow Messages</h3>
-            <p>Let others send you direct messages</p>
-          </div>
           <label className="privacy-toggle">
             <input
               type="checkbox"
-              checked={settings.allowMessages}
-              onChange={() => handleToggle("allowMessages")}
+              checked={settings.allowFollowFromStrangers}
+              onChange={() => handleToggle("allowFollowFromStrangers")}
             />
             <span className="toggle-switch"></span>
           </label>
+          <div className="privacy-label">
+            <p>Allow follow from strangers</p>
+          </div>
         </div>
 
         <div className="privacy-item">
-          <div className="privacy-label">
-            <h3>Allow Notifications</h3>
-            <p>Receive push notifications</p>
-          </div>
           <label className="privacy-toggle">
             <input
               type="checkbox"
-              checked={settings.allowNotifications}
-              onChange={() => handleToggle("allowNotifications")}
+              checked={settings.allowPeopleInteraction}
+              onChange={() => handleToggle("allowPeopleInteraction")}
             />
             <span className="toggle-switch"></span>
           </label>
+          <div className="privacy-label">
+            <p>Allow people interaction to your posts</p>
+          </div>
         </div>
 
         <div className="privacy-item">
-          <div className="privacy-label">
-            <h3>Data Collection</h3>
-            <p>Allow anonymous data collection for service improvement</p>
-          </div>
           <label className="privacy-toggle">
             <input
               type="checkbox"
-              checked={settings.dataCollection}
-              onChange={() => handleToggle("dataCollection")}
+              checked={settings.allowPeopleToSeeProfile}
+              onChange={() => handleToggle("allowPeopleToSeeProfile")}
             />
             <span className="toggle-switch"></span>
           </label>
+          <div className="privacy-label">
+            <p>Allow people to see your profile</p>
+          </div>
         </div>
       </div>
     </div>
