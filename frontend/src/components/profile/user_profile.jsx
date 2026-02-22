@@ -3,6 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
 import { deletePost, uploadMedia } from "../../api/postApi";
+import interestApi from "../../api/interestApi";
+import InterestDisplay from "./InterestDisplay";
+import InterestModal from "./InterestModal";
 import "./user_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
@@ -134,6 +137,10 @@ export default function UserProfile() {
   const [draftBio, setDraftBio] = useState("");
   const [draftAvatar, setDraftAvatar] = useState("");
 
+  // Interests
+  const [userInterests, setUserInterests] = useState([]);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+
   // Post menu + modal delete
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -185,12 +192,24 @@ export default function UserProfile() {
     }
   };
 
+  const fetchInterests = async () => {
+    try {
+      const res = await interestApi.getMyInterests();
+      const data = res?.data?.data || res?.data || [];
+      setUserInterests(data);
+    } catch (e) {
+      // Silent fail - interests are optional
+      console.error("Failed to load interests:", e);
+    }
+  };
+
   useEffect(() => {
     if (!token) {
       navigate("/login");
       return;
     }
     fetchMyProfile({ page: 1 });
+    fetchInterests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -292,6 +311,20 @@ export default function UserProfile() {
       setSaving(false);
       e.target.value = "";
     }
+  };
+
+  const handleSaveInterests = async (interestIds) => {
+    try {
+      const res = await interestApi.updateMyInterests(interestIds);
+      const data = res?.data?.data || res?.data || [];
+      setUserInterests(data);
+    } catch (err) {
+      throw err; // Let modal handle the error
+    }
+  };
+
+  const handleShowAllInterests = () => {
+    setShowInterestModal(true);
   };
 
   const togglePostMenu = (e, postId) => {
@@ -464,6 +497,36 @@ export default function UserProfile() {
               <div className="user-bio">{displayBio}</div>
             )}
 
+            {/* Interests Section */}
+            <InterestDisplay
+              interests={userInterests}
+              maxVisible={3}
+              onShowAll={handleShowAllInterests}
+            />
+
+            {isEditing && (
+              <button
+                type="button"
+                className="edit-interests-btn"
+                onClick={() => setShowInterestModal(true)}
+                style={{
+                  marginTop: "8px",
+                  padding: "8px 16px",
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                Edit Interests
+              </button>
+            )}
+
             {isEditing ? (
               <div className="edit-hint">Tip: bấm vào avatar để đổi ảnh.</div>
             ) : null}
@@ -624,6 +687,15 @@ export default function UserProfile() {
           ) : null}
         </div>
       </div>
+
+      {/* Interest Modal */}
+      <InterestModal
+        isOpen={showInterestModal}
+        onClose={() => setShowInterestModal(false)}
+        currentInterests={userInterests}
+        isEditing={isEditing}
+        onSave={handleSaveInterests}
+      />
     </div>
   );
 }

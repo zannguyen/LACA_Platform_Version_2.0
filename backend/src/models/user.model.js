@@ -43,15 +43,20 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
   avatar: {
-      type: String,
-      default: "",
+    type: String,
+    default: "",
+  },
+  bio: {
+    type: String,
+    default: "",
+    maxlength: 200,
+  },
+  interests: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Interest",
     },
-    bio: {
-      type: String,
-      default: "",
-      maxlength: 200,
-    },
-
+  ],
 });
 
 module.exports = mongoose.model("User", userSchema);

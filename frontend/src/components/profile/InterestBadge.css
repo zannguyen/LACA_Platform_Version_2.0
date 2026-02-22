@@ -1,0 +1,43 @@
+/* frontend/src/components/profile/InterestBadge.css */
+.interest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+.interest-badge.clickable {
+  cursor: pointer;
+}
+
+.interest-badge.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.interest-badge.selected {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+}
+
+.interest-badge.unselected {
+  background: #e0e0e0;
+  color: #666;
+}
+
+.interest-badge .interest-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.interest-badge .interest-name {
+  line-height: 1;
+}

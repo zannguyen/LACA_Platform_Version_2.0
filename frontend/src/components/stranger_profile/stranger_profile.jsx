@@ -2,6 +2,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import userApi from "../../api/userApi";
+import interestApi from "../../api/interestApi";
+import InterestDisplay from "../profile/InterestDisplay";
+import InterestModal from "../profile/InterestModal";
 import "./stranger_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
@@ -85,6 +88,10 @@ export default function StrangerProfile() {
   const [isOwner, setIsOwner] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
+  // Interests
+  const [userInterests, setUserInterests] = useState([]);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+
   const menuRef = useRef(null);
 
   const fetchProfile = async (page = 1) => {
@@ -123,8 +130,21 @@ export default function StrangerProfile() {
     }
   };
 
+  const fetchInterests = async () => {
+    if (!targetUserId) return;
+    try {
+      const res = await interestApi.getUserInterests(targetUserId);
+      const data = res?.data?.data || res?.data || [];
+      setUserInterests(data);
+    } catch (e) {
+      // Silent fail - interests are optional
+      console.error("Failed to load user interests:", e);
+    }
+  };
+
   useEffect(() => {
     fetchProfile(1);
+    fetchInterests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId]);
 
@@ -151,6 +171,10 @@ export default function StrangerProfile() {
   const handleReport = () => {
     setShowHeaderMenu(false);
     alert("Report: (tạm thời chưa có BE)");
+  };
+
+  const handleShowAllInterests = () => {
+    setShowInterestModal(true);
   };
 
   const handleToggleFollow = async () => {
@@ -273,6 +297,13 @@ export default function StrangerProfile() {
             <div className="user-name">{displayName}</div>
             <div className="user-id">ID: {profile?._id}</div>
             <div className="user-bio">{displayBio}</div>
+
+            {/* Interests Section */}
+            <InterestDisplay
+              interests={userInterests}
+              maxVisible={3}
+              onShowAll={handleShowAllInterests}
+            />
           </div>
         </div>
 
@@ -349,6 +380,14 @@ export default function StrangerProfile() {
           </button>
         )}
       </div>
+
+      {/* Interest Modal - View only mode */}
+      <InterestModal
+        isOpen={showInterestModal}
+        onClose={() => setShowInterestModal(false)}
+        currentInterests={userInterests}
+        isEditing={false}
+      />
     </div>
   );
 }

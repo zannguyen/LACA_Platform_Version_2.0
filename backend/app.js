@@ -46,6 +46,7 @@ app.use("/api/reports", require("./src/routes/report.route"));
 app.use("/api/chat", require("./src/routes/chat.route"));
 app.use("/api/places", require("./src/routes/place.route"));
 app.use("/api/notifications", require("./src/routes/notification.route"));
+app.use("/api/interests", require("./src/routes/interest.route"));
 
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);
