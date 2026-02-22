@@ -47,6 +47,7 @@ exports.resolvePlace = asyncHandler(async (req, res, next) => {
   const address = (req.body.address || "").trim();
   const category = (req.body.category || "other").trim();
   const googlePlaceId = (req.body.googlePlaceId || "").trim();
+  const forceCreate = req.body.forceCreate === true;
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return next(new AppError("lat/lng is required", 400));
@@ -59,6 +60,7 @@ exports.resolvePlace = asyncHandler(async (req, res, next) => {
     address,
     category,
     googlePlaceId: googlePlaceId || undefined,
+    forceCreate,
   });
 
   return res.status(200).json(result); // {success,data:PlaceDoc}

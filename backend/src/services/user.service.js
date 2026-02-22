@@ -95,6 +95,23 @@ async function getFollowingUserIds(userId) {
   return rows.map((r) => r.followingUserId);
 }
 
+/**
+ * Users mà mình follow VÀ họ cũng follow mình (mutual follow).
+ * Chỉ mutual follow mới được xem bài + vị trí ngoài 5km.
+ */
+async function getMutualFollowUserIds(userId) {
+  const id = safeObjectId(userId);
+  const [following, followers] = await Promise.all([
+    Follow.find({ followerUserId: id }).select("followingUserId").lean(),
+    Follow.find({ followingUserId: id }).select("followerUserId").lean(),
+  ]);
+  const followingSet = new Set(following.map((r) => String(r.followingUserId)));
+  const mutual = followers
+    .filter((r) => followingSet.has(String(r.followerUserId)))
+    .map((r) => r.followerUserId);
+  return mutual;
+}
+
 async function getFollowersCount(userId) {
   const id = safeObjectId(userId);
   return await Follow.countDocuments({ followingUserId: id });
@@ -242,6 +259,7 @@ module.exports = {
 
   // follow
   getFollowingUserIds,
+  getMutualFollowUserIds,
   getFollowersCount,
   getFollowingCount,
   isFollowingUser,

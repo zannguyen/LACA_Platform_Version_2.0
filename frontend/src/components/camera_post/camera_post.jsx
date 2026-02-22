@@ -40,8 +40,8 @@ function unwrapSuggestions(res) {
  * bạn có thể chỉnh 10 nếu muốn "gắt" hơn (nhưng sẽ hay fail trong nhà).
  */
 function getBestPosition({
-  timeoutMs = 12000,
-  desiredAccuracy = 20,
+  timeoutMs = 18000,
+  desiredAccuracy = 15,
   maxAgeMs = 0,
 } = {}) {
   return new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ function getBestPosition({
     watchId = navigator.geolocation.watchPosition(onSuccess, onError, {
       enableHighAccuracy: true,
       maximumAge: maxAgeMs,
-      timeout: 10000,
+      timeout: 15000,
     });
 
     // hard timeout
@@ -136,7 +136,7 @@ export default function CameraPost() {
   const SUGGEST_LIMIT = 12;
 
   // ✅ desired accuracy mục tiêu (m)
-  const DESIRED_ACCURACY = 20; // nếu muốn “gắt” hơn: 10 (nhưng dễ fail trong nhà)
+  const DESIRED_ACCURACY = 15; // nếu muốn “gắt” hơn: 10 (nhưng dễ fail trong nhà)
 
   // để tránh spam refresh liên tục
   const lastScanAtRef = useRef(0);
@@ -201,9 +201,9 @@ export default function CameraPost() {
 
     try {
       const pos = await getBestPosition({
-        timeoutMs: 12000,
+        timeoutMs: 18000,
         desiredAccuracy: DESIRED_ACCURACY,
-        maxAgeMs: 0,
+        maxAgeMs: 0, // Không dùng cache — luôn lấy vị trí mới
       });
 
       setCoords(pos);
@@ -306,6 +306,7 @@ export default function CameraPost() {
         name: customName.trim(),
         address: customAddress.trim(),
         category: customCategory,
+        forceCreate: true, // User chủ động tạo vị trí mới → luôn tạo mới, không dùng địa điểm cũ gần đó
       });
 
       const placeDoc = unwrapPlace(r);

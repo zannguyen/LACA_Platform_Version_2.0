@@ -2,9 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import chatApi from "../../api/chatApi";
+import { SOCKET_URL } from "../../config/socket";
 import "./Chat.css";
-
-const SOCKET_URL = "http://localhost:4000";
 
 const ChatListPage = () => {
   const navigate = useNavigate();

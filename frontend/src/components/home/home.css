@@ -413,6 +413,26 @@
   white-space: nowrap;
 }
 
+/* Location icon — cùng hàng với report, chỉ icon */
+.mobile-wrapper .post-location-icon-btn {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-wrapper .post-location-icon-btn:hover,
+.mobile-wrapper .post-location-icon-btn:active {
+  opacity: 0.8;
+}
+
 /* Report dropdown */
 .mobile-wrapper .report-wrapper {
   position: relative;
