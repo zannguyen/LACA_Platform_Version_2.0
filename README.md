@@ -253,6 +253,9 @@ Tạo file `.env` trong thư mục `frontend/`:
 
 ```env
 VITE_API_URL=http://localhost:4000/api
+# Socket.IO (chat realtime) — tự lấy từ VITE_API_URL nếu không set
+# Khi deploy: set URL backend (không có /api), VD: https://api.mysite.com
+VITE_SOCKET_URL=
 ```
 
 ## ▶️ Chạy ứng dụng
@@ -510,11 +513,12 @@ Admin panel cung cấp các công cụ quản lý:
 
 2. **Deploy lên Vercel, Netlify, hoặc hosting tĩnh**
    - Upload thư mục `dist/` sau khi build
-   - Cấu hình biến môi trường `VITE_API_URL`
+   - Cấu hình biến môi trường `VITE_API_URL` (và `VITE_SOCKET_URL` nếu backend khác domain)
 
 ### Lưu ý khi triển khai
 
-- Đảm bảo CORS_ORIGINS và SOCKET_ORIGINS được cấu hình đúng
+- Đảm bảo `CORS_ORIGINS` và `SOCKET_ORIGINS` (backend) bao gồm URL frontend production (VD: `https://myapp.vercel.app`)
+- Socket.IO cần WebSocket: backend phải chạy trên platform hỗ trợ WebSocket (Render, Railway, Heroku, VPS), không dùng Vercel serverless cho backend
 - Sử dụng HTTPS trong production
 - Thiết lập secure cookies
 - Backup database thường xuyên

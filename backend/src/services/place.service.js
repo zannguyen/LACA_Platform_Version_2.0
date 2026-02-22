@@ -32,16 +32,40 @@ const normalizeCategory = (tags = {}) => {
   return "other";
 };
 
+/**
+ * Xây địa chỉ chi tiết: tên đường, phường, quận, thành phố, tỉnh
+ * Format: [số] [đường], [phường/xã], [quận/huyện], [thành phố], [tỉnh]
+ */
 const buildAddressFromOSM = (tags = {}) => {
   const parts = [];
-  if (tags["addr:housenumber"]) parts.push(tags["addr:housenumber"]);
-  if (tags["addr:street"]) parts.push(tags["addr:street"]);
-  if (tags["addr:suburb"]) parts.push(tags["addr:suburb"]);
-  if (tags["addr:city"]) parts.push(tags["addr:city"]);
-  if (tags["addr:state"]) parts.push(tags["addr:state"]);
-  if (tags["addr:country"]) parts.push(tags["addr:country"]);
-  const addr = parts.filter(Boolean).join(", ");
-  return addr || tags.name || "";
+  // Số nhà + tên đường (gộp nếu có cả hai)
+  const streetNum = tags["addr:housenumber"];
+  const street = tags["addr:street"] || tags["addr:road"];
+  if (streetNum && street) {
+    parts.push(`${streetNum} ${street}`);
+  } else if (street) {
+    parts.push(street);
+  } else if (streetNum) {
+    parts.push(streetNum);
+  }
+  // Phường / xã / suburb
+  const ward = tags["addr:suburb"] || tags["addr:ward"] || tags["addr:hamlet"];
+  if (ward) parts.push(ward);
+  // Quận / huyện
+  const district = tags["addr:district"] || tags["addr:county"];
+  if (district) parts.push(district);
+  // Thành phố
+  const city = tags["addr:city"] || tags["addr:town"];
+  if (city) parts.push(city);
+  // Tỉnh
+  const state = tags["addr:state"] || tags["addr:province"];
+  if (state) parts.push(state);
+  // Quốc gia (chỉ thêm nếu không phải VN để tránh dư thừa)
+  const country = tags["addr:country"];
+  if (country && country !== "Vietnam" && country !== "Việt Nam") {
+    parts.push(country);
+  }
+  return parts.filter(Boolean).join(", ") || tags.name || "";
 };
 
 const fetchJson = async (url, { method = "GET", headers = {}, body } = {}) => {
@@ -62,6 +86,23 @@ const fetchJson = async (url, { method = "GET", headers = {}, body } = {}) => {
 };
 
 // ------- OSM Reverse (Nominatim) -------
+// Format địa chỉ: [số] [đường], [phường], [quận], [thành phố], [tỉnh]
+const formatAddressFromNominatim = (addr = {}) => {
+  const parts = [];
+  const house = addr.house_number;
+  const road = addr.road || addr.street;
+  if (house && road) parts.push(`${house} ${road}`);
+  else if (road) parts.push(road);
+  else if (house) parts.push(house);
+  if (addr.suburb) parts.push(addr.suburb);
+  if (addr.city_district) parts.push(addr.city_district);
+  if (addr.district) parts.push(addr.district);
+  if (addr.city) parts.push(addr.city);
+  if (addr.state) parts.push(addr.state);
+  if (addr.country) parts.push(addr.country);
+  return parts.filter(Boolean).join(", ");
+};
+
 exports.reverseGeocode = async ({ lat, lng }) => {
   try {
     const url =
@@ -70,19 +111,21 @@ exports.reverseGeocode = async ({ lat, lng }) => {
       `&lon=${encodeURIComponent(lng)}&addressdetails=1`;
 
     const data = await fetchJson(url);
-    const display = data?.display_name || "";
+    const addr = data?.address || {};
     const name =
       data?.name ||
-      data?.address?.road ||
-      data?.address?.neighbourhood ||
-      data?.address?.suburb ||
+      addr.road ||
+      addr.neighbourhood ||
+      addr.suburb ||
       "Vị trí";
+    const formattedAddr =
+      formatAddressFromNominatim(addr) || data?.display_name || "";
 
     return {
       success: true,
       data: {
         name,
-        address: display || "",
+        address: formattedAddr,
         raw: data,
       },
     };
@@ -213,6 +256,7 @@ exports.resolvePlace = async ({
   address,
   category,
   googlePlaceId,
+  forceCreate = false,
 }) => {
   // validate coords
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
@@ -258,19 +302,21 @@ exports.resolvePlace = async ({
     return { success: true, data: doc };
   }
 
-  // 2) Try find existing place near (<= 30m) to avoid duplicates
-  const near = await Place.findOne({
-    location: {
-      $near: {
-        $geometry: { type: "Point", coordinates: [lng, lat] },
-        $maxDistance: 30,
+  // 2) Try find existing place near (<= 30m) to avoid duplicates — BỎ QUA nếu forceCreate (user chủ động tạo vị trí mới)
+  if (!forceCreate) {
+    const near = await Place.findOne({
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [lng, lat] },
+          $maxDistance: 30,
+        },
       },
-    },
-    isActive: true,
-  }).lean();
+      isActive: true,
+    }).lean();
 
-  if (near) {
-    return { success: true, data: near };
+    if (near) {
+      return { success: true, data: near };
+    }
   }
 
   // 3) If missing name/address -> try reverse

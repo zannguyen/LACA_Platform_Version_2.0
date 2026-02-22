@@ -32,6 +32,14 @@ const Home = () => {
   const getAccessToken = () =>
     localStorage.getItem("token") || localStorage.getItem("authToken");
 
+  const currentUserId = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}")?._id;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const { enabled: locationEnabled, requestCurrentPosition } =
     useLocationAccess();
 
@@ -454,7 +462,7 @@ const Home = () => {
                     <div className="user-name-distance">
                       <span className="username">{getDisplayName(post)}</span>
 
-                      {post.distanceKm !== undefined && (
+                      {post.distanceKm != null && typeof post.distanceKm === "number" && (
                         <span className="post-distance">
                           · {formatDistance(post.distanceKm)}
                         </span>
@@ -465,6 +473,17 @@ const Home = () => {
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 10 }}
                   >
+                    {hasPlace && (post.place?.name || post.place?.address) && (
+                      <button
+                        type="button"
+                        className="post-location-icon-btn"
+                        onClick={() => goToPostOnMap(post)}
+                        title={post.place?.name || post.place?.address}
+                        aria-label="Vị trí"
+                      >
+                        <i className="fa-solid fa-location-dot" />
+                      </button>
+                    )}
                     <div className="report-wrapper">
                       <button
                         type="button"
@@ -520,17 +539,19 @@ const Home = () => {
                   )}
                 </div>
 
-                <div className="post-actions">
-                  <button
-                    type="button"
-                    className="left-actions"
-                    onClick={() => openChatWithPostUser(post)}
-                    aria-label="Chat"
-                  >
-                    <i className="fa-regular fa-comment action-icon"></i>
-                    <span className="like-count">Chat</span>
-                  </button>
-                </div>
+                {String(post.user?._id) !== String(currentUserId) && (
+                  <div className="post-actions">
+                    <button
+                      type="button"
+                      className="left-actions"
+                      onClick={() => openChatWithPostUser(post)}
+                      aria-label="Chat"
+                    >
+                      <i className="fa-regular fa-comment action-icon"></i>
+                      <span className="like-count">Chat</span>
+                    </button>
+                  </div>
+                )}
               </article>
             );
           })}

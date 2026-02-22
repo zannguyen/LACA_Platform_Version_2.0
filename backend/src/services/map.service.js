@@ -117,7 +117,7 @@ exports.getPostsInRadius = async ({
   const nearbyPosts = await Place.aggregate(nearbyPipeline);
 
   // ===============================
-  // 2) Followed posts (ANY distance)
+  // 2) Mutual-follow posts (ANY distance) — chỉ khi 2 người follow nhau
   // ===============================
   let followedPosts = [];
   if (followedIds.length) {
@@ -250,7 +250,7 @@ exports.getPostsAtPoint = async ({
 
       if (!followedIds.length) {
         throw new AppError(
-          "Bạn không thể xem bài viết ở vị trí này. Vui lòng di chuyển đến gần hơn (trong bán kính 5km)",
+          "Bạn không thể xem bài viết ở vị trí này. Chỉ xem được ngoài 5km khi hai người đã follow nhau. Vui lòng di chuyển đến gần hơn.",
           403,
         );
       }

@@ -54,6 +54,7 @@ export const resolvePlace = async ({
   address,
   category,
   googlePlaceId,
+  forceCreate = false,
 }) => {
   try {
     const res = await apiClient.post("/places/resolve", {
@@ -63,6 +64,7 @@ export const resolvePlace = async ({
       address,
       category,
       googlePlaceId,
+      forceCreate,
     });
     return res.data; // {success,data: PlaceDoc(with _id)}
   } catch (e) {

@@ -59,6 +59,33 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
+/**
+ * Tránh chồng lấn: offset các marker có cùng vị trí theo vòng tròn nhỏ.
+ * ~0.0002 deg ≈ 22m — đủ xa để không che nhau.
+ */
+function applyHotspotOffsets(hotspots) {
+  const OFFSET_DEG = 0.0002; // ~22m
+  const key = (lat, lng) =>
+    `${Math.round(lat * 100000) / 100000},${Math.round(lng * 100000) / 100000}`;
+  const groups = new Map();
+  for (const h of hotspots) {
+    const k = key(h.lat, h.lng);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(h);
+  }
+  return hotspots.map((h) => {
+    const k = key(h.lat, h.lng);
+    const group = groups.get(k) || [h];
+    const idx = group.indexOf(h);
+    const n = group.length;
+    if (n <= 1) return { ...h, displayLat: h.lat, displayLng: h.lng };
+    const angle = (2 * Math.PI * idx) / n;
+    const displayLat = h.lat + OFFSET_DEG * Math.cos(angle);
+    const displayLng = h.lng + OFFSET_DEG * Math.sin(angle);
+    return { ...h, displayLat, displayLng };
+  });
+}
+
 function HotspotMarker({ position, thumb, count, onOpen }) {
   const icon = useMemo(() => {
     const safeThumb = thumb ? String(thumb).replaceAll('"', "&quot;") : "";
@@ -156,6 +183,7 @@ const MapView = () => {
   const [modalError, setModalError] = useState(null);
 
   const mapRef = useRef(null);
+  const focusMarkerRef = useRef(null);
 
   const searchRadius = 5000; // meters
   const radiusKm = searchRadius / 1000;
@@ -164,8 +192,11 @@ const MapView = () => {
   const [focusTarget, setFocusTarget] = useState(null);
 
   useEffect(() => {
-    const lat = Number(searchParams.get("lat"));
-    const lng = Number(searchParams.get("lng"));
+    // Home dùng focusLat/focusLng; ContentModeration dùng focusLat/focusLng
+    const lat =
+      Number(searchParams.get("focusLat")) ?? Number(searchParams.get("lat"));
+    const lng =
+      Number(searchParams.get("focusLng")) ?? Number(searchParams.get("lng"));
     const postId = searchParams.get("postId");
 
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
@@ -180,6 +211,26 @@ const MapView = () => {
     getUserLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationEnabled]);
+
+  // Bay đến vị trí focus khi có focusTarget (từ Home / location chip)
+  useEffect(() => {
+    if (focusTarget?.lat && focusTarget?.lng) {
+      setMapCenter([focusTarget.lat, focusTarget.lng]);
+      setMapZoom(17);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusTarget?.lat, focusTarget?.lng]);
+
+  // Tự mở Popup trên marker focus (hiển thị dạng popup thay vì chỉ icon)
+  useEffect(() => {
+    if (!focusTarget?.lat || !focusTarget?.lng) return;
+    const t = setTimeout(() => {
+      const ref = focusMarkerRef.current;
+      const el = ref?.leafletElement ?? ref;
+      if (el?.openPopup) el.openPopup();
+    }, 500);
+    return () => clearTimeout(t);
+  }, [focusTarget?.lat, focusTarget?.lng]);
 
   const getUserLocation = () => {
     if (!locationEnabled) {
@@ -204,11 +255,10 @@ const MapView = () => {
         const loc = [pos.lat, pos.lng];
         setUserLocation(loc);
 
-        // ✅ nếu có focusTarget từ Home thì ưu tiên center theo focus
-        if (focusTarget?.lat && focusTarget?.lng) {
-          setMapCenter([focusTarget.lat, focusTarget.lng]);
-          setMapZoom(17);
-        } else {
+        // Chỉ center về user khi không có focus từ URL (focus được xử lý ở effect riêng)
+        const hasFocusFromUrl =
+          searchParams.get("focusLat") || searchParams.get("focusLng");
+        if (!hasFocusFromUrl) {
           setMapCenter(loc);
           setMapZoom(DEFAULT_ZOOM);
         }
@@ -247,8 +297,9 @@ const MapView = () => {
 
       const rows = result.data?.data || [];
       const total = rows.reduce((s, x) => s + (x.weight || 0), 0);
+      const withOffsets = applyHotspotOffsets(rows);
 
-      setHotspots(rows);
+      setHotspots(withOffsets);
       setHotspotMeta({ places: rows.length, total });
     };
 
@@ -345,13 +396,27 @@ const MapView = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
 
-        {/* ✅ marker focus từ Home */}
+        {/* ✅ marker focus từ Home — Popup tự mở (dạng popup, không chỉ icon) */}
         {focusTarget?.lat && focusTarget?.lng && (
-          <Marker position={[focusTarget.lat, focusTarget.lng]}>
+          <Marker
+            ref={focusMarkerRef}
+            position={[focusTarget.lat, focusTarget.lng]}
+            eventHandlers={{
+              click: () =>
+                openPostsModalAt(focusTarget.lat, focusTarget.lng),
+            }}
+          >
             <Popup>
-              <div style={{ fontWeight: 700 }}>Vị trí bài đăng</div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {focusTarget.postId ? `postId: ${focusTarget.postId}` : ""}
+              <div style={{ width: 200 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                  📍 Vị trí bài đăng
+                </div>
+                <div style={{ fontSize: 13, opacity: 0.85 }}>
+                  Bài viết tại vị trí này
+                </div>
+                <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+                  Bấm để xem danh sách bài viết
+                </div>
               </div>
             </Popup>
           </Marker>
@@ -360,7 +425,7 @@ const MapView = () => {
         {hotspots.map((h) => (
           <HotspotMarker
             key={h.placeId || `${h.lat},${h.lng}`}
-            position={[h.lat, h.lng]}
+            position={[h.displayLat ?? h.lat, h.displayLng ?? h.lng]}
             thumb={h.thumb}
             count={h.weight || 1}
             onOpen={() => openPostsModalAt(h.lat, h.lng)}

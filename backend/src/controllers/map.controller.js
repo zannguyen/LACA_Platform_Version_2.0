@@ -12,7 +12,8 @@ exports.getPostsInRadius = asyncHandler(async (req, res) => {
 
   if (req.user?.id) {
     blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
-    followedUserIds = await UserService.getFollowingUserIds(req.user.id);
+    // Chỉ mutual follow mới xem bài + vị trí ngoài 5km
+    followedUserIds = await UserService.getMutualFollowUserIds(req.user.id);
   }
 
   const posts = await MapService.getPostsInRadius({
@@ -97,7 +98,8 @@ exports.getPostsAtPoint = asyncHandler(async (req, res) => {
 
   if (req.user?.id) {
     blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
-    followedUserIds = await UserService.getFollowingUserIds(req.user.id);
+    // Chỉ mutual follow mới xem bài + vị trí ngoài 5km
+    followedUserIds = await UserService.getMutualFollowUserIds(req.user.id);
   }
 
   const posts = await MapService.getPostsAtPoint({
