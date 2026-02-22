@@ -66,32 +66,30 @@ export default function Blocked() {
         ) : (
           blockedUsers.map((user) => (
             <div key={user._id} className="blocked-user-card">
-              <div className="blocked-user-header">
+              <div className="blocked-card-top">
                 <button
-                  className="blocked-unblock-btn"
+                  className="blocked-unblock-text"
                   onClick={() => unblockUser(user._id)}
                 >
                   Unblock
                 </button>
               </div>
 
-              <div className="blocked-user-content">
+              <div className="blocked-card-content">
                 <img
                   src={user.profileImage || user.avatar || "/default-avatar.png"}
                   alt={user.username}
                   className="blocked-avatar"
                 />
 
-                <div className="blocked-user-info">
-                  <p className="blocked-name">
-                    {user.fullname || user.username}
-                  </p>
-                </div>
+                <p className="blocked-user-name">
+                  {user.fullname || user.username}
+                </p>
 
                 <button
-                  className="blocked-close-btn"
+                  className="blocked-close"
                   onClick={() => unblockUser(user._id)}
-                  aria-label="Remove"
+                  aria-label="Close"
                 >
                   ✕
                 </button>

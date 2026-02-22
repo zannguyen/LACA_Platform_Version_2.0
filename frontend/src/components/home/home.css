@@ -691,3 +691,27 @@
 .mobile-wrapper .chat-only {
   margin-left: auto;
 }
+
+.mobile-wrapper .chat-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) 0;
+  margin-left: auto;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-wrapper .chat-icon-btn .action-icon {
+  font-size: 20px;
+  transition: color 0.2s ease;
+}
+
+.mobile-wrapper .chat-icon-btn:hover,
+.mobile-wrapper .chat-icon-btn:active {
+  color: var(--primary);
+}

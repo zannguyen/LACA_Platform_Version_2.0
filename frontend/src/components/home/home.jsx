@@ -160,10 +160,15 @@ const Home = () => {
       const reactions = {};
       for (const post of posts) {
         try {
-          const countRes = await fetch(`${API_BASE}/reactions/count/${post._id}`);
+          const countRes = await fetch(
+            `${API_BASE}/reactions/count/${post._id}`,
+          );
           if (countRes.ok) {
             const countData = await countRes.json();
-            reactions[post._id] = { count: countData.total || 0, reacted: false };
+            reactions[post._id] = {
+              count: countData.total || 0,
+              reacted: false,
+            };
           }
         } catch (err) {
           console.error("Fetch reaction count error:", err);
@@ -564,11 +569,12 @@ const Home = () => {
                     <div className="user-name-distance">
                       <span className="username">{getDisplayName(post)}</span>
 
-                      {post.distanceKm != null && typeof post.distanceKm === "number" && (
-                        <span className="post-distance">
-                          · {formatDistance(post.distanceKm)}
-                        </span>
-                      )}
+                      {post.distanceKm != null &&
+                        typeof post.distanceKm === "number" && (
+                          <span className="post-distance">
+                            · {formatDistance(post.distanceKm)}
+                          </span>
+                        )}
                     </div>
                   </Link>
 
@@ -650,16 +656,17 @@ const Home = () => {
                       aria-label="Heart"
                     >
                       <i className="fa-solid fa-heart action-icon"></i>
-                      <span className="like-count">{reactionMeta[post._id]?.count || 0}</span>
+                      <span className="like-count">
+                        {reactionMeta[post._id]?.count || 0}
+                      </span>
                     </button>
                     <button
                       type="button"
-                      className="left-actions chat-only"
+                      className="chat-icon-btn"
                       onClick={() => openChatWithPostUser(post)}
                       aria-label="Chat"
                     >
                       <i className="fa-regular fa-comment action-icon"></i>
-                      <span className="like-count">Chat</span>
                     </button>
                   </div>
                 )}
