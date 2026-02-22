@@ -593,3 +593,125 @@
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+/* =========================
+   CHAT OPTION POPUP MODAL
+========================= */
+.mobile-wrapper .chat-option-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1500;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 0 10px 20px;
+}
+
+.mobile-wrapper .chat-option-modal {
+  width: 100%;
+  max-width: 410px;
+  background: white;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1501;
+  overflow: hidden;
+}
+
+.mobile-wrapper .chat-option-modal-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: white;
+  color: #000;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  border-top: 1px solid #e5e5e5;
+}
+
+.mobile-wrapper .chat-option-modal-btn:first-child {
+  border-top: none;
+}
+
+.mobile-wrapper .chat-option-modal-btn:hover {
+  background: #f0f0f0;
+}
+
+.mobile-wrapper .chat-option-modal-btn:active {
+  background: #e0e0e0;
+}
+
+/* =========================
+   HEART REACTION STYLES
+========================= */
+.mobile-wrapper .heart-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-sm) 0;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-wrapper .heart-btn .action-icon {
+  font-size: 20px;
+  transition: color 0.2s ease;
+}
+
+.mobile-wrapper .heart-btn.active .action-icon {
+  color: #e94057;
+}
+
+.mobile-wrapper .heart-btn:hover,
+.mobile-wrapper .heart-btn:active {
+  color: var(--primary);
+}
+
+.mobile-wrapper .like-count {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 24px;
+}
+
+.mobile-wrapper .chat-only {
+  margin-left: auto;
+}
+
+.mobile-wrapper .chat-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) 0;
+  margin-left: auto;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-wrapper .chat-icon-btn .action-icon {
+  font-size: 20px;
+  transition: color 0.2s ease;
+}
+
+.mobile-wrapper .chat-icon-btn:hover,
+.mobile-wrapper .chat-icon-btn:active {
+  color: var(--primary);
+}
