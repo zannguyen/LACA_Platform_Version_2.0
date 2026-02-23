@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
-import PublicChatMessages from "../components/chat/PublicChatMessages";
-import PublicChatParticipants from "../components/chat/PublicChatParticipants";
-import PublicChatInput from "../components/chat/PublicChatInput";
+import PublicChatMessages from "../components/Chat/PublicChatMessages";
+import PublicChatParticipants from "../components/Chat/PublicChatParticipants";
+import PublicChatInput from "../components/Chat/PublicChatInput";
 import * as publicChatApi from "../api/publicChatApi";
-import "../components/chat/PublicChat.css";
+import "../components/Chat/PublicChat.css";
 
 const PublicChatPage = () => {
   const { postId } = useParams();
