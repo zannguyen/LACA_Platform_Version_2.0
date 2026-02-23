@@ -2,22 +2,16 @@ const mongoose = require("mongoose");
 
 /**
  * Notification Types:
- *  - new_post        : người bạn follow đăng bài mới
- *  - new_message     : có tin nhắn mới
- *  - new_follower    : ai đó follow bạn
- *  - new_reaction    : ai đó react bài viết của bạn
- *  - new_comment     : ai đó comment bài viết của bạn (future)
- *  - admin_broadcast : thông báo từ admin gửi đến tất cả / một nhóm user
- *  - system          : thông báo hệ thống (tài khoản bị suspend, xác minh email, …)
+ *  - new_post    : người bạn follow đăng bài mới
+ *  - new_follower: ai đó follow bạn
+ *  - new_reaction: ai đó react bài viết của bạn
+ *  - system      : thông báo hệ thống (tài khoản bị suspend, xác minh email, maintenance, admin broadcasts, …)
  */
 
 const NOTIFICATION_TYPES = [
   "new_post",
-  "new_message",
   "new_follower",
   "new_reaction",
-  "new_comment",
-  "admin_broadcast",
   "system",
 ];
 

@@ -116,6 +116,24 @@ const Home = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
+  // Handle scroll to post from notification
+  useEffect(() => {
+    const postIdToScroll = sessionStorage.getItem("scrollToPostId");
+    if (postIdToScroll && feedPosts.length > 0) {
+      // Wait a bit for DOM to render
+      setTimeout(() => {
+        const postElement = document.querySelector(
+          `[data-post-id="${postIdToScroll}"]`,
+        );
+        if (postElement) {
+          postElement.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+      // Clear the stored ID to prevent re-scrolling
+      sessionStorage.removeItem("scrollToPostId");
+    }
+  }, [feedPosts]);
+
   const fetchHomePosts = async (lat, lng) => {
     try {
       setLoading(true);
@@ -550,7 +568,11 @@ const Home = () => {
             const hasPlace = !!getPostLatLng(post);
 
             return (
-              <article className="post-card" key={post._id}>
+              <article
+                className="post-card"
+                key={post._id}
+                data-post-id={post._id}
+              >
                 <div className="post-header">
                   <Link to={`/profile/${post.user?._id}`} className="user-info">
                     <div className="user-avatar">

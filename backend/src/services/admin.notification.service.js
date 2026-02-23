@@ -23,10 +23,7 @@ exports.sendBroadcastToAll = async (io, { adminId, title, body, link }) => {
       isActive: true,
       isEmailVerified: true,
       deletedAt: null,
-      $or: [
-        { suspendUntil: null },
-        { suspendUntil: { $lt: new Date() } }
-      ]
+      $or: [{ suspendUntil: null }, { suspendUntil: { $lt: new Date() } }],
     }).select("_id");
 
     const recipientIds = activeUsers.map((u) => u._id);
@@ -38,7 +35,7 @@ exports.sendBroadcastToAll = async (io, { adminId, title, body, link }) => {
 
     // Send broadcast to all users
     if (recipientIds.length > 0) {
-      await notificationService.adminBroadcast(io, {
+      await notificationService.systemBroadcast(io, {
         recipientIds,
         title,
         body,
@@ -68,7 +65,10 @@ exports.sendBroadcastToAll = async (io, { adminId, title, body, link }) => {
 /**
  * Get broadcast history for admin
  */
-exports.getBroadcastHistory = async (adminId, { page = 1, limit = 20, status = null }) => {
+exports.getBroadcastHistory = async (
+  adminId,
+  { page = 1, limit = 20, status = null },
+) => {
   try {
     const query = { adminId };
 

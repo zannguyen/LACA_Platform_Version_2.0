@@ -67,23 +67,6 @@ const sendMessage = asyncHandler(async (req, res) => {
     io.to(String(rid)).emit("receive_message", newMessage); // ✅ emit theo room userId
   }
 
-  // E) Notification new_message – upsert (chỉ 1 notif/conversation chưa đọc)
-  try {
-    const sender = await User.findById(senderId).select("fullname username");
-    const senderName = sender?.fullname || sender?.username || "Ai đó";
-    await notifService.upsertMessageNotif(io, {
-      recipientId: rid,
-      senderId,
-      senderName,
-      previewText: newMessage.text
-        ? newMessage.text.substring(0, 100)
-        : "Đã gửi một ảnh",
-      conversationId: conversation._id,
-    });
-  } catch (notifErr) {
-    console.error("[Notification] new_message error:", notifErr.message);
-  }
-
   return res.status(200).json(newMessage);
 });
 
@@ -225,23 +208,6 @@ const markRead = asyncHandler(async (req, res) => {
     }
   }
 
-  // G) Tự động đánh dấu notification new_message của conversation này là đã đọc
-  try {
-    const Notification = require("../models/notification.model");
-    await Notification.updateMany(
-      {
-        recipientId: currentUserId,
-        senderId: rid,
-        type: "new_message",
-        refId: conversation._id,
-        isRead: false,
-      },
-      { $set: { isRead: true } },
-    );
-  } catch (notifErr) {
-    console.error("[Notification] markRead sync error:", notifErr.message);
-  }
-
   return res.status(200).json({ updated: result.modifiedCount || 0 });
 });
 
@@ -268,7 +234,9 @@ const joinPublicChat = asyncHandler(async (req, res) => {
       participants: [userId],
     });
     await conversation.populate("participants", "username fullname avatar");
-  } else if (!conversation.participants.some((p) => String(p._id) === String(userId))) {
+  } else if (
+    !conversation.participants.some((p) => String(p._id) === String(userId))
+  ) {
     // Add user to participants if not already there
     conversation.participants.push(userId);
     await conversation.save();
@@ -287,7 +255,9 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
   if (!senderId) return res.status(401).json({ message: "Unauthorized" });
   if (!pid) return res.status(400).json({ message: "postId invalid" });
   if (!text?.trim() && !image?.trim()) {
-    return res.status(400).json({ message: "Message text or image is required" });
+    return res
+      .status(400)
+      .json({ message: "Message text or image is required" });
   }
 
   // Find public conversation for this post
@@ -388,7 +358,10 @@ const getPublicParticipants = asyncHandler(async (req, res) => {
   // Add role to each participant
   const participantsWithRole = conversation.participants.map((participant) => ({
     ...participant.toObject(),
-    role: String(participant._id) === String(postOwnerId) ? "post_owner" : "participant",
+    role:
+      String(participant._id) === String(postOwnerId)
+        ? "post_owner"
+        : "participant",
   }));
 
   return res.status(200).json(participantsWithRole);

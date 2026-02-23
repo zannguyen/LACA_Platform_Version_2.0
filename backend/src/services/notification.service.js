@@ -53,10 +53,10 @@ const createAndEmit = async (io, payload) => {
 };
 
 /**
- * Gửi admin broadcast: tạo notification cho danh sách user IDs.
+ * Gửi system notification: tạo notification cho danh sách user IDs.
  * Nếu recipientIds rỗng => gửi cho tất cả (io.emit).
  */
-const adminBroadcast = async (
+const systemBroadcast = async (
   io,
   { recipientIds = [], title, body = "", link = "" },
 ) => {
@@ -64,7 +64,7 @@ const adminBroadcast = async (
     // Emit global (không lưu DB để tránh spam)
     if (io) {
       io.emit("notification", {
-        type: "admin_broadcast",
+        type: "system",
         title,
         body,
         link,
@@ -79,7 +79,7 @@ const adminBroadcast = async (
   const docs = recipientIds.map((recipientId) => ({
     recipientId,
     senderId: null,
-    type: "admin_broadcast",
+    type: "system",
     title,
     body,
     link,
@@ -169,68 +169,9 @@ const countUnread = async (userId) => {
   return Notification.countDocuments({ recipientId: userId, isRead: false });
 };
 
-/**
- * Upsert notification tin nhắn: chỉ giữ 1 notification/conversation chưa đọc.
- * Nếu đã tồn tại notification new_message từ senderId → recipientId chưa đọc
- * thì chỉ cập nhật body + updatedAt, KHÔNG tạo doc mới.
- * Sau đó emit Socket.IO để FE cập nhật badge.
- *
- * @param {object} io
- * @param {object} payload  - { recipientId, senderId, senderName, previewText, conversationId }
- */
-const upsertMessageNotif = async (
-  io,
-  { recipientId, senderId, senderName, previewText, conversationId },
-) => {
-  if (String(senderId) === String(recipientId)) return null;
-
-  const filter = {
-    recipientId,
-    senderId,
-    type: "new_message",
-    isRead: false,
-    // Dùng refId để nhận dạng conversation
-    refId: conversationId,
-    refModel: "Conversation",
-  };
-
-  const update = {
-    $set: {
-      title: `${senderName} gửi cho bạn tin nhắn mới`,
-      body: previewText,
-      link: `/chat/${senderId}`,
-      // Reset expireAt mỗi lần nhắn để không bị xoá sớm
-      expireAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
-    $setOnInsert: {
-      recipientId,
-      senderId,
-      type: "new_message",
-      refId: conversationId,
-      refModel: "Conversation",
-      isRead: false,
-    },
-  };
-
-  const doc = await Notification.findOneAndUpdate(filter, update, {
-    upsert: true,
-    new: true,
-  });
-
-  await doc.populate("senderId", "username fullname avatar");
-
-  // Emit để FE cập nhật badge (không phải pop-up spam)
-  if (io) {
-    io.to(String(recipientId)).emit("notification", doc);
-  }
-
-  return doc;
-};
-
 module.exports = {
   createAndEmit,
-  upsertMessageNotif,
-  adminBroadcast,
+  systemBroadcast,
   getNotifications,
   markOneAsRead,
   markAllAsRead,
