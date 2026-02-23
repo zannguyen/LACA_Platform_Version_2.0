@@ -3,8 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./camera_post.css";
 
-import { uploadMedia, createPost } from "../../api/postApi";
+import { uploadMedia, createPost, getRecommendedTopics } from "../../api/postApi";
 import { suggestPlaces, resolvePlace } from "../../api/place.api";
+import TrendRecommendationModal from "../post/TrendRecommendationModal";
 
 // ✅ unwrap mọi kiểu response để lấy PLACE DOC chuẩn: {_id, name, address, ...}
 function unwrapPlace(res) {
@@ -111,6 +112,10 @@ export default function CameraPost() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Trend recommendation modal
+  const [showTrendModal, setShowTrendModal] = useState(false);
+  const [trendRecommendations, setTrendRecommendations] = useState([]);
 
   // ====== LOCATION SHEET (NEW UI) ======
   const [locOpen, setLocOpen] = useState(false);
@@ -352,7 +357,16 @@ export default function CameraPost() {
         placeId: pickedPlace._id,
       });
 
-      navigate("/home");
+      // Get trend recommendations
+      try {
+        const trends = await getRecommendedTopics(7, 5);
+        setTrendRecommendations(trends || []);
+        setShowTrendModal(true);
+      } catch (err) {
+        console.error("Error fetching trends:", err);
+        // Don't break post creation if trends fail
+        navigate("/home");
+      }
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || "Đăng bài thất bại");
     } finally {
@@ -653,6 +667,20 @@ export default function CameraPost() {
           </div>
         </div>
       )}
+
+      {/* Trend Recommendation Modal */}
+      <TrendRecommendationModal
+        isOpen={showTrendModal}
+        trends={trendRecommendations}
+        onClose={() => {
+          setShowTrendModal(false);
+          navigate("/home");
+        }}
+        onExploreTrend={(trend) => {
+          // Could implement trend filtering in home feed here
+          navigate("/home");
+        }}
+      />
     </div>
   );
 }

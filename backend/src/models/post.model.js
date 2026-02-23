@@ -12,6 +12,7 @@ const schema = new mongoose.Schema(
 
     reportCount: { type: Number, default: 0 },
     expireAt: Date,
+    analysisId: { type: mongoose.Schema.Types.ObjectId, ref: "PostAnalysis" },
   },
   { timestamps: true },
 );

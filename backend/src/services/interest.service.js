@@ -97,6 +97,44 @@ class InterestService {
 
     return user.interests;
   }
+
+  // ===== ADMIN METHODS =====
+
+  // Lấy tất cả sở thích (admin view với pagination)
+  async getAllInterestsAdmin(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+
+    const [interests, total] = await Promise.all([
+      Interest.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Interest.countDocuments(),
+    ]);
+
+    return {
+      interests,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // Toggle trạng thái sở thích (admin)
+  async toggleInterestStatus(interestId) {
+    const interest = await Interest.findById(interestId);
+    if (!interest) {
+      throw new AppError("Interest not found", 404);
+    }
+
+    interest.isActive = !interest.isActive;
+    await interest.save();
+
+    return interest;
+  }
 }
 
 module.exports = new InterestService();

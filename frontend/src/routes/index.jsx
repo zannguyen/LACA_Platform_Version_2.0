@@ -15,14 +15,18 @@ import UserManagement from "../components/admin/UserManagement";
 import ContentModeration from "../components/admin/ContentModeration";
 import MapManagement from "../components/admin/MapManagement";
 import AdminAnalytics from "../components/admin/AdminAnalytics";
+import InterestManagement from "../components/admin/InterestManagement";
+import AdminBroadcastPage from "../pages/AdminBroadcastPage";
 import FeedbackPage from "../pages/FeedbackPage";
 import ReportPage from "../pages/ReportPage";
 import ChatListPage from "../pages/ChatListPage";
 import ChatDetailPage from "../pages/ChatDetailPage";
+import PublicChatPage from "../pages/PublicChatPage";
 import DeleteAccountConfirmPage from "../pages/DeleteAccountConfirmPage";
 import SettingPage from "../pages/SettingPage";
 import Blocked from "../components/setting/Blocked";
 import PrivacyData from "../components/setting/PrivacyData";
+import InterestManagementPage from "../pages/InterestManagementPage";
 import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
@@ -68,6 +72,14 @@ export default function AppRoutes() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/interests"
+        element={
+          <RequireAuth>
+            <InterestManagementPage />
+          </RequireAuth>
+        }
+      />
       <Route path="/profile/:userId" element={<StrangerProfile />} />
       <Route path="/camera" element={<Camera />} />
       <Route path="/camera-post" element={<CameraPost />} />
@@ -77,6 +89,7 @@ export default function AppRoutes() {
       <Route path="/report" element={<ReportPage />} />
       <Route path="/chat" element={<ChatListPage />} />
       <Route path="/chat/detail" element={<ChatDetailPage />} />
+      <Route path="/chat/public/:postId" element={<PublicChatPage />} />
       <Route
         path="/delete-account-confirm"
         element={<DeleteAccountConfirmPage />}
@@ -103,6 +116,8 @@ export default function AppRoutes() {
         <Route path="users" element={<UserManagement />} />
         <Route path="content" element={<ContentModeration />} />
         <Route path="map" element={<MapManagement />} />
+        <Route path="interests" element={<InterestManagement />} />
+        <Route path="broadcast" element={<AdminBroadcastPage />} />
         <Route path="analytics" element={<AdminAnalytics />} />
       </Route>
 

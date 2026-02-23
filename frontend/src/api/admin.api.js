@@ -374,4 +374,66 @@ export const getAnalytics = async (days = 7) => {
   }
 };
 
+/* =======================
+   INTEREST MANAGEMENT
+======================= */
+
+// GET /api/interests/admin/list?page=1&limit=12
+export const getAllInterests = async (page = 1, limit = 12) => {
+  try {
+    const res = await apiClient.get("/interests/admin/list", {
+      params: { page, limit },
+    });
+    const interests = Array.isArray(res.data?.data?.interests)
+      ? res.data.data.interests
+      : Array.isArray(res.data?.data)
+      ? res.data.data
+      : [];
+    return interests;
+  } catch (err) {
+    console.error("Error fetching interests:", err);
+    return [];
+  }
+};
+
+// POST /api/interests
+export const createInterest = async (payload) => {
+  try {
+    const res = await apiClient.post("/interests", payload);
+    return { success: true, data: res.data?.data || res.data };
+  } catch (err) {
+    throw new Error(err?.response?.data?.message || "Failed to create interest");
+  }
+};
+
+// PUT /api/interests/:id
+export const updateInterest = async (id, payload) => {
+  try {
+    const res = await apiClient.put(`/interests/${id}`, payload);
+    return { success: true, data: res.data?.data || res.data };
+  } catch (err) {
+    throw new Error(err?.response?.data?.message || "Failed to update interest");
+  }
+};
+
+// DELETE /api/interests/:id
+export const deleteInterest = async (id) => {
+  try {
+    const res = await apiClient.delete(`/interests/${id}`);
+    return { success: true, data: res.data?.data || res.data };
+  } catch (err) {
+    throw new Error(err?.response?.data?.message || "Failed to delete interest");
+  }
+};
+
+// PATCH /api/interests/admin/:id/toggle
+export const toggleInterestStatus = async (id) => {
+  try {
+    const res = await apiClient.patch(`/interests/admin/${id}/toggle`);
+    return { success: true, data: res.data?.data || res.data };
+  } catch (err) {
+    throw new Error(err?.response?.data?.message || "Failed to toggle interest status");
+  }
+};
+
 export default apiClient;

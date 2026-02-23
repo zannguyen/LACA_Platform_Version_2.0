@@ -1,6 +1,6 @@
 // frontend/src/components/profile/InterestModal.jsx
 import React, { useState, useEffect } from "react";
-import InterestBadge from "./InterestBadge";
+import InterestCard from "../interest/InterestCard";
 import interestApi from "../../api/interestApi";
 import "./InterestModal.css";
 
@@ -44,15 +44,14 @@ export default function InterestModal({
     }
   };
 
-  const handleToggleInterest = (interest) => {
+  const handleToggleInterest = (interestId) => {
     if (!isEditing) return;
 
-    const id = interest._id || interest.id;
     setSelectedIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((i) => i !== id);
+      if (prev.includes(interestId)) {
+        return prev.filter((i) => i !== interestId);
       }
-      return [...prev, id];
+      return [...prev, interestId];
     });
   };
 
@@ -120,12 +119,11 @@ export default function InterestModal({
                 const id = interest._id || interest.id;
                 const isSelected = selectedIds.includes(id);
                 return (
-                  <InterestBadge
+                  <InterestCard
                     key={id}
                     interest={interest}
-                    selected={isEditing && isSelected}
-                    onClick={isEditing ? handleToggleInterest : null}
-                    className={isEditing && !isSelected ? "unselected" : ""}
+                    isSelected={isEditing && isSelected}
+                    onToggle={isEditing ? handleToggleInterest : null}
                   />
                 );
               })}

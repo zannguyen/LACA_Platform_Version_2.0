@@ -245,6 +245,189 @@ const markRead = asyncHandler(async (req, res) => {
   return res.status(200).json({ updated: result.modifiedCount || 0 });
 });
 
+// 7) Join public chat for a post
+const joinPublicChat = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?._id;
+  const pid = toObjectId(postId);
+
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!pid) return res.status(400).json({ message: "postId invalid" });
+
+  // Find or create public conversation for this post
+  let conversation = await Conversation.findOne({
+    type: "public",
+    postId: pid,
+  }).populate("participants", "username fullname avatar");
+
+  if (!conversation) {
+    conversation = await Conversation.create({
+      type: "public",
+      postId: pid,
+      createdBy: userId,
+      participants: [userId],
+    });
+    await conversation.populate("participants", "username fullname avatar");
+  } else if (!conversation.participants.some((p) => String(p._id) === String(userId))) {
+    // Add user to participants if not already there
+    conversation.participants.push(userId);
+    await conversation.save();
+    await conversation.populate("participants", "username fullname avatar");
+  }
+
+  return res.status(200).json(conversation);
+});
+
+// 8) Send message to public chat
+const sendPublicMessage = asyncHandler(async (req, res) => {
+  const { postId, text, image } = req.body;
+  const senderId = req.user?._id;
+  const pid = toObjectId(postId);
+
+  if (!senderId) return res.status(401).json({ message: "Unauthorized" });
+  if (!pid) return res.status(400).json({ message: "postId invalid" });
+  if (!text?.trim() && !image?.trim()) {
+    return res.status(400).json({ message: "Message text or image is required" });
+  }
+
+  // Find public conversation for this post
+  let conversation = await Conversation.findOne({
+    type: "public",
+    postId: pid,
+  });
+
+  if (!conversation) {
+    conversation = await Conversation.create({
+      type: "public",
+      postId: pid,
+      createdBy: senderId,
+      participants: [senderId],
+    });
+  }
+
+  // Ensure sender is in participants
+  if (!conversation.participants.some((p) => String(p) === String(senderId))) {
+    conversation.participants.push(senderId);
+    await conversation.save();
+  }
+
+  // Create message
+  const newMessage = await Message.create({
+    conversationId: conversation._id,
+    senderId,
+    postId: pid,
+    text: text || "",
+    image: image || "",
+  });
+
+  // Update lastMessage
+  await Conversation.findByIdAndUpdate(conversation._id, {
+    lastMessage: {
+      text: text?.trim() ? text : "Đã gửi một ảnh",
+      sender: senderId,
+      isRead: false,
+      createdAt: new Date(),
+    },
+  });
+
+  // Emit to all users in post chat room
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`post_${String(pid)}`).emit("receive_message", newMessage);
+  }
+
+  return res.status(200).json(newMessage);
+});
+
+// 9) Get all messages for a post chat
+const getPublicMessages = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?._id;
+  const pid = toObjectId(postId);
+
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!pid) return res.status(400).json({ message: "postId invalid" });
+
+  const conversation = await Conversation.findOne({
+    type: "public",
+    postId: pid,
+  });
+
+  if (!conversation) return res.status(200).json([]);
+
+  const messages = await Message.find({
+    conversationId: conversation._id,
+  })
+    .populate("senderId", "username fullname avatar")
+    .sort({ createdAt: 1 });
+
+  return res.status(200).json(messages);
+});
+
+// 10) Get participants in public chat
+const getPublicParticipants = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?._id;
+  const pid = toObjectId(postId);
+
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!pid) return res.status(400).json({ message: "postId invalid" });
+
+  const conversation = await Conversation.findOne({
+    type: "public",
+    postId: pid,
+  }).populate("participants", "username fullname avatar");
+
+  if (!conversation) return res.status(200).json([]);
+
+  // Get post to find owner
+  const Post = require("../models/post.model");
+  const post = await Post.findById(pid).select("userId");
+  const postOwnerId = post?.userId;
+
+  // Add role to each participant
+  const participantsWithRole = conversation.participants.map((participant) => ({
+    ...participant.toObject(),
+    role: String(participant._id) === String(postOwnerId) ? "post_owner" : "participant",
+  }));
+
+  return res.status(200).json(participantsWithRole);
+});
+
+// 11) Leave public chat
+const leavePublicChat = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?._id;
+  const pid = toObjectId(postId);
+
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!pid) return res.status(400).json({ message: "postId invalid" });
+
+  const conversation = await Conversation.findOne({
+    type: "public",
+    postId: pid,
+  });
+
+  if (!conversation) return res.status(200).json({ removed: false });
+
+  // Remove user from participants
+  conversation.participants = conversation.participants.filter(
+    (p) => String(p) !== String(userId),
+  );
+  await conversation.save();
+
+  // Emit user_left event
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`post_${String(pid)}`).emit("user_left", {
+      userId: String(userId),
+      participantCount: conversation.participants.length,
+    });
+  }
+
+  return res.status(200).json({ removed: true });
+});
+
 module.exports = {
   sendMessage,
   getMessages,
@@ -252,4 +435,9 @@ module.exports = {
   searchUsers,
   getOrCreateConversation,
   markRead,
+  joinPublicChat,
+  sendPublicMessage,
+  getPublicMessages,
+  getPublicParticipants,
+  leavePublicChat,
 };

@@ -1,0 +1,370 @@
+.interest-table-wrapper {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.interest-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+/* Table Header */
+.interest-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.interest-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.interest-table-col-icon {
+  width: 80px;
+}
+
+.interest-table-col-name {
+  width: 150px;
+}
+
+.interest-table-col-description {
+  flex: 1;
+  min-width: 200px;
+}
+
+.interest-table-col-status {
+  width: 100px;
+}
+
+.interest-table-col-actions {
+  width: 100px;
+  text-align: center;
+}
+
+/* Table Body */
+.interest-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+.interest-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.interest-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.interest-table td {
+  padding: 16px;
+  vertical-align: middle;
+}
+
+/* Icon Cell */
+.interest-table-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.interest-table-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.interest-table-image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+/* Name Cell */
+.interest-table-name {
+  font-weight: 500;
+  color: #333;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Description Cell */
+.interest-table-description {
+  color: #666;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Status Badge */
+.interest-table-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.interest-table-status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.interest-table-status-badge.active:hover {
+  background: #c3e6cb;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(21, 87, 36, 0.2);
+}
+
+.interest-table-status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.interest-table-status-badge.inactive:hover {
+  background: #f5c6cb;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(114, 28, 36, 0.2);
+}
+
+/* Actions */
+.interest-table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.interest-table-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.interest-table-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.interest-table-btn-edit {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.interest-table-btn-edit:hover {
+  background: #e7f3ff;
+  border-color: #0056b3;
+}
+
+.interest-table-btn-delete {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.interest-table-btn-delete:hover {
+  background: #fee;
+  border-color: #c82333;
+}
+
+/* Loading State */
+.interest-table-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  color: #666;
+}
+
+.interest-table-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.interest-table-loading p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Empty State */
+.interest-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+  color: #999;
+}
+
+.interest-table-empty-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.interest-table-empty p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+}
+
+.interest-table-empty span {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .interest-table-col-description {
+    display: none;
+  }
+
+  .interest-table th:nth-child(3),
+  .interest-table td:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .interest-table {
+    font-size: 13px;
+  }
+
+  .interest-table th,
+  .interest-table td {
+    padding: 12px 8px;
+  }
+
+  .interest-table-col-icon {
+    width: 60px;
+  }
+
+  .interest-table-col-name {
+    width: 100px;
+  }
+
+  .interest-table-col-status {
+    width: 80px;
+  }
+
+  .interest-table-col-actions {
+    width: 80px;
+  }
+
+  .interest-table-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .interest-table-emoji {
+    font-size: 20px;
+  }
+
+  .interest-table-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .interest-table-status-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .interest-table-wrapper {
+    border-radius: 8px;
+  }
+
+  .interest-table {
+    font-size: 12px;
+  }
+
+  .interest-table th,
+  .interest-table td {
+    padding: 10px 6px;
+  }
+
+  .interest-table-col-icon {
+    width: 50px;
+  }
+
+  .interest-table-col-name {
+    width: 80px;
+  }
+
+  .interest-table-col-status {
+    display: none;
+  }
+
+  .interest-table th:nth-child(4),
+  .interest-table td:nth-child(4) {
+    display: none;
+  }
+
+  .interest-table-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .interest-table-emoji {
+    font-size: 18px;
+  }
+
+  .interest-table-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .interest-table-name {
+    font-size: 12px;
+  }
+}
