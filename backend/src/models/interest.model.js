@@ -12,8 +12,15 @@ const interestSchema = new mongoose.Schema({
     default: "",
   },
   icon: {
-    type: String,
-    default: "",
+    type: {
+      type: String,
+      enum: ["emoji", "image"],
+      default: "emoji",
+    },
+    value: {
+      type: String,
+      required: true,
+    },
   },
   isActive: {
     type: Boolean,

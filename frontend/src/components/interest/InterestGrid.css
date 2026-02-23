@@ -1,0 +1,154 @@
+.interest-grid-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Search Bar */
+.interest-grid-search {
+  position: relative;
+  width: 100%;
+}
+
+.interest-grid-search-input {
+  width: 100%;
+  padding: 14px 20px;
+  padding-right: 40px;
+  border: 2px solid #e0e0e0;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  transition: all 0.2s ease;
+  background: #ffffff;
+}
+
+.interest-grid-search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.interest-grid-search-input::placeholder {
+  color: #8e95a0;
+}
+
+.interest-grid-search-clear {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8e95a0;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+}
+
+.interest-grid-search-clear:hover {
+  color: #1a1d26;
+}
+
+/* Results Info */
+.interest-grid-results-info {
+  font-size: 12px;
+  color: #8e95a0;
+  padding: 0 4px;
+}
+
+/* Grid Layout */
+.interest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+/* Loading State */
+.interest-grid-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  color: #8e95a0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.interest-grid-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #8e95a0;
+  font-size: 14px;
+}
+
+/* No Results */
+.interest-grid-no-results {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #8e95a0;
+  font-size: 14px;
+  background: #f8f9fc;
+  border-radius: 12px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .interest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .interest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .interest-grid-search-input {
+    padding: 12px 16px;
+    padding-right: 36px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .interest-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .interest-grid-search-input {
+    padding: 11px 14px;
+    padding-right: 32px;
+    font-size: 12px;
+  }
+
+  .interest-grid-loading,
+  .interest-grid-empty {
+    padding: 40px 16px;
+  }
+}

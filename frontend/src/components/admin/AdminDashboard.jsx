@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getDashboardStats, getRecentActivity } from "../../api/admin.api";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeLocations: 0,
@@ -184,6 +186,23 @@ const AdminDashboard = () => {
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* Interest Management Quick Link */}
+      <div className="quick-actions-section">
+        <div className="section-header">
+          <h2>Quick Actions</h2>
+        </div>
+        <div className="quick-actions-grid">
+          <button
+            className="quick-action-card"
+            onClick={() => navigate("/admin/interests")}
+          >
+            <div className="quick-action-icon">🏷️</div>
+            <div className="quick-action-title">Manage Interests</div>
+            <div className="quick-action-desc">Create, edit, and manage user interests</div>
+          </button>
         </div>
       </div>
     </div>

@@ -47,4 +47,12 @@ export const getNearbyPosts = async ({ lat, lng }) => {
   return res.data;
 };
 
+// Get recommended topics for post creation
+export const getRecommendedTopics = async (days = 7, limit = 5) => {
+  const res = await api.get("/analysis/recommendations", {
+    params: { days, limit },
+  });
+  return res.data.data || [];
+};
+
 export default api;

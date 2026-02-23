@@ -231,9 +231,13 @@ const Home = () => {
   };
 
   const handleChooseCommunityChat = () => {
-    alert("Chat công khai đang được phát triển");
+    if (!chatTarget.postId) {
+      alert("Không thể tìm thấy bài viết");
+      setChatPopupOpen(false);
+      return;
+    }
     setChatPopupOpen(false);
-    navigate("/chat");
+    navigate(`/chat/public/${chatTarget.postId}`);
   };
 
   const closeChatPopup = () => {

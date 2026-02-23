@@ -38,6 +38,20 @@ router.delete(
   interestController.deleteInterest,
 );
 
+// Admin routes - Quản lý sở thích (phải đặt trước /:id)
+router.get(
+  "/admin/list",
+  authMiddleware,
+  requireAdmin,
+  interestController.getAllInterestsAdmin,
+);
+router.patch(
+  "/admin/:id/toggle",
+  authMiddleware,
+  requireAdmin,
+  interestController.toggleInterestStatus,
+);
+
 // Public - Lấy chi tiết 1 interest (phải đặt cuối cùng)
 router.get("/:id", interestController.getInterestById);
 

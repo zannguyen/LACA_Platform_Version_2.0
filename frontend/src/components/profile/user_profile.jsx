@@ -5,7 +5,7 @@ import userApi from "../../api/userApi";
 import { deletePost, uploadMedia } from "../../api/postApi";
 import interestApi from "../../api/interestApi";
 import InterestDisplay from "./InterestDisplay";
-import InterestModal from "./InterestModal";
+import InterestSelectionModal from "./InterestSelectionModal";
 import "./user_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
@@ -319,12 +319,12 @@ export default function UserProfile() {
       const data = res?.data?.data || res?.data || [];
       setUserInterests(data);
     } catch (err) {
-      throw err; // Let modal handle the error
+      throw err; // Let component handle the error
     }
   };
 
   const handleShowAllInterests = () => {
-    setShowInterestModal(true);
+    // Not used in new design, kept for compatibility
   };
 
   const togglePostMenu = (e, postId) => {
@@ -501,7 +501,7 @@ export default function UserProfile() {
             <InterestDisplay
               interests={userInterests}
               maxVisible={3}
-              onShowAll={handleShowAllInterests}
+              onShowAll={() => setShowInterestModal(true)}
             />
 
             {isEditing && (
@@ -688,12 +688,11 @@ export default function UserProfile() {
         </div>
       </div>
 
-      {/* Interest Modal */}
-      <InterestModal
+      {/* Interest Selection Modal */}
+      <InterestSelectionModal
         isOpen={showInterestModal}
         onClose={() => setShowInterestModal(false)}
         currentInterests={userInterests}
-        isEditing={isEditing}
         onSave={handleSaveInterests}
       />
     </div>

@@ -38,6 +38,13 @@
   line-height: 1;
 }
 
+.interest-badge .interest-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
 .interest-badge .interest-name {
   line-height: 1;
 }

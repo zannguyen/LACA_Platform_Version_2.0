@@ -34,4 +34,21 @@ router.delete("/:id", auth, ctrl.deleteNotification);
  */
 router.post("/admin/broadcast", auth, requireAdmin, ctrl.adminBroadcast);
 
+/**
+ * Gửi broadcast cho tất cả người dùng đang hoạt động
+ * Body: { title: string, body?: string, link?: string }
+ */
+router.post("/admin/broadcast-all", auth, requireAdmin, ctrl.sendBroadcastToAll);
+
+/**
+ * Lấy lịch sử broadcast của admin
+ * Query: page, limit, status (all|pending|sending|completed|failed)
+ */
+router.get("/admin/broadcast-history", auth, requireAdmin, ctrl.getBroadcastHistory);
+
+/**
+ * Lấy chi tiết một broadcast
+ */
+router.get("/admin/broadcast-history/:id", auth, requireAdmin, ctrl.getBroadcastDetails);
+
 module.exports = router;

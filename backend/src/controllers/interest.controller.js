@@ -82,3 +82,28 @@ exports.getUserInterests = asyncHandler(async (req, res) => {
     data: interests,
   });
 });
+
+// ===== ADMIN ENDPOINTS =====
+
+// Lấy tất cả sở thích (admin view với pagination)
+exports.getAllInterestsAdmin = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const interests = await interestService.getAllInterestsAdmin(
+    parseInt(page),
+    parseInt(limit)
+  );
+  res.status(200).json({
+    success: true,
+    data: interests,
+  });
+});
+
+// Toggle trạng thái sở thích (admin)
+exports.toggleInterestStatus = asyncHandler(async (req, res) => {
+  const interest = await interestService.toggleInterestStatus(req.params.id);
+  res.status(200).json({
+    success: true,
+    message: "Interest status toggled successfully",
+    data: interest,
+  });
+});

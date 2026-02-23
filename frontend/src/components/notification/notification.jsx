@@ -21,6 +21,18 @@ const Notification = () => {
   // Load thông báo từ API khi vào trang
   useEffect(() => {
     fetchNotifications();
+
+    // Listen for real-time notifications
+    const handleRefreshNotifications = () => {
+      console.log("Refreshing notifications...");
+      fetchNotifications(1);
+    };
+
+    window.addEventListener("refreshNotifications", handleRefreshNotifications);
+
+    return () => {
+      window.removeEventListener("refreshNotifications", handleRefreshNotifications);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -32,7 +44,7 @@ const Notification = () => {
       const data = await getMyNotifications(pageNum, 20);
 
       if (data?.success) {
-        const newNotifs = data.data || [];
+        const newNotifs = data.notifications || [];
         if (pageNum === 1) {
           setNotifications(newNotifs);
         } else {
@@ -182,7 +194,10 @@ const Notification = () => {
             {/* Hiển thị số lượng chưa đọc */}
             {unreadCount > 0 && (
               <div className="section-title">
-                {unreadCount} thông báo chưa đọc
+                <span style={{ fontSize: '20px', fontWeight: '700', color: '#ef4444', minWidth: '28px', textAlign: 'center' }}>
+                  {unreadCount}
+                </span>
+                <span>thông báo chưa đọc</span>
               </div>
             )}
 

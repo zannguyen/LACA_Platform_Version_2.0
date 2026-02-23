@@ -85,6 +85,21 @@ io.on("connection", (socket) => {
 
     console.log("❌ User disconnected:", socket.id);
   });
+
+  // Public chat room handlers
+  socket.on("join_post_chat", (postId) => {
+    if (!postId) return;
+    const roomName = `post_${String(postId)}`;
+    socket.join(roomName);
+    console.log(`✅ User ${socket.data.userId} joined post chat: ${roomName}`);
+  });
+
+  socket.on("leave_post_chat", (postId) => {
+    if (!postId) return;
+    const roomName = `post_${String(postId)}`;
+    socket.leave(roomName);
+    console.log(`❌ User ${socket.data.userId} left post chat: ${roomName}`);
+  });
 });
 
 (async () => {

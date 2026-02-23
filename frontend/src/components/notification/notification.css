@@ -76,11 +76,37 @@
 }
 
 .section-title {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--text-muted);
-  padding: var(--space-xl) var(--space-xl) var(--space-md);
+  color: var(--text-primary);
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.04) 100%);
+  border-left: 4px solid #ef4444;
+  margin: var(--space-md) var(--space-md) 0;
+  border-radius: var(--radius-md);
+}
+
+.section-title::before {
+  content: '🔔';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  animation: bellPulse 2s ease-in-out infinite;
+}
+
+@keyframes bellPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .notif-item {
@@ -116,12 +142,14 @@
 }
 
 .notif-badge {
-  width: 10px;
-  height: 10px;
-  background: var(--notif-badge);
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: var(--radius-pill);
   flex-shrink: 0;
-  align-self: center;
+  align-self: flex-start;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .notif-avatar {
