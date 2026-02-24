@@ -13,6 +13,7 @@ const ChatListPage = () => {
   const [currentUserId, setCurrentUserId] = useState("");
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [toast, setToast] = useState("");
+  const [activeTab, setActiveTab] = useState("private"); // "private" or "public"
   const conversationsRef = useRef([]);
 
   const getCurrentUserId = () => {
@@ -63,6 +64,15 @@ const ChatListPage = () => {
     () => new Set(Array.from(onlineUsers).map((u) => String(u))),
     [onlineUsers],
   );
+
+  // Filter conversations by type
+  const filteredConversations = useMemo(() => {
+    if (activeTab === "private") {
+      return conversations.filter((conv) => conv.type !== "public");
+    } else {
+      return conversations.filter((conv) => conv.type === "public");
+    }
+  }, [conversations, activeTab]);
 
   useEffect(() => {
     setCurrentUserId(getCurrentUserId());
@@ -175,12 +185,28 @@ const ChatListPage = () => {
   };
 
   return (
-    <div className="auth-form">
+    <div className="auth-form chat-list-page">
       <div className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
           <i className="fa-solid fa-arrow-left"></i>
         </button>
         <h2 className="page-title">Chat</h2>
+      </div>
+
+      {/* Tabs */}
+      <div className="chat-tabs">
+        <button
+          className={`chat-tab ${activeTab === "private" ? "active" : ""}`}
+          onClick={() => setActiveTab("private")}
+        >
+          <i className="fa-solid fa-user"></i> Riêng tư
+        </button>
+        <button
+          className={`chat-tab ${activeTab === "public" ? "active" : ""}`}
+          onClick={() => setActiveTab("public")}
+        >
+          <i className="fa-solid fa-users"></i> Công khai
+        </button>
       </div>
 
       <div className="chat-list">
@@ -190,70 +216,121 @@ const ChatListPage = () => {
           <p style={{ textAlign: "center", padding: 20, color: "red" }}>
             {error}
           </p>
-        ) : conversations.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <p style={{ textAlign: "center", padding: 20 }}>
-            Chưa có cuộc trò chuyện
+            {activeTab === "private" ? "Chưa có cuộc trò chuyện riêng tư" : "Chưa có cuộc trò chuyện công khai"}
           </p>
         ) : (
-          conversations.map((conv) => {
-            const other = getOtherParticipant(conv.participants);
-            const lastMessageText =
-              conv.lastMessage?.text ||
-              (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
+          filteredConversations.map((conv) => {
+            if (activeTab === "private") {
+              // Private chat rendering
+              const other = getOtherParticipant(conv.participants);
+              const lastMessageText =
+                conv.lastMessage?.text ||
+                (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
 
-            const me = currentUserId;
-            const lastSender = conv.lastMessage?.sender;
-            const isUnread =
-              lastSender &&
-              String(lastSender) !== String(me) &&
-              conv.lastMessage?.isRead === false;
+              const me = currentUserId;
+              const lastSender = conv.lastMessage?.sender;
+              const isUnread =
+                lastSender &&
+                String(lastSender) !== String(me) &&
+                conv.lastMessage?.isRead === false;
 
-            const lastMessageTime =
-              conv.lastMessage?.createdAt || conv.updatedAt || null;
+              const lastMessageTime =
+                conv.lastMessage?.createdAt || conv.updatedAt || null;
 
-            const avatarStyle = other?.avatar
-              ? {
-                  backgroundImage: `url(${other.avatar})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : undefined;
+              const avatarStyle = other?.avatar
+                ? {
+                    backgroundImage: `url(${other.avatar})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : undefined;
 
-            const isOnline = onlineIds.has(String(other?._id || ""));
+              const isOnline = onlineIds.has(String(other?._id || ""));
 
-            return (
-              <div
-                key={conv._id}
-                className="chat-item"
-                onClick={() => handleChatClick(conv)}
-              >
-                <div className="avatar-wrap">
-                  <div className="avatar-circle" style={avatarStyle}>
-                    {!other?.avatar && getInitials(other)}
+              return (
+                <div
+                  key={conv._id}
+                  className="chat-item"
+                  onClick={() => handleChatClick(conv)}
+                >
+                  <div className="avatar-wrap">
+                    <div className="avatar-circle" style={avatarStyle}>
+                      {!other?.avatar && getInitials(other)}
+                    </div>
+                    <span className={`status-dot ${isOnline ? "online" : ""}`} />
                   </div>
-                  <span className={`status-dot ${isOnline ? "online" : ""}`} />
-                </div>
 
-                <div className="chat-info">
-                  <h4 className="chat-name">{getUserLabel(other)}</h4>
-                  <p className="chat-preview">
-                    {lastMessageText || "Không có tin nhắn"}
-                  </p>
-                </div>
+                  <div className="chat-info">
+                    <h4 className="chat-name">{getUserLabel(other)}</h4>
+                    <p className="chat-preview">
+                      {lastMessageText || "Không có tin nhắn"}
+                    </p>
+                  </div>
 
-                <div className="chat-meta">
-                  <span className="chat-time">
-                    {lastMessageTime
-                      ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : ""}
-                  </span>
-                  {isUnread && <span className="chat-unread-dot" />}
+                  <div className="chat-meta">
+                    <span className="chat-time">
+                      {lastMessageTime
+                        ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </span>
+                    {isUnread && <span className="chat-unread-dot" />}
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            } else {
+              // Public chat rendering
+              const lastMessageText =
+                conv.lastMessage?.text ||
+                (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
+
+              const me = currentUserId;
+              const lastSender = conv.lastMessage?.sender;
+              const isUnread =
+                lastSender &&
+                String(lastSender) !== String(me) &&
+                conv.lastMessage?.isRead === false;
+
+              const lastMessageTime =
+                conv.lastMessage?.createdAt || conv.updatedAt || null;
+
+              return (
+                <div
+                  key={conv._id}
+                  className="chat-item"
+                  onClick={() => navigate(`/chat/public/${conv.postId}`)}
+                >
+                  <div className="avatar-wrap">
+                    <div className="avatar-circle" style={{ background: "var(--primary)" }}>
+                      <i className="fa-solid fa-comments"></i>
+                    </div>
+                  </div>
+
+                  <div className="chat-info">
+                    <h4 className="chat-name">{conv.title || "Bình luận bài viết"}</h4>
+                    <p className="chat-preview">
+                      {lastMessageText || "Không có tin nhắn"}
+                    </p>
+                  </div>
+
+                  <div className="chat-meta">
+                    <span className="chat-time">
+                      {lastMessageTime
+                        ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </span>
+                    {isUnread && <span className="chat-unread-dot" />}
+                  </div>
+                </div>
+              );
+            }
           })
         )}
       </div>

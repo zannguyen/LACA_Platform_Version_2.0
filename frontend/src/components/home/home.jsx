@@ -626,6 +626,42 @@ const Home = () => {
                   </div>
                 </div>
 
+                {/* Tags hiển thị dưới avatar, trên ảnh post */}
+                {post.tags && post.tags.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "0 16px 8px", marginLeft: 44, overflow: "hidden", maxWidth: "calc(100% - 60px)" }}>
+                    {post.tags.slice(0, 3).map((tag, idx) => (
+                      <span
+                        key={tag._id || idx}
+                        style={{
+                          background: tag.color || "#2bd0d0",
+                          color: "white",
+                          padding: "2px 8px",
+                          borderRadius: 10,
+                          fontSize: 10,
+                          fontWeight: 500,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {tag.icon} {tag.name}
+                      </span>
+                    ))}
+                    {post.tags.length > 3 && (
+                      <span style={{
+                        background: "#444",
+                        color: "#aaa",
+                        padding: "2px 6px",
+                        borderRadius: 10,
+                        fontSize: 10,
+                      }}>
+                        +{post.tags.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="post-image-wrapper">
                   {media ? (
                     isVideo ? (

@@ -48,6 +48,9 @@ app.use("/api/places", require("./src/routes/place.route"));
 app.use("/api/notifications", require("./src/routes/notification.route"));
 app.use("/api/interests", require("./src/routes/interest.route"));
 app.use("/api/analysis", require("./src/routes/analysis.route"));
+app.use("/api/recommendations", require("./src/routes/recommendation.route"));
+app.use("/api/tags", require("./src/routes/tag.route"));
+app.use("/api/admin", require("./src/routes/queue.route")); // Queue admin endpoints
 
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);

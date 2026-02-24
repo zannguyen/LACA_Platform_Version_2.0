@@ -19,35 +19,47 @@ const Camera = () => {
 
   const stopStreamTracks = () => {
     const stream = videoRef.current?.srcObject;
-    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (stream) {
+      stream.getTracks().forEach((t) => {
+        t.stop();
+        t.enabled = false;
+      });
+      if (videoRef.current) videoRef.current.srcObject = null;
+    }
   };
 
   const startCamera = async () => {
     stopStreamTracks();
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: {
-          facingMode,
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
-        },
-      });
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch (err) {
-      console.error("Lỗi Camera:", err);
-      // fallback video-only
+    // Đợi camera được giải phóng hoàn toàn
+    await new Promise((r) => setTimeout(r, 300));
+
+    const constraints = [
+      // Thử với audio + video ideal
+      { audio: true, video: { facingMode, width: { ideal: 720 }, height: { ideal: 1280 } } },
+      // Thử video-only ideal
+      { audio: false, video: { facingMode, width: { ideal: 720 }, height: { ideal: 1280 } } },
+      // Thử video-only basic
+      { audio: false, video: { facingMode } },
+      // Thử video bất kỳ
+      { audio: false, video: true },
+    ];
+
+    for (const constraint of constraints) {
       try {
-        const videoOnly = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: { facingMode },
-        });
-        if (videoRef.current) videoRef.current.srcObject = videoOnly;
-      } catch (e) {
-        console.error("Không thể mở cam:", e);
+        const stream = await navigator.mediaDevices.getUserMedia(constraint);
+        if (videoRef.current) videoRef.current.srcObject = stream;
+        return;
+      } catch (err) {
+        console.warn("Camera attempt failed:", err.name, constraint);
+        // Nếu là lỗi NotReadableError, đợi thêm rồi thử lại
+        if (err.name === "NotReadableError") {
+          await new Promise((r) => setTimeout(r, 500));
+        }
       }
     }
+
+    console.error("Không thể mở camera sau tất cả các lần thử");
   };
 
   useEffect(() => {

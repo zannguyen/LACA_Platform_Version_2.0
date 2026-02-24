@@ -1,0 +1,23 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+LOADED email.service.js FROM: C:\Users\Dell 7630\Desktop\LACA-Cursor\LACA_Platform_Version_2.0\backend\src\services\email.service.js
+emailService exports: [ 'sendOTP', 'sendOTPRegister', 'verifyOTP' ]
+C:\Users\Dell 7630\Desktop\LACA-Cursor\LACA_Platform_Version_2.0\node_modules\openai\client.js:94
+            throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+            ^
+
+OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+    at new OpenAI (C:\Users\Dell 7630\Desktop\LACA-Cursor\LACA_Platform_Version_2.0\node_modules\openai\client.js:94:19)
+    at new module.exports (C:\Users\Dell 7630\Desktop\LACA-Cursor\LACA_Platform_Version_2.0\node_modules\openai\index.js:4:10)
+    at Object.<anonymous> (C:\Users\Dell 7630\Desktop\LACA-Cursor\LACA_Platform_Version_2.0\backend\src\services\claude.service.js:3:16)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object..js (node:internal/modules/cjs/loader:1839:10)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Module.require (node:internal/modules/cjs/loader:1463:12)
+
+Node.js v22.19.0

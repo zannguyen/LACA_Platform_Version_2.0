@@ -31,6 +31,7 @@ const create = async (req, res) => {
       mediaUrl,
       reportCount: 0,
       expireAt: req.body.expireAt || null,
+      tags: req.body.tags || [],
     });
 
     // Notify all followers (fire & forget)
@@ -98,6 +99,7 @@ const createWithMedia = async (req, res) => {
       mediaUrl,
       reportCount: 0,
       expireAt: null,
+      tags: req.body.tags || [],
     });
 
     // Notify all followers (fire & forget)

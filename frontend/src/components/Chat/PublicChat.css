@@ -218,6 +218,23 @@
   padding: 0 var(--space-sm);
 }
 
+.public-chat-message-sender-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.2s;
+}
+
+.public-chat-message-sender-btn:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 .public-chat-message-text {
   background: var(--primary);
   color: #fff;

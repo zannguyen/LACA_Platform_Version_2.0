@@ -194,12 +194,13 @@ export default function UserProfile() {
 
   const fetchInterests = async () => {
     try {
-      const res = await interestApi.getMyInterests();
-      const data = res?.data?.data || res?.data || [];
-      setUserInterests(data);
+      const data = await interestApi.getMyInterests();
+      // data is already an array from the API
+      setUserInterests(Array.isArray(data) ? data : []);
     } catch (e) {
       // Silent fail - interests are optional
       console.error("Failed to load interests:", e);
+      setUserInterests([]);
     }
   };
 
@@ -315,9 +316,14 @@ export default function UserProfile() {
 
   const handleSaveInterests = async (interestIds) => {
     try {
-      const res = await interestApi.updateMyInterests(interestIds);
-      const data = res?.data?.data || res?.data || [];
-      setUserInterests(data);
+      const data = await interestApi.updateMyInterests(interestIds);
+      // data should be an array of interests
+      setUserInterests(Array.isArray(data) ? data : []);
+
+      // Refresh interests from server to ensure they're properly populated
+      setTimeout(() => {
+        fetchInterests();
+      }, 300);
     } catch (err) {
       throw err; // Let component handle the error
     }

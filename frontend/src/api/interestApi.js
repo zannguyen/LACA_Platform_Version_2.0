@@ -15,8 +15,10 @@ const interestApi = {
   },
 
   // Cập nhật sở thích của người dùng hiện tại
-  updateMyInterests: (interestIds) =>
-    api.put("/interests/me/interests", { interestIds }),
+  updateMyInterests: async (interestIds) => {
+    const res = await api.put("/interests/me/interests", { interestIds });
+    return res.data?.data || res.data || [];
+  },
 
   // Lấy sở thích của người dùng khác
   getUserInterests: async (userId) => {

@@ -1,11 +1,18 @@
 import React, { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "./PublicChat.css";
 
 const PublicChatMessages = ({ messages, currentUserId, loading }) => {
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
+  const [avatarErrors, setAvatarErrors] = React.useState(new Set());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleAvatarError = (senderId) => {
+    setAvatarErrors((prev) => new Set([...prev, String(senderId)]));
   };
 
   useEffect(() => {
@@ -39,7 +46,8 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
         const sender = msg.senderId;
         const senderName = sender?.fullname || sender?.username || "User";
         const senderAvatar = sender?.avatar;
-        const isSent = String(sender?._id || sender) === String(currentUserId);
+        const senderId = sender?._id;
+        const isSent = String(senderId || sender) === String(currentUserId);
 
         return (
           <div
@@ -48,8 +56,12 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
           >
             {!isSent && (
               <div className="public-chat-message-avatar">
-                {senderAvatar ? (
-                  <img src={senderAvatar} alt={senderName} />
+                {senderAvatar && !avatarErrors.has(String(senderId)) ? (
+                  <img
+                    src={senderAvatar}
+                    alt={senderName}
+                    onError={() => handleAvatarError(senderId)}
+                  />
                 ) : (
                   <i className="fa-solid fa-user"></i>
                 )}
@@ -57,7 +69,12 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
             )}
             <div className="public-chat-message-content">
               {!isSent && (
-                <div className="public-chat-message-sender">{senderName}</div>
+                <button
+                  className="public-chat-message-sender-btn"
+                  onClick={() => navigate(`/profile/${senderId}`)}
+                >
+                  {senderName}
+                </button>
               )}
               {msg.image && (
                 <img

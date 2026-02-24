@@ -3,9 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./camera_post.css";
 
-import { uploadMedia, createPost, getRecommendedTopics } from "../../api/postApi";
+import { uploadMedia, createPost } from "../../api/postApi";
 import { suggestPlaces, resolvePlace } from "../../api/place.api";
-import TrendRecommendationModal from "../post/TrendRecommendationModal";
+import { getCategoriesWithTags } from "../../api/tagApi";
 
 // ✅ unwrap mọi kiểu response để lấy PLACE DOC chuẩn: {_id, name, address, ...}
 function unwrapPlace(res) {
@@ -113,10 +113,6 @@ export default function CameraPost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Trend recommendation modal
-  const [showTrendModal, setShowTrendModal] = useState(false);
-  const [trendRecommendations, setTrendRecommendations] = useState([]);
-
   // ====== LOCATION SHEET (NEW UI) ======
   const [locOpen, setLocOpen] = useState(false);
 
@@ -135,6 +131,45 @@ export default function CameraPost() {
   const [customAddress, setCustomAddress] = useState("");
   const [customCategory, setCustomCategory] = useState("other");
   const [createLoading, setCreateLoading] = useState(false);
+
+  // ====== TAGS SECTION ======
+  const [tagOpen, setTagOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+
+  // Load categories with tags
+  useEffect(() => {
+    if (tagOpen && categories.length === 0) {
+      setTagsLoading(true);
+      getCategoriesWithTags()
+        .then((res) => {
+          const data = res?.data?.data || res?.data || [];
+          setCategories(data);
+        })
+        .catch((err) => console.error("Load tags error:", err))
+        .finally(() => setTagsLoading(false));
+    }
+  }, [tagOpen, categories.length]);
+
+  const toggleTag = (tag) => {
+    setSelectedTags((prev) => {
+      const exists = prev.find((t) => t._id === tag._id);
+      if (exists) {
+        return prev.filter((t) => t._id !== tag._id);
+      }
+      // Max 5 tags
+      if (prev.length >= 5) {
+        alert("Tối đa 5 tags!");
+        return prev;
+      }
+      return [...prev, tag];
+    });
+  };
+
+  const removeTag = (tagId) => {
+    setSelectedTags((prev) => prev.filter((t) => t._id !== tagId));
+  };
 
   // ✅ radius gợi ý (m) — bạn muốn gần => để nhỏ
   const SUGGEST_RADIUS_METERS = 30; // 20-40m là hợp lý
@@ -355,18 +390,10 @@ export default function CameraPost() {
         type: mediaType,
         mediaUrl: [url],
         placeId: pickedPlace._id,
+        tags: selectedTags.map((t) => t._id),
       });
 
-      // Get trend recommendations
-      try {
-        const trends = await getRecommendedTopics(7, 5);
-        setTrendRecommendations(trends || []);
-        setShowTrendModal(true);
-      } catch (err) {
-        console.error("Error fetching trends:", err);
-        // Don't break post creation if trends fail
-        navigate("/home");
-      }
+      navigate("/home");
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || "Đăng bài thất bại");
     } finally {
@@ -410,6 +437,36 @@ export default function CameraPost() {
             <i className="fa-solid fa-location-dot"></i>
           </button>
 
+          {/* TAGS */}
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={() => setTagOpen(true)}
+            disabled={loading}
+            title="Chọn tag"
+            style={{ color: selectedTags.length > 0 ? "#2bd0d0" : "white" }}
+          >
+            <i className="fa-solid fa-tag"></i>
+            {selectedTags.length > 0 && (
+              <span style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                background: "#2bd0d0",
+                color: "black",
+                borderRadius: "50%",
+                width: 16,
+                height: 16,
+                fontSize: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                {selectedTags.length}
+              </span>
+            )}
+          </button>
+
           {/* TIMER */}
           <div className="timer-wrapper">
             <div
@@ -444,8 +501,8 @@ export default function CameraPost() {
         </div>
       </div>
 
-      {/* HIỂN THỊ PLACE */}
-      <div style={{ padding: "8px 12px", color: "white", fontSize: 13 }}>
+      {/* HIỂN THỊ PLACE & TAGS */}
+      <div style={{ padding: "8px 12px", color: "white", fontSize: 13, position: "relative", zIndex: 10 }}>
         {pickedPlace ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ color: "#2bd0d0" }}>
@@ -668,19 +725,126 @@ export default function CameraPost() {
         </div>
       )}
 
-      {/* Trend Recommendation Modal */}
-      <TrendRecommendationModal
-        isOpen={showTrendModal}
-        trends={trendRecommendations}
-        onClose={() => {
-          setShowTrendModal(false);
-          navigate("/home");
-        }}
-        onExploreTrend={(trend) => {
-          // Could implement trend filtering in home feed here
-          navigate("/home");
-        }}
-      />
+      {/* ✅ TAG SELECTION SHEET */}
+      {tagOpen && (
+        <div className="loc-overlay" onClick={() => setTagOpen(false)}>
+          <div className="loc-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="loc-sheet-header">
+              <div className="loc-title">Chọn tags</div>
+              <button
+                className="loc-close"
+                type="button"
+                onClick={() => setTagOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Selected tags */}
+            {selectedTags.length > 0 && (
+              <div style={{ padding: "0 12px 12px", display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {selectedTags.map((tag) => (
+                  <span
+                    key={tag._id}
+                    style={{
+                      background: tag.color || "#2bd0d0",
+                      color: "white",
+                      padding: "4px 10px",
+                      borderRadius: 12,
+                      fontSize: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {tag.icon} {tag.name}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag._id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "white",
+                        cursor: "pointer",
+                        padding: 0,
+                        marginLeft: 4,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="loc-section">
+              {tagsLoading ? (
+                <div className="loc-muted" style={{ padding: "20px 0" }}>
+                  Đang tải tags...
+                </div>
+              ) : (
+                categories.map((cat) => (
+                  <div key={cat._id} style={{ marginBottom: 16 }}>
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 8,
+                      padding: "8px 0",
+                      borderBottom: "1px solid #333",
+                    }}>
+                      <span style={{ fontSize: 16 }}>{cat.icon}</span>
+                      <span style={{ fontWeight: 600, color: cat.color }}>
+                        {cat.name}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {cat.tags?.map((tag) => {
+                        const isSelected = selectedTags.some((t) => t._id === tag._id);
+                        return (
+                          <button
+                            key={tag._id}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            style={{
+                              background: isSelected ? (tag.color || "#2bd0d0") : "#222",
+                              color: isSelected ? "white" : "#aaa",
+                              border: `1px solid ${isSelected ? (tag.color || "#2bd0d0") : "#444"}`,
+                              padding: "6px 12px",
+                              borderRadius: 16,
+                              fontSize: 12,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            {tag.icon} {tag.name}
+                            {isSelected && <span>✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div style={{ padding: 12 }}>
+              <button
+                type="button"
+                className="loc-btn loc-btn-success"
+                onClick={() => setTagOpen(false)}
+                style={{ width: "100%" }}
+              >
+                Xác nhận ({selectedTags.length} tags)
+              </button>
+            </div>
+
+            <div style={{ height: 8 }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
