@@ -122,3 +122,37 @@ exports.getFollowStatus = asyncHandler(async (req, res) => {
   const isFollowing = await UserService.isFollowingUser(me, targetId);
   res.status(200).json({ success: true, data: { isFollowing } });
 });
+
+// ===== Preferred Tags (Sở thích) =====
+exports.getMyPreferredTags = asyncHandler(async (req, res) => {
+  const User = require("../models/user.model");
+  const user = await User.findById(req.user.id).populate("preferredTags");
+  res.status(200).json({ success: true, data: user.preferredTags || [] });
+});
+
+exports.updateMyPreferredTags = asyncHandler(async (req, res) => {
+  const { tagIds } = req.body;
+  const User = require("../models/user.model");
+
+  if (!Array.isArray(tagIds)) {
+    return res.status(400).json({ success: false, message: "tagIds phải là mảng" });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { preferredTags: tagIds },
+    { new: true }
+  ).populate("preferredTags");
+
+  res.status(200).json({ success: true, message: "Cập nhật sở thích thành công", data: user.preferredTags });
+});
+
+// Get user's preferred tags (public)
+exports.getUserPreferredTags = asyncHandler(async (req, res) => {
+  const User = require("../models/user.model");
+  const user = await User.findById(req.params.userId).populate("preferredTags");
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+  res.status(200).json({ success: true, data: user.preferredTags || [] });
+});

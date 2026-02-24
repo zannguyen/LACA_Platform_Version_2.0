@@ -13,6 +13,7 @@ const ChatListPage = () => {
   const [currentUserId, setCurrentUserId] = useState("");
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [toast, setToast] = useState("");
+  const [activeTab, setActiveTab] = useState("private"); // "private" or "public"
   const conversationsRef = useRef([]);
 
   const getCurrentUserId = () => {
@@ -64,13 +65,34 @@ const ChatListPage = () => {
     [onlineUsers],
   );
 
+  // Filter conversations by type
+  const filteredConversations = useMemo(() => {
+    if (activeTab === "private") {
+      return conversations.filter((conv) => conv.type !== "public");
+    } else {
+      const publicConvs = conversations.filter(
+        (conv) => conv.type === "public",
+      );
+      console.log(
+        `Tab "Công khai" - filtered ${publicConvs.length} conversations from ${conversations.length} total`,
+      );
+      return publicConvs;
+    }
+  }, [conversations, activeTab]);
+
   useEffect(() => {
     setCurrentUserId(getCurrentUserId());
     const fetchConversations = async () => {
       try {
         setLoading(true);
         const response = await chatApi.getConversations();
+        console.log("ChatList API response:", response);
         const data = response.data || [];
+        console.log("ChatList conversations data:", data);
+        console.log(
+          "Public conversations:",
+          data.filter((c) => c.type === "public"),
+        );
         conversationsRef.current = data;
         setConversations(data);
         setError(null);
@@ -175,12 +197,28 @@ const ChatListPage = () => {
   };
 
   return (
-    <div className="auth-form">
+    <div className="auth-form chat-list-page">
       <div className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
           <i className="fa-solid fa-arrow-left"></i>
         </button>
         <h2 className="page-title">Chat</h2>
+      </div>
+
+      {/* Tabs */}
+      <div className="chat-tabs">
+        <button
+          className={`chat-tab ${activeTab === "private" ? "active" : ""}`}
+          onClick={() => setActiveTab("private")}
+        >
+          <i className="fa-solid fa-user"></i> Riêng tư
+        </button>
+        <button
+          className={`chat-tab ${activeTab === "public" ? "active" : ""}`}
+          onClick={() => setActiveTab("public")}
+        >
+          <i className="fa-solid fa-users"></i> Công khai
+        </button>
       </div>
 
       <div className="chat-list">
@@ -190,70 +228,146 @@ const ChatListPage = () => {
           <p style={{ textAlign: "center", padding: 20, color: "red" }}>
             {error}
           </p>
-        ) : conversations.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <p style={{ textAlign: "center", padding: 20 }}>
-            Chưa có cuộc trò chuyện
+            {activeTab === "private"
+              ? "Chưa có cuộc trò chuyện riêng tư"
+              : "Chưa có cuộc trò chuyện công khai"}
           </p>
         ) : (
-          conversations.map((conv) => {
-            const other = getOtherParticipant(conv.participants);
-            const lastMessageText =
-              conv.lastMessage?.text ||
-              (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
+          filteredConversations.map((conv) => {
+            if (activeTab === "private") {
+              // Private chat rendering
+              const other = getOtherParticipant(conv.participants);
+              const lastMessageText =
+                conv.lastMessage?.text ||
+                (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
 
-            const me = currentUserId;
-            const lastSender = conv.lastMessage?.sender;
-            const isUnread =
-              lastSender &&
-              String(lastSender) !== String(me) &&
-              conv.lastMessage?.isRead === false;
+              const me = currentUserId;
+              const lastSender = conv.lastMessage?.sender;
+              const isUnread =
+                lastSender &&
+                String(lastSender) !== String(me) &&
+                conv.lastMessage?.isRead === false;
 
-            const lastMessageTime =
-              conv.lastMessage?.createdAt || conv.updatedAt || null;
+              const lastMessageTime =
+                conv.lastMessage?.createdAt || conv.updatedAt || null;
 
-            const avatarStyle = other?.avatar
-              ? {
-                  backgroundImage: `url(${other.avatar})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : undefined;
+              const avatarStyle = other?.avatar
+                ? {
+                    backgroundImage: `url(${other.avatar})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : undefined;
 
-            const isOnline = onlineIds.has(String(other?._id || ""));
+              const isOnline = onlineIds.has(String(other?._id || ""));
 
-            return (
-              <div
-                key={conv._id}
-                className="chat-item"
-                onClick={() => handleChatClick(conv)}
-              >
-                <div className="avatar-wrap">
-                  <div className="avatar-circle" style={avatarStyle}>
-                    {!other?.avatar && getInitials(other)}
+              return (
+                <div
+                  key={conv._id}
+                  className="chat-item"
+                  onClick={() => handleChatClick(conv)}
+                >
+                  <div className="avatar-wrap">
+                    <div className="avatar-circle" style={avatarStyle}>
+                      {!other?.avatar && getInitials(other)}
+                    </div>
+                    <span
+                      className={`status-dot ${isOnline ? "online" : ""}`}
+                    />
                   </div>
-                  <span className={`status-dot ${isOnline ? "online" : ""}`} />
-                </div>
 
-                <div className="chat-info">
-                  <h4 className="chat-name">{getUserLabel(other)}</h4>
-                  <p className="chat-preview">
-                    {lastMessageText || "Không có tin nhắn"}
-                  </p>
-                </div>
+                  <div className="chat-info">
+                    <h4 className="chat-name">{getUserLabel(other)}</h4>
+                    <p className="chat-preview">
+                      {lastMessageText || "Không có tin nhắn"}
+                    </p>
+                  </div>
 
-                <div className="chat-meta">
-                  <span className="chat-time">
-                    {lastMessageTime
-                      ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : ""}
-                  </span>
-                  {isUnread && <span className="chat-unread-dot" />}
+                  <div className="chat-meta">
+                    <span className="chat-time">
+                      {lastMessageTime
+                        ? new Date(lastMessageTime).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )
+                        : ""}
+                    </span>
+                    {isUnread && <span className="chat-unread-dot" />}
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            } else {
+              // Public chat rendering
+              const lastMessageText =
+                conv.lastMessage?.text ||
+                (conv.lastMessage?.image ? "Đã gửi một ảnh" : "");
+
+              const me = currentUserId;
+              const lastSender = conv.lastMessage?.sender;
+              const isUnread =
+                lastSender &&
+                String(lastSender) !== String(me) &&
+                conv.lastMessage?.isRead === false;
+
+              const lastMessageTime =
+                conv.lastMessage?.createdAt || conv.updatedAt || null;
+
+              // Convert postId to string for navigation
+              const postIdStr = conv.postId ? String(conv.postId) : "";
+
+              console.log("Rendering public chat:", {
+                _id: conv._id,
+                postId: postIdStr,
+                postIdType: typeof conv.postId,
+                title: conv.title,
+              });
+
+              return (
+                <div
+                  key={conv._id}
+                  className="chat-item"
+                  onClick={() =>
+                    postIdStr && navigate(`/chat/public/${postIdStr}`)
+                  }
+                >
+                  <div className="avatar-wrap">
+                    <div
+                      className="avatar-circle"
+                      style={{ background: "var(--primary)" }}
+                    >
+                      <i className="fa-solid fa-comments"></i>
+                    </div>
+                  </div>
+
+                  <div className="chat-info">
+                    <h4 className="chat-name">{conv.title || "Cộng đồng"}</h4>
+                    <p className="chat-preview">
+                      {lastMessageText || "Không có tin nhắn"}
+                    </p>
+                  </div>
+
+                  <div className="chat-meta">
+                    <span className="chat-time">
+                      {lastMessageTime
+                        ? new Date(lastMessageTime).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )
+                        : ""}
+                    </span>
+                    {isUnread && <span className="chat-unread-dot" />}
+                  </div>
+                </div>
+              );
+            }
           })
         )}
       </div>

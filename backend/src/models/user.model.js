@@ -57,6 +57,12 @@ const userSchema = new mongoose.Schema({
       ref: "Interest",
     },
   ],
+  preferredTags: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tag",
+    },
+  ],
 });
 
 module.exports = mongoose.model("User", userSchema);

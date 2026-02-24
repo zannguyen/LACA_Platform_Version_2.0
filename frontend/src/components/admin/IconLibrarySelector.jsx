@@ -7,13 +7,16 @@ import {
 } from "../../utils/iconUpload";
 import "./IconLibrarySelector.css";
 
-const IconLibrarySelector = ({ onSelect, selectedIcon }) => {
+const IconLibrarySelector = ({ onSelect, value }) => {
   const [activeTab, setActiveTab] = useState("library"); // 'library' or 'upload'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [previewFile, setPreviewFile] = useState(null);
+
+  // value can be string (emoji or URL) or object {type, value}
+  const selectedIcon = typeof value === 'string' ? { value } : value;
 
   const categories = useMemo(() => getAvailableCategories(), []);
 
@@ -36,11 +39,8 @@ const IconLibrarySelector = ({ onSelect, selectedIcon }) => {
   }, [searchQuery, selectedCategory]);
 
   const handleIconSelect = (icon) => {
-    onSelect({
-      type: "emoji",
-      value: icon.emoji,
-      name: icon.name,
-    });
+    // Return just the emoji string, not an object
+    onSelect(icon.emoji);
   };
 
   const handleFileChange = (e) => {
@@ -61,11 +61,8 @@ const IconLibrarySelector = ({ onSelect, selectedIcon }) => {
       setUploadLoading(true);
       setUploadError(null);
       const result = await uploadIconFile(previewFile);
-      onSelect({
-        type: "image",
-        value: result.url,
-        publicId: result.publicId,
-      });
+      // Return just the URL string
+      onSelect(result.url);
       setPreviewFile(null);
       setActiveTab("library");
     } catch (error) {
@@ -198,14 +195,16 @@ const IconLibrarySelector = ({ onSelect, selectedIcon }) => {
         <div className="icon-selector-selected">
           <div className="icon-selector-selected-label">Selected Icon:</div>
           <div className="icon-selector-selected-display">
-            {selectedIcon.type === "emoji" ? (
-              <span className="icon-selector-selected-emoji">{selectedIcon.value}</span>
-            ) : (
+            {typeof selectedIcon === 'string' && selectedIcon.startsWith('http') ? (
               <img
-                src={selectedIcon.value}
+                src={selectedIcon}
                 alt="Selected"
                 className="icon-selector-selected-image"
               />
+            ) : (
+              <span className="icon-selector-selected-emoji">
+                {typeof selectedIcon === 'string' ? selectedIcon : selectedIcon?.value}
+              </span>
             )}
           </div>
         </div>

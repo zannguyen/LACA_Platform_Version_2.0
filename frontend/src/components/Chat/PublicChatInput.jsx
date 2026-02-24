@@ -1,18 +1,17 @@
 import React, { useState } from "react";
 import "./PublicChat.css";
+import "./Chat.css";
 
 const PublicChatInput = ({ onSendMessage, loading }) => {
   const [text, setText] = useState("");
-  const [image, setImage] = useState("");
 
   const handleSend = () => {
-    if (!text.trim() && !image.trim()) return;
-    onSendMessage({ text, image });
+    if (!text.trim()) return;
+    onSendMessage({ text, image: "" });
     setText("");
-    setImage("");
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -20,25 +19,23 @@ const PublicChatInput = ({ onSendMessage, loading }) => {
   };
 
   return (
-    <div className="public-chat-input-container">
-      <textarea
-        className="public-chat-input"
+    <div className="chat-input-bar">
+      <input
+        type="text"
+        className="input-rounded"
         placeholder="Nhập tin nhắn..."
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onKeyPress={handleKeyPress}
-        rows="3"
+        onKeyDown={handleKeyDown}
+        disabled={loading}
       />
-      <div className="public-chat-input-footer">
-        <span className="char-count">{text.length}/500</span>
-        <button
-          className="public-chat-send-btn"
-          onClick={handleSend}
-          disabled={loading || (!text.trim() && !image.trim())}
-        >
-          {loading ? "Đang gửi..." : "Gửi"}
-        </button>
-      </div>
+      <button
+        className="send-btn-circle"
+        onClick={handleSend}
+        disabled={loading || !text.trim()}
+      >
+        ↑
+      </button>
     </div>
   );
 };

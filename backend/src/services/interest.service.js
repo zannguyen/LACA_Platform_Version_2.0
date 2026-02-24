@@ -72,18 +72,22 @@ class InterestService {
       throw new AppError("Some interests are invalid", 400);
     }
 
+    // Update user interests
     const user = await User.findByIdAndUpdate(
       userId,
       {
         interests: interestIds,
         updatedAt: Date.now(),
       },
-      { new: true },
-    ).populate("interests");
+      { new: true }
+    );
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
+
+    // Manually populate interests after update
+    await user.populate("interests");
 
     return user.interests;
   }

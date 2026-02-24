@@ -89,6 +89,16 @@ exports.getPostsInRadius = async ({
     },
     { $unwind: "$user" },
 
+    // ✅ Lookup tags to get full tag info (name, icon, color)
+    {
+      $lookup: {
+        from: "tags",
+        localField: "tags",
+        foreignField: "_id",
+        as: "tags",
+      },
+    },
+
     {
       $project: {
         content: 1,
@@ -100,6 +110,14 @@ exports.getPostsInRadius = async ({
         // ✅ NEW: must return for Home to show icon
         placeId: 1,
         place: 1,
+
+        // ✅ Tags for post categorization
+        tags: {
+          _id: 1,
+          name: 1,
+          icon: 1,
+          color: 1,
+        },
 
         user: {
           _id: "$user._id",

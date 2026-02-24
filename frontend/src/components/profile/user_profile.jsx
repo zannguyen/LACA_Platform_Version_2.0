@@ -1,11 +1,10 @@
 // frontend/src/components/profile/user_profile.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
 import { deletePost, uploadMedia } from "../../api/postApi";
-import interestApi from "../../api/interestApi";
-import InterestDisplay from "./InterestDisplay";
-import InterestSelectionModal from "./InterestSelectionModal";
+import TagDisplay from "./TagDisplay";
+import TagSelectionModal from "./TagSelectionModal";
 import "./user_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
@@ -123,6 +122,7 @@ export default function UserProfile() {
   const [error, setError] = useState("");
 
   const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
   const [posts, setPosts] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -137,9 +137,9 @@ export default function UserProfile() {
   const [draftBio, setDraftBio] = useState("");
   const [draftAvatar, setDraftAvatar] = useState("");
 
-  // Interests
-  const [userInterests, setUserInterests] = useState([]);
-  const [showInterestModal, setShowInterestModal] = useState(false);
+  // Tags
+  const [userTags, setUserTags] = useState([]);
+  const [showTagModal, setShowTagModal] = useState(false);
 
   // Post menu + modal delete
   const [activeMenuId, setActiveMenuId] = useState(null);
@@ -163,6 +163,7 @@ export default function UserProfile() {
 
       const nextProfile = data?.profile || data?.user || data?.me || null;
       const nextPosts = Array.isArray(data?.posts) ? data.posts : [];
+      const nextStats = data?.stats || { posts: 0, followers: 0, following: 0 };
       const nextPagination = data?.pagination || {
         page,
         limit: pagination.limit || 10,
@@ -171,6 +172,7 @@ export default function UserProfile() {
       };
 
       setProfile(nextProfile);
+      setStats(nextStats);
       setPagination(nextPagination);
       setPosts((prev) => (append ? [...prev, ...nextPosts] : nextPosts));
     } catch (e) {
@@ -192,14 +194,15 @@ export default function UserProfile() {
     }
   };
 
-  const fetchInterests = async () => {
+  const fetchTags = async () => {
     try {
-      const res = await interestApi.getMyInterests();
-      const data = res?.data?.data || res?.data || [];
-      setUserInterests(data);
+      const data = await userApi.getMyPreferredTags();
+      // data is already an array from the API
+      setUserTags(Array.isArray(data) ? data : []);
     } catch (e) {
-      // Silent fail - interests are optional
-      console.error("Failed to load interests:", e);
+      // Silent fail - tags are optional
+      console.error("Failed to load tags:", e);
+      setUserTags([]);
     }
   };
 
@@ -209,7 +212,7 @@ export default function UserProfile() {
       return;
     }
     fetchMyProfile({ page: 1 });
-    fetchInterests();
+    fetchTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -313,11 +316,16 @@ export default function UserProfile() {
     }
   };
 
-  const handleSaveInterests = async (interestIds) => {
+  const handleSaveTags = async (tagIds) => {
     try {
-      const res = await interestApi.updateMyInterests(interestIds);
-      const data = res?.data?.data || res?.data || [];
-      setUserInterests(data);
+      const data = await userApi.updateMyPreferredTags(tagIds);
+      // data should be an array of tags
+      setUserTags(Array.isArray(data) ? data : []);
+
+      // Refresh tags from server to ensure they're properly populated
+      setTimeout(() => {
+        fetchTags();
+      }, 300);
     } catch (err) {
       throw err; // Let component handle the error
     }
@@ -423,20 +431,11 @@ export default function UserProfile() {
           <i className="fa-solid fa-arrow-left"></i>
         </button>
 
-        <button
-          type="button"
-          className="nav-btn"
-          aria-label="Logout"
-          onClick={() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("user");
-            navigate("/login");
-          }}
-          style={{ marginLeft: "auto" }}
-        >
-          <i className="fa-solid fa-right-from-bracket"></i>
-        </button>
+        <div className="header-actions">
+          <Link to="/setting" className="nav-btn" title="Cài đặt">
+            <i className="fa-solid fa-gear"></i>
+          </Link>
+        </div>
       </header>
 
       {/* ✅ MAIN giống stranger_profile */}
@@ -497,18 +496,18 @@ export default function UserProfile() {
               <div className="user-bio">{displayBio}</div>
             )}
 
-            {/* Interests Section */}
-            <InterestDisplay
-              interests={userInterests}
+            {/* Tags Section */}
+            <TagDisplay
+              tags={userTags}
               maxVisible={3}
-              onShowAll={() => setShowInterestModal(true)}
+              onShowAll={() => setShowTagModal(true)}
             />
 
             {isEditing && (
               <button
                 type="button"
                 className="edit-interests-btn"
-                onClick={() => setShowInterestModal(true)}
+                onClick={() => setShowTagModal(true)}
                 style={{
                   marginTop: "8px",
                   padding: "8px 16px",
@@ -523,7 +522,7 @@ export default function UserProfile() {
                   transition: "all 0.2s",
                 }}
               >
-                Edit Interests
+                Edit Tags
               </button>
             )}
 
@@ -537,10 +536,10 @@ export default function UserProfile() {
         <div className="stats-row">
           <div className="stats-group">
             <span className="stat-item">
-              <strong>{pagination?.total ?? posts.length}</strong> Posts
+              <strong>{stats?.posts ?? posts.length}</strong> Posts
             </span>
             <span className="stat-item">
-              <strong>0</strong> Followers
+              <strong>{stats?.followers ?? 0}</strong> Followers
             </span>
           </div>
 
@@ -688,12 +687,12 @@ export default function UserProfile() {
         </div>
       </div>
 
-      {/* Interest Selection Modal */}
-      <InterestSelectionModal
-        isOpen={showInterestModal}
-        onClose={() => setShowInterestModal(false)}
-        currentInterests={userInterests}
-        onSave={handleSaveInterests}
+      {/* Tag Selection Modal */}
+      <TagSelectionModal
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        currentTags={userTags}
+        onSave={handleSaveTags}
       />
     </div>
   );

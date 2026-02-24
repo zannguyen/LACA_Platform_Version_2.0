@@ -2,9 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import userApi from "../../api/userApi";
-import interestApi from "../../api/interestApi";
-import InterestDisplay from "../profile/InterestDisplay";
-import InterestModal from "../profile/InterestModal";
+import TagDisplay from "../profile/TagDisplay";
+import TagSelectionModal from "../profile/TagSelectionModal";
 import "./stranger_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
@@ -88,9 +87,9 @@ export default function StrangerProfile() {
   const [isOwner, setIsOwner] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
-  // Interests
-  const [userInterests, setUserInterests] = useState([]);
-  const [showInterestModal, setShowInterestModal] = useState(false);
+  // Tags
+  const [userTags, setUserTags] = useState([]);
+  const [showTagModal, setShowTagModal] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -130,21 +129,21 @@ export default function StrangerProfile() {
     }
   };
 
-  const fetchInterests = async () => {
+  const fetchTags = async () => {
     if (!targetUserId) return;
     try {
-      const res = await interestApi.getUserInterests(targetUserId);
+      const res = await userApi.getUserPreferredTags(targetUserId);
       const data = res?.data?.data || res?.data || [];
-      setUserInterests(data);
+      setUserTags(data);
     } catch (e) {
-      // Silent fail - interests are optional
-      console.error("Failed to load user interests:", e);
+      // Silent fail - tags are optional
+      console.error("Failed to load user tags:", e);
     }
   };
 
   useEffect(() => {
     fetchProfile(1);
-    fetchInterests();
+    fetchTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId]);
 
@@ -185,8 +184,8 @@ export default function StrangerProfile() {
     alert("Report: (tạm thời chưa có BE)");
   };
 
-  const handleShowAllInterests = () => {
-    setShowInterestModal(true);
+  const handleShowAllTags = () => {
+    setShowTagModal(true);
   };
 
   const handleToggleFollow = async () => {
@@ -310,11 +309,11 @@ export default function StrangerProfile() {
             <div className="user-id">ID: {profile?._id}</div>
             <div className="user-bio">{displayBio}</div>
 
-            {/* Interests Section */}
-            <InterestDisplay
-              interests={userInterests}
+            {/* Tags Section */}
+            <TagDisplay
+              tags={userTags}
               maxVisible={3}
-              onShowAll={handleShowAllInterests}
+              onShowAll={handleShowAllTags}
             />
           </div>
         </div>
@@ -393,12 +392,12 @@ export default function StrangerProfile() {
         )}
       </div>
 
-      {/* Interest Modal - View only mode */}
-      <InterestModal
-        isOpen={showInterestModal}
-        onClose={() => setShowInterestModal(false)}
-        currentInterests={userInterests}
-        isEditing={false}
+      {/* Tag Modal - View only mode */}
+      <TagSelectionModal
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        currentTags={userTags}
+        onSave={null}
       />
     </div>
   );

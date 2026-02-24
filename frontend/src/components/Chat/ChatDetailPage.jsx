@@ -14,6 +14,7 @@ const ChatDetailPage = () => {
 
   const [receiverId, setReceiverId] = useState("");
   const [receiverName, setReceiverName] = useState("User");
+  const [receiverAvatar, setReceiverAvatar] = useState(null);
   const [conversationId, setConversationId] = useState("");
   const conversationIdRef = useRef("");
 
@@ -22,6 +23,7 @@ const ChatDetailPage = () => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [toast, setToast] = useState("");
   const messageEndRef = useRef(null);
+  const [avatarErrors, setAvatarErrors] = useState(new Set());
 
   const getCurrentUserId = () => {
     const rawUser = localStorage.getItem("user");
@@ -69,6 +71,10 @@ const ChatDetailPage = () => {
     setTimeout(() => setToast(""), 2500);
   };
 
+  const handleAvatarError = (senderId) => {
+    setAvatarErrors((prev) => new Set([...prev, String(senderId)]));
+  };
+
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
@@ -105,6 +111,18 @@ const ChatDetailPage = () => {
         if (first?.conversationId) {
           setConversationId(String(first.conversationId));
         }
+
+        // Extract receiver avatar from first message if available
+        if (first?.senderId?.avatar && String(first.senderId._id) !== String(me)) {
+          setReceiverAvatar(first.senderId.avatar);
+        } else if (first?.senderId?.avatar && String(first.senderId._id) === String(me)) {
+          // If first message is from current user, look for receiver's message
+          const receiverMsg = response.data?.find((m) => String(m.senderId._id) !== String(me));
+          if (receiverMsg?.senderId?.avatar) {
+            setReceiverAvatar(receiverMsg.senderId.avatar);
+          }
+        }
+
         setMessages(normalized);
         await chatApi.markRead(receiverId);
         setMessages((prev) =>
@@ -213,7 +231,16 @@ const ChatDetailPage = () => {
         </button>
 
         <div className="avatar-circle" style={{ width: 40, height: 40 }}>
-          {initials}
+          {receiverAvatar ? (
+            <img
+              src={receiverAvatar}
+              alt={receiverName}
+              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              onError={() => setReceiverAvatar(null)}
+            />
+          ) : (
+            initials
+          )}
         </div>
 
         <div className="chat-header-info">
@@ -237,6 +264,10 @@ const ChatDetailPage = () => {
           messages.map((msg, idx) => {
             const isLatest = idx === messages.length - 1;
             const showUnread = msg.isSent && isLatest && msg.isRead === false;
+            const senderInfo = msg.senderId;
+            const senderName = typeof senderInfo === "object" ? senderInfo.fullname || senderInfo.username : "User";
+            const senderAvatar = typeof senderInfo === "object" ? senderInfo.avatar : null;
+            const senderId = typeof senderInfo === "object" ? senderInfo._id : senderInfo;
 
             return (
               <div
@@ -247,10 +278,40 @@ const ChatDetailPage = () => {
                   <div
                     className="avatar-circle"
                     style={{ width: 30, height: 30, marginRight: 8 }}
-                  />
+                  >
+                    {senderAvatar && !avatarErrors.has(String(senderId)) ? (
+                      <img
+                        src={senderAvatar}
+                        alt={senderName}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                        onError={() => handleAvatarError(senderId)}
+                      />
+                    ) : (
+                      senderName.charAt(0).toUpperCase()
+                    )}
+                  </div>
                 )}
 
                 <div className="message-content">
+                  {!msg.isSent && (
+                    <button
+                      className="message-sender-name"
+                      onClick={() => navigate(`/profile/${senderId}`)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--text-secondary)",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        padding: "0 var(--space-sm)",
+                        marginBottom: "4px",
+                        textAlign: "left"
+                      }}
+                    >
+                      {senderName}
+                    </button>
+                  )}
                   {msg.image ? (
                     <div className="message-image">
                       <img

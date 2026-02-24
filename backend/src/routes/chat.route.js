@@ -12,6 +12,7 @@ const {
   getPublicMessages,
   getPublicParticipants,
   leavePublicChat,
+  joinPublicChatIfOwner,
 } = require("../controllers/chat.controller");
 const protect = require("../middlewares/auth.middleware");
 
@@ -23,6 +24,7 @@ router.get("/start/:userId", protect, getOrCreateConversation);
 
 // Public chat routes
 router.post("/public/join/:postId", protect, joinPublicChat);
+router.post("/public/join-if-owner/:postId", protect, joinPublicChatIfOwner); // Auto-join if user is post owner
 router.post("/public/send", protect, sendPublicMessage);
 router.get("/public/:postId/participants", protect, getPublicParticipants);
 router.post("/public/:postId/leave", protect, leavePublicChat);

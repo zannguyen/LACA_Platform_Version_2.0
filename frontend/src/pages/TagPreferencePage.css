@@ -1,0 +1,170 @@
+.tag-preference-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 100px;
+}
+
+.tag-preference-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #666;
+  font-size: 16px;
+}
+
+.tag-preference-header {
+  background: white;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.tag-preference-back {
+  background: none;
+  border: none;
+  color: #e94057;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.tag-preference-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+}
+
+.tag-preference-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.tag-preference-error {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px 16px;
+  margin: 0 16px 16px;
+  border-radius: 8px;
+}
+
+.tag-preference-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 12px 16px;
+  margin: 0 16px 16px;
+  border-radius: 8px;
+}
+
+.tag-preference-content {
+  padding: 0 16px;
+}
+
+.category-section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.category-icon {
+  font-size: 20px;
+}
+
+.tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  border-radius: 20px;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tag-chip:hover {
+  border-color: #e94057;
+}
+
+.tag-chip.selected {
+  color: white;
+}
+
+.tag-chip-icon {
+  font-size: 14px;
+}
+
+.no-tags, .no-categories {
+  color: #999;
+  font-size: 14px;
+  padding: 12px 0;
+}
+
+.tag-preference-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 16px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tag-preference-info {
+  color: #666;
+  font-size: 14px;
+}
+
+.tag-preference-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.tag-preference-btn-cancel {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tag-preference-btn-save {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #e94057;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tag-preference-btn-save:hover {
+  background: #d6304b;
+}
+
+.tag-preference-btn-save:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}

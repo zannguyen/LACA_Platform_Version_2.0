@@ -1,85 +1,167 @@
-const axios = require("axios");
-const AppError = require("../utils/appError");
+const OpenAI = require("openai");
 
-const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
-const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-opus-4-6";
-const CLAUDE_TIMEOUT = parseInt(process.env.CLAUDE_TIMEOUT || "30000");
-
-const claudeClient = axios.create({
-  baseURL: "https://api.anthropic.com/v1",
-  headers: {
-    "x-api-key": CLAUDE_API_KEY,
-    "anthropic-version": "2023-06-01",
-    "content-type": "application/json",
-  },
-  timeout: CLAUDE_TIMEOUT,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
- * Analyze post content and extract topics
- * @param {Object} postData - Post data { content, mediaUrl, place }
+ * Analyze post content and extract topics using OpenAI
+ * @param {Object} postData - Post data { content, mediaUrl, place, userInterests }
  * @returns {Promise<Object>} - { topics: [], confidence: number, summary: string }
  */
 const analyzePostContent = async (postData) => {
-  try {
-    if (!CLAUDE_API_KEY) {
-      console.warn("Claude API key not configured, skipping analysis");
-      return null;
-    }
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 1000; // 1 second
 
-    const { content, place } = postData;
+  const makeRequest = async (attempt = 0) => {
+    try {
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-    // Build analysis prompt
-    const prompt = `Analyze this social media post and extract the main topics/themes.
+      // ⚠️ TEMPORARILY: Bypass OpenAI to use mock analysis
+      // Remove this line when OpenAI quota is available
+      console.warn(
+        "[OpenAI] OpenAI disabled - using mock analysis for testing"
+      );
+      return generateMockAnalysis(postData);
 
-Post Content: "${content}"
+      const { content, place, userInterests = [] } = postData;
+
+      const interestNames = userInterests
+        .map((i) => (typeof i === "string" ? i : i.name))
+        .filter(Boolean);
+
+      const interestContext =
+        interestNames.length > 0
+          ? `User interests: ${interestNames.join(", ")}`
+          : "";
+
+      const prompt = `Analyze this social media post and extract the main topics/themes.
+
+Post Content: "${content || "(no caption)"}"
 ${place ? `Location: ${place.name}, Category: ${place.category}` : ""}
+${interestContext}
 
-Please provide:
-1. Main topics (list 2-5 relevant topics)
-2. Confidence score (0-1)
-3. Brief summary (1-2 sentences)
+Instructions:
+- Extract 2-5 relevant topics from the post content and location
+${interestNames.length > 0 ? `- Prioritize topics that relate to the user's interests: ${interestNames.join(", ")}` : ""}
+- Assign a confidence score (0-1) based on how clearly the topics are expressed
+- Write a brief 1-2 sentence summary
 
-Respond in JSON format:
+Respond ONLY in JSON format:
 {
   "topics": ["topic1", "topic2"],
   "confidence": 0.85,
   "summary": "Brief description"
 }`;
 
-    const response = await claudeClient.post("/messages", {
-      model: CLAUDE_MODEL,
-      max_tokens: 500,
-      messages: [
+      console.log("[OpenAI] Sending analysis request...");
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      });
+
+      const responseText =
+        response.choices?.[0]?.message?.content || "";
+
+      if (!responseText) {
+        console.error("[OpenAI] No text content in response");
+        throw new Error("No text content in OpenAI response");
+      }
+
+      console.log("[OpenAI] Response text:", responseText);
+
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error("[OpenAI] Could not extract JSON from response text");
+        throw new Error("Invalid response format from OpenAI");
+      }
+
+      const analysis = JSON.parse(jsonMatch[0]);
+
+      return {
+        topics: analysis.topics || [],
+        confidence: analysis.confidence || 0.5,
+        summary: analysis.summary || "",
+      };
+    } catch (error) {
+      const status = error.status;
+      const isRateLimit = status === 429;
+      const isTimeout = error.code === "ECONNABORTED" || error.message?.includes("timeout");
+
+      console.error(
+        `OpenAI analysis error (attempt ${attempt + 1}/${MAX_RETRIES}):`,
         {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
+          status,
+          code: error.code,
+          message: error.message,
+          type: error.type,
+          fullError: JSON.stringify(error, null, 2),
+        }
+      );
 
-    // Extract text from response
-    const responseText =
-      response.data.content[0].type === "text" ? response.data.content[0].text : "";
+      // Retry on rate limit (429) or timeout
+      if ((isRateLimit || isTimeout) && attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY * Math.pow(2, attempt); // exponential backoff
+        console.warn(
+          `Retrying in ${delay}ms... (${attempt + 1}/${MAX_RETRIES})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return makeRequest(attempt + 1);
+      }
 
-    // Parse JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Invalid response format from Claude");
+      // Fall back to mock analysis if API fails
+      console.warn("Falling back to mock analysis due to API error");
+      return generateMockAnalysis(postData);
     }
+  };
 
-    const analysis = JSON.parse(jsonMatch[0]);
+  return makeRequest();
+};
 
-    return {
-      topics: analysis.topics || [],
-      confidence: analysis.confidence || 0.5,
-      summary: analysis.summary || "",
-    };
-  } catch (error) {
-    console.error("Claude analysis error:", error.message);
-    // Return null on error - don't break post creation
-    return null;
+/**
+ * Generate mock analysis for testing/demo purposes
+ */
+const generateMockAnalysis = (postData) => {
+  const { content, place, userInterests = [] } = postData;
+
+  // Extract keywords from content
+  const words = (content || "").toLowerCase().split(/\s+/);
+  const topics = [];
+
+  // Mock topic generation based on keywords and interests
+  const interestNames = userInterests
+    .map((i) => (typeof i === "string" ? i : i.name))
+    .filter(Boolean);
+
+  if (interestNames.length > 0) {
+    topics.push(...interestNames.slice(0, 3));
   }
+
+  if (place) {
+    topics.push(place.name, place.category);
+  }
+
+  // Add some keywords from content
+  const keywords = ["sport", "activity", "outdoor", "fun", "game"];
+  keywords.forEach((kw) => {
+    if (words.some((w) => w.includes(kw))) {
+      topics.push(kw);
+    }
+  });
+
+  return {
+    topics: [...new Set(topics)].slice(0, 5), // Remove duplicates, max 5
+    confidence: 0.7,
+    summary: `Post about ${place?.name || "local activity"} with interests: ${interestNames.join(", ") || "general"}`,
+  };
 };
 
 /**
@@ -99,12 +181,9 @@ const getTrendingTopics = (recentAnalyses) => {
   });
 
   return Object.entries(topicCounts)
-    .map(([topic, count]) => ({
-      topic,
-      count,
-    }))
+    .map(([topic, count]) => ({ topic, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10); // Top 10 topics
+    .slice(0, 10);
 };
 
 /**
@@ -122,15 +201,11 @@ const getRecommendedTopics = (userInterests, trendingTopics) => {
     typeof i === "string" ? i.toLowerCase() : i.name?.toLowerCase()
   );
 
-  // Filter trending topics that match user interests
   const matchedTopics = trendingTopics.filter((t) =>
     interestNames.some((interest) => t.topic.toLowerCase().includes(interest))
   );
 
-  // If no matches, return top trending
-  if (matchedTopics.length === 0) {
-    return trendingTopics.slice(0, 5);
-  }
+  if (matchedTopics.length === 0) return trendingTopics.slice(0, 5);
 
   return matchedTopics.slice(0, 5);
 };

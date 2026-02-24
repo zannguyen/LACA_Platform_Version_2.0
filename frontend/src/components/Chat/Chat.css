@@ -1,4 +1,18 @@
 /* Chat - design system, mobile-first */
+.auth-form.chat-list-page,
+.auth-form.chat-detail-page {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
 .avatar-circle {
   width: 48px;
   height: 48px;
@@ -33,6 +47,41 @@
 
 .status-dot.online {
   background: var(--success);
+}
+
+/* Chat Tabs */
+.chat-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  padding: 0 var(--space-lg);
+}
+
+.chat-tab {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.chat-tab:hover {
+  color: var(--text-primary);
+}
+
+.chat-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .chat-item {
@@ -107,8 +156,6 @@
 
 .chat-detail-page {
   position: relative;
-  height: min(88vh, calc(100vh - 120px));
-  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -120,6 +167,11 @@
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  flex-shrink: 0;
 }
 
 .message-container {

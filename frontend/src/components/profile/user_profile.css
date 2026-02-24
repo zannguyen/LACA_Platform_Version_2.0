@@ -42,8 +42,8 @@
 }
 
 .my-profile .nav-btn {
-  width: var(--touch-min);
-  height: var(--touch-min);
+  width: 36px;
+  height: 36px;
   font-size: 20px;
   color: var(--text-primary);
   cursor: pointer;
@@ -53,14 +53,65 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   transition: background 0.2s, color 0.2s;
+}
+
+.my-profile .nav-btn i,
+.my-profile .nav-btn svg {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands";
+  font-weight: 900;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  font-size: 18px;
 }
 
 .my-profile .nav-btn:hover,
 .my-profile .nav-btn:active {
   background: var(--bg-input);
   color: var(--primary);
+}
+
+/* Header actions container */
+.my-profile .header-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Header action button - same as home */
+.my-profile .header-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary) !important;
+  font-size: 18px !important;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.my-profile .header-action-btn i {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 18px !important;
+}
+
+.my-profile .header-action-btn:hover,
+.my-profile .header-action-btn:active {
+  background: var(--bg-input);
+  color: var(--primary) !important;
 }
 
 /* --- MAIN (giống stranger_profile) --- */

@@ -13,6 +13,7 @@ const schema = new mongoose.Schema(
     reportCount: { type: Number, default: 0 },
     expireAt: Date,
     analysisId: { type: mongoose.Schema.Types.ObjectId, ref: "PostAnalysis" },
+    tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }], // Tags selected by user when posting
   },
   { timestamps: true },
 );

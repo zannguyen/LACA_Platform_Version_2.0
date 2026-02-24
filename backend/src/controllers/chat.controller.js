@@ -87,21 +87,44 @@ const getMessages = asyncHandler(async (req, res) => {
 
   const messages = await Message.find({
     conversationId: conversation._id,
-  }).sort({ createdAt: 1 });
+  })
+    .populate("senderId", "username fullname avatar")
+    .sort({ createdAt: 1 });
 
   return res.status(200).json(messages);
 });
 
-// 3) Get conversations
+// 3) Get conversations (both private and public that user joined)
 const getConversations = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
+  const userIdStr = String(userId);
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+  console.log(`=== getConversations for user ${userIdStr} ===`);
+
+  // First, get ALL conversations to debug
+  const allConvs = await Conversation.find({});
+  console.log(`Total conversations in DB: ${allConvs.length}`);
+  allConvs.forEach(c => {
+    const pIds = c.participants.map(p => String(p));
+    const hasUser = pIds.includes(userIdStr);
+    console.log(`  - ${c._id} | type: ${c.type} | participants: [${pIds.join(', ')}] | hasUser: ${hasUser}`);
+  });
+
+  // Try querying with string version
   const conversations = await Conversation.find({
-    participants: { $in: [userId] },
+    participants: { $in: [userIdStr, userId] },
   })
     .populate("participants", "username fullname avatar")
     .sort({ updatedAt: -1 });
+
+  console.log(`Final result: ${conversations.length} conversations`);
+  console.log("Conversation types:", conversations.map(c => ({
+    type: c.type,
+    postId: c.postId,
+    _id: String(c._id),
+    participantIds: c.participants.map(p => String(p._id))
+  })));
 
   return res.status(200).json(conversations);
 });
@@ -220,28 +243,49 @@ const joinPublicChat = asyncHandler(async (req, res) => {
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
   if (!pid) return res.status(400).json({ message: "postId invalid" });
 
-  // Find or create public conversation for this post
+  console.log(`User ${userId} joining public chat for post ${postId}`);
+
+  // Find existing public conversation for this post
   let conversation = await Conversation.findOne({
     type: "public",
     postId: pid,
-  }).populate("participants", "username fullname avatar");
+  });
+
+  console.log(`Found conversation: ${conversation?._id || 'none'}`);
+  console.log(`Current participants in DB: ${conversation?.participants || 'N/A'}`);
 
   if (!conversation) {
+    // Create new conversation with user as participant
+    console.log(`Creating new public conversation for post ${postId} with user ${userId}`);
     conversation = await Conversation.create({
       type: "public",
       postId: pid,
       createdBy: userId,
-      participants: [userId],
+      participants: [userId],  // Ensure user is added here
     });
-    await conversation.populate("participants", "username fullname avatar");
-  } else if (
-    !conversation.participants.some((p) => String(p._id) === String(userId))
-  ) {
-    // Add user to participants if not already there
+    console.log(`Created conversation _id: ${conversation._id}`);
+  }
+
+  // Check if user is in participants array (handle both populated and non-populated)
+  const participantIds = conversation.participants.map(p =>
+    typeof p === 'object' ? String(p._id) : String(p)
+  );
+  const userIdStr = String(userId);
+
+  console.log(`Participant IDs: ${participantIds.join(', ')}`);
+  console.log(`User ID: ${userIdStr}`);
+  console.log(`User in participants: ${participantIds.includes(userIdStr)}`);
+
+  if (!participantIds.includes(userIdStr)) {
+    console.log(`Adding user ${userId} to participants`);
     conversation.participants.push(userId);
     await conversation.save();
-    await conversation.populate("participants", "username fullname avatar");
+    console.log(`Saved! Participants now: ${conversation.participants}`);
   }
+
+  // Populate and return
+  await conversation.populate("participants", "username fullname avatar");
+  console.log(`Final participants: ${conversation.participants.length}`);
 
   return res.status(200).json(conversation);
 });
@@ -266,19 +310,40 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
     postId: pid,
   });
 
+  // Get post to find owner
+  const Post = require("../models/post.model");
+  const post = await Post.findById(pid);
+  const postOwnerId = post?.userId;
+
+  // Build participants list - add sender AND post owner (if different)
+  const participantsToAdd = [senderId];
+  if (postOwnerId && String(postOwnerId) !== String(senderId)) {
+    participantsToAdd.push(postOwnerId);
+  }
+
   if (!conversation) {
+    // Create new conversation with participants
     conversation = await Conversation.create({
       type: "public",
       postId: pid,
       createdBy: senderId,
-      participants: [senderId],
+      participants: participantsToAdd,
     });
-  }
+  } else {
+    // Add participants if not already in the list
+    const currentParticipantIds = conversation.participants.map(p => String(p));
+    let hasChanges = false;
 
-  // Ensure sender is in participants
-  if (!conversation.participants.some((p) => String(p) === String(senderId))) {
-    conversation.participants.push(senderId);
-    await conversation.save();
+    for (const userId of participantsToAdd) {
+      if (!currentParticipantIds.includes(String(userId))) {
+        conversation.participants.push(userId);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      await conversation.save();
+    }
   }
 
   // Create message
@@ -290,6 +355,9 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
     image: image || "",
   });
 
+  // Populate sender info before emitting and responding
+  await newMessage.populate("senderId", "username fullname avatar");
+
   // Update lastMessage
   await Conversation.findByIdAndUpdate(conversation._id, {
     lastMessage: {
@@ -300,7 +368,7 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
     },
   });
 
-  // Emit to all users in post chat room
+  // Emit to all users in post chat room (with populated sender)
   const io = req.app.get("io");
   if (io) {
     io.to(`post_${String(pid)}`).emit("receive_message", newMessage);
@@ -401,6 +469,70 @@ const leavePublicChat = asyncHandler(async (req, res) => {
   return res.status(200).json({ removed: true });
 });
 
+// 12) Auto-join public chat if user is post owner
+const joinPublicChatIfOwner = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?._id;
+  const pid = toObjectId(postId);
+
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!pid) return res.status(400).json({ message: "postId invalid" });
+
+  // Get post to check owner
+  const Post = require("../models/post.model");
+  const post = await Post.findById(pid);
+
+  if (!post) {
+    return res.status(404).json({ message: "Bài viết không tồn tại" });
+  }
+
+  const isOwner = String(post.userId) === String(userId);
+
+  if (!isOwner) {
+    return res.status(403).json({
+      message: "Chỉ chủ bài viết mới có thể tự động tham gia",
+      isOwner: false
+    });
+  }
+
+  // User is owner - join/create public chat
+  console.log(`Post owner ${userId} auto-joining public chat for post ${postId}`);
+
+  let conversation = await Conversation.findOne({
+    type: "public",
+    postId: pid,
+  });
+
+  if (!conversation) {
+    console.log(`Creating new public conversation for post ${postId}`);
+    conversation = await Conversation.create({
+      type: "public",
+      postId: pid,
+      createdBy: userId,
+      participants: [userId],
+    });
+  }
+
+  // Check if user is in participants
+  const participantIds = conversation.participants.map(p =>
+    typeof p === 'object' ? String(p._id) : String(p)
+  );
+
+  if (!participantIds.includes(String(userId))) {
+    console.log(`Adding owner ${userId} to participants`);
+    conversation.participants.push(userId);
+    await conversation.save();
+  }
+
+  await conversation.populate("participants", "username fullname avatar");
+
+  return res.status(200).json({
+    joined: true,
+    isOwner: true,
+    conversation
+  });
+});
+
 module.exports = {
   sendMessage,
   getMessages,
@@ -409,6 +541,7 @@ module.exports = {
   getOrCreateConversation,
   markRead,
   joinPublicChat,
+  joinPublicChatIfOwner,
   sendPublicMessage,
   getPublicMessages,
   getPublicParticipants,
