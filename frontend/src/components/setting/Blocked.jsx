@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import userApi from "../../api/userApi";
 import "./Blocked.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 export default function Blocked() {
   const navigate = useNavigate();
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const getAccessToken = () =>
-    localStorage.getItem("token") || localStorage.getItem("authToken");
 
   useEffect(() => {
     fetchBlockedUsers();
@@ -19,14 +15,8 @@ export default function Blocked() {
   const fetchBlockedUsers = async () => {
     try {
       setLoading(true);
-      const token = getAccessToken();
-      const res = await fetch(`${API_BASE}/users/blocked`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setBlockedUsers(data?.data || []);
-      }
+      const res = await userApi.getBlockedUsers();
+      setBlockedUsers(res?.data?.data || []);
     } catch (err) {
       console.error("Fetch blocked users error:", err);
     } finally {
@@ -36,17 +26,19 @@ export default function Blocked() {
 
   const unblockUser = async (userId) => {
     try {
-      const token = getAccessToken();
-      const res = await fetch(`${API_BASE}/users/unblock/${userId}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setBlockedUsers(blockedUsers.filter((u) => u._id !== userId));
-      }
+      await userApi.unblockUser(userId);
+      setBlockedUsers((prev) =>
+        prev.filter((u) => String(u.blockedUserId) !== String(userId)),
+      );
     } catch (err) {
       console.error("Unblock error:", err);
     }
+  };
+
+  const confirmUnblock = (userId) => {
+    const ok = window.confirm("Unblock this user?");
+    if (!ok) return;
+    unblockUser(userId);
   };
 
   return (
@@ -65,11 +57,11 @@ export default function Blocked() {
           <p className="blocked-empty">No blocked users</p>
         ) : (
           blockedUsers.map((user) => (
-            <div key={user._id} className="blocked-user-card">
+            <div key={user.blockedUserId} className="blocked-user-card">
               <div className="blocked-card-top">
                 <button
                   className="blocked-unblock-text"
-                  onClick={() => unblockUser(user._id)}
+                  onClick={() => unblockUser(user.blockedUserId)}
                 >
                   Unblock
                 </button>
@@ -77,8 +69,8 @@ export default function Blocked() {
 
               <div className="blocked-card-content">
                 <img
-                  src={user.profileImage || user.avatar || "/default-avatar.png"}
-                  alt={user.username}
+                  src={user.avatar || "/default-avatar.png"}
+                  alt={user.username || user.fullname || "user"}
                   className="blocked-avatar"
                 />
 
@@ -88,7 +80,7 @@ export default function Blocked() {
 
                 <button
                   className="blocked-close"
-                  onClick={() => unblockUser(user._id)}
+                  onClick={() => confirmUnblock(user.blockedUserId)}
                   aria-label="Close"
                 >
                   ✕

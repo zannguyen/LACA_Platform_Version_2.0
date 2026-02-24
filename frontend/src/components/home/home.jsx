@@ -4,6 +4,7 @@ import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate } from "react-router-dom";
 import ReportModal from "../report/ReportModal";
 import { getUnreadCount } from "../../api/notificationApi";
+import userApi from "../../api/userApi";
 import "./home.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
@@ -360,12 +361,44 @@ const Home = () => {
       .forEach((d) => d.classList.remove("show"));
   };
 
-  const handleAction = (type, post, e) => {
+  const handleAction = async (type, post, e) => {
     if (e) e.stopPropagation();
     closeAllReportDropdowns();
 
     if (type === "block") {
-      alert("Đã chặn người dùng");
+      const targetId = post?.user?._id;
+      if (!targetId) return;
+      if (String(targetId) === String(currentUserId)) {
+        alert("Bạn không thể chặn chính mình");
+        return;
+      }
+
+      const ok = window.confirm("Bạn có chắc muốn chặn người dùng này?");
+      if (!ok) return;
+
+      try {
+        await userApi.blockUser(targetId);
+        setFeedPosts((prev) => {
+          const nextPosts = prev.filter(
+            (p) => String(p.user?._id) !== String(targetId),
+          );
+          setReactionMeta((prevMeta) => {
+            const nextMeta = {};
+            nextPosts.forEach((p) => {
+              if (prevMeta[p._id]) nextMeta[p._id] = prevMeta[p._id];
+            });
+            return nextMeta;
+          });
+          return nextPosts;
+        });
+        alert("Đã chặn người dùng");
+      } catch (err) {
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Chặn người dùng thất bại";
+        alert(msg);
+      }
       return;
     }
 

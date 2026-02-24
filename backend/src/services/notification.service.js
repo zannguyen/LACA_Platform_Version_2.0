@@ -99,17 +99,26 @@ const systemBroadcast = async (
 /**
  * Lấy danh sách thông báo của user (phân trang).
  */
-const getNotifications = async (userId, { page = 1, limit = 20 } = {}) => {
+const getNotifications = async (
+  userId,
+  { page = 1, limit = 20, allowedSenderIds } = {},
+) => {
   const skip = (page - 1) * limit;
+  const filter = { recipientId: userId };
+
+  if (Array.isArray(allowedSenderIds)) {
+    filter.$or = [{ senderId: null }, { senderId: { $in: allowedSenderIds } }];
+  }
+
   const [notifications, total, unreadCount] = await Promise.all([
-    Notification.find({ recipientId: userId })
+    Notification.find(filter)
       .populate("senderId", "username fullname avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Notification.countDocuments({ recipientId: userId }),
-    Notification.countDocuments({ recipientId: userId, isRead: false }),
+    Notification.countDocuments(filter),
+    Notification.countDocuments({ ...filter, isRead: false }),
   ]);
 
   return {
@@ -165,8 +174,12 @@ const deleteReadAll = async (userId) => {
 /**
  * Đếm số thông báo chưa đọc (badge).
  */
-const countUnread = async (userId) => {
-  return Notification.countDocuments({ recipientId: userId, isRead: false });
+const countUnread = async (userId, allowedSenderIds) => {
+  const filter = { recipientId: userId, isRead: false };
+  if (Array.isArray(allowedSenderIds)) {
+    filter.$or = [{ senderId: null }, { senderId: { $in: allowedSenderIds } }];
+  }
+  return Notification.countDocuments(filter);
 };
 
 module.exports = {
