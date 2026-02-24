@@ -35,20 +35,29 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
 
   const postFilter = { userId: targetId, status: "active" };
 
-  const followersCountPromise = Follow.countDocuments({ followingUserId: targetId });
-  const followingCountPromise = Follow.countDocuments({ followerUserId: targetId });
+  const followersCountPromise = Follow.countDocuments({
+    followingUserId: targetId,
+  });
+  const followingCountPromise = Follow.countDocuments({
+    followerUserId: targetId,
+  });
   const isFollowingPromise =
     viewerId && !isOwner
       ? Follow.exists({ followerUserId: viewerId, followingUserId: targetId })
       : Promise.resolve(false);
 
-  const [totalPosts, posts, followersCount, followingCount, isFollowing] = await Promise.all([
-    Post.countDocuments(postFilter),
-    Post.find(postFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    followersCountPromise,
-    followingCountPromise,
-    isFollowingPromise,
-  ]);
+  const [totalPosts, posts, followersCount, followingCount, isFollowing] =
+    await Promise.all([
+      Post.countDocuments(postFilter),
+      Post.find(postFilter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      followersCountPromise,
+      followingCountPromise,
+      isFollowingPromise,
+    ]);
 
   const profileUser = {
     _id: user._id,
@@ -125,8 +134,23 @@ async function getFollowingCount(userId) {
 async function isFollowingUser(followerId, followingId) {
   const follower = safeObjectId(followerId);
   const following = safeObjectId(followingId);
-  const exists = await Follow.exists({ followerUserId: follower, followingUserId: following });
+  const exists = await Follow.exists({
+    followerUserId: follower,
+    followingUserId: following,
+  });
   return Boolean(exists);
+}
+
+async function isMutualFollow(userAId, userBId) {
+  const userA = safeObjectId(userAId);
+  const userB = safeObjectId(userBId);
+
+  const [aFollowsB, bFollowsA] = await Promise.all([
+    Follow.exists({ followerUserId: userA, followingUserId: userB }),
+    Follow.exists({ followerUserId: userB, followingUserId: userA }),
+  ]);
+
+  return Boolean(aFollowsB && bFollowsA);
 }
 
 async function followUser(followerId, followingId) {
@@ -152,7 +176,10 @@ async function followUser(followerId, followingId) {
   }
 
   try {
-    await Follow.create({ followerUserId: follower, followingUserId: following });
+    await Follow.create({
+      followerUserId: follower,
+      followingUserId: following,
+    });
   } catch (e) {
     // Duplicate follow -> ignore
     if (e?.code !== 11000) throw e;
@@ -165,7 +192,10 @@ async function unfollowUser(followerId, followingId) {
   const follower = safeObjectId(followerId);
   const following = safeObjectId(followingId);
 
-  await Follow.deleteOne({ followerUserId: follower, followingUserId: following });
+  await Follow.deleteOne({
+    followerUserId: follower,
+    followingUserId: following,
+  });
   return { isFollowing: false };
 }
 
@@ -178,9 +208,12 @@ async function updateMyProfile({ userId, body }) {
   if (typeof body.note === "string") update.bio = body.note.trim();
   if (typeof body.avatar === "string") update.avatar = body.avatar.trim();
 
-  if (Object.keys(update).length === 0) throw new AppError("Nothing to update", 400);
-  if (update.fullname && update.fullname.length > 120) throw new AppError("fullname is too long", 400);
-  if (update.bio && update.bio.length > 200) throw new AppError("bio/note is too long", 400);
+  if (Object.keys(update).length === 0)
+    throw new AppError("Nothing to update", 400);
+  if (update.fullname && update.fullname.length > 120)
+    throw new AppError("fullname is too long", 400);
+  if (update.bio && update.bio.length > 200)
+    throw new AppError("bio/note is too long", 400);
 
   const updated = await User.findByIdAndUpdate(id, update, { new: true });
   if (!updated) throw new AppError("User not found", 404);
@@ -198,14 +231,28 @@ async function updateMyProfile({ userId, body }) {
   };
 }
 
-// ===== Block / Unblock =====
 async function getBlockedUsers(userId) {
-  return await BlockUser.find({ blockerUserId: userId }).select("blockedUserId");
+  const rows = await BlockUser.find({ blockerUserId: userId })
+    .populate({ path: "blockedUserId", select: "fullname username avatar" })
+    .select("blockedUserId")
+    .lean();
+
+  return rows.map((row) => {
+    const blockedUser = row.blockedUserId || {};
+    return {
+      blockedUserId: blockedUser._id || row.blockedUserId,
+      fullname: blockedUser.fullname || "",
+      username: blockedUser.username || "",
+      avatar: blockedUser.avatar || "",
+    };
+  });
 }
 
 async function getBlockedUserIds(userId) {
-  const blocked = await BlockUser.find({ blockerUserId: userId }).select("blockedUserId").lean();
-  return blocked.map((entry) => entry.blockedUserId);
+  const rows = await BlockUser.find({ blockerUserId: userId })
+    .select("blockedUserId")
+    .lean();
+  return rows.map((r) => r.blockedUserId);
 }
 
 async function isBlocked(blockerId, blockedId) {
@@ -219,7 +266,7 @@ async function isBlocked(blockerId, blockedId) {
 async function blockUser(blockerId, blockedId) {
   if (
     (await getBlockedUsers(blockerId)).some(
-      (entry) => entry.blockedUserId.toString() === blockedId
+      (entry) => entry.blockedUserId.toString() === blockedId,
     )
   ) {
     throw new AppError("User is already blocked", 400);
@@ -249,7 +296,7 @@ async function unblockUser(blockerId, blockedId) {
   if (!blockEntry) {
     throw new AppError("Block entry not found", 404);
   }
-  await blockEntry.remove();
+  await blockEntry.deleteOne();
 }
 
 module.exports = {
@@ -263,6 +310,7 @@ module.exports = {
   getFollowersCount,
   getFollowingCount,
   isFollowingUser,
+  isMutualFollow,
   followUser,
   unfollowUser,
 

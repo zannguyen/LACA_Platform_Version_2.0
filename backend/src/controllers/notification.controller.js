@@ -88,17 +88,17 @@ const clearReadNotifications = asyncHandler(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// POST /api/notifications/admin/broadcast (admin only)
+// POST /api/notifications/system/broadcast (admin only)
 // Body: { recipientIds?: [ObjectId,...], title: string, body?: string, link?: string }
 // recipientIds rỗng hoặc không truyền => broadcast tất cả
 // ─────────────────────────────────────────────
-const adminBroadcast = asyncHandler(async (req, res) => {
+const systemBroadcast = asyncHandler(async (req, res) => {
   const { recipientIds = [], title, body = "", link = "" } = req.body;
 
   if (!title?.trim()) throw new AppError("title is required", 400);
 
   const io = req.app.get("io");
-  const result = await notifService.adminBroadcast(io, {
+  const result = await notifService.systemBroadcast(io, {
     recipientIds,
     title: title.trim(),
     body,
@@ -119,8 +119,10 @@ const sendBroadcastToAll = asyncHandler(async (req, res) => {
   const { title, body = "", link = "" } = req.body;
 
   if (!title?.trim()) throw new AppError("title is required", 400);
-  if (title.length > 200) throw new AppError("title must be max 200 characters", 400);
-  if (body.length > 1000) throw new AppError("body must be max 1000 characters", 400);
+  if (title.length > 200)
+    throw new AppError("title must be max 200 characters", 400);
+  if (body.length > 1000)
+    throw new AppError("body must be max 1000 characters", 400);
 
   const io = req.app.get("io");
   const broadcast = await adminNotifService.sendBroadcastToAll(io, {
@@ -182,7 +184,7 @@ module.exports = {
   markAllRead,
   deleteNotification,
   clearReadNotifications,
-  adminBroadcast,
+  systemBroadcast,
   sendBroadcastToAll,
   getBroadcastHistory,
   getBroadcastDetails,

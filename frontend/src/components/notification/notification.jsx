@@ -8,6 +8,7 @@ import {
   deleteNotification,
   clearReadNotifications,
 } from "../../api/notificationApi";
+import adminAvatar from "../../assets/images/laca_logo.png";
 import "./notification.css";
 
 const Notification = () => {
@@ -31,7 +32,10 @@ const Notification = () => {
     window.addEventListener("refreshNotifications", handleRefreshNotifications);
 
     return () => {
-      window.removeEventListener("refreshNotifications", handleRefreshNotifications);
+      window.removeEventListener(
+        "refreshNotifications",
+        handleRefreshNotifications,
+      );
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -129,16 +133,30 @@ const Notification = () => {
     return date.toLocaleDateString("vi-VN");
   };
 
-  const handleNotificationClick = (notif) => {
+  const handleNotificationClick = async (notif) => {
     // Đánh dấu đã đọc khi click
     if (!notif.isRead) {
-      handleMarkOneRead(notif._id);
+      await handleMarkOneRead(notif._id);
     }
 
-    // Navigate đến link nếu có
-    if (notif.link) {
-      navigate(notif.link);
+    const senderId =
+      typeof notif.senderId === "string" ? notif.senderId : notif.senderId?._id;
+
+    // Navigate dựa trên loại thông báo
+    if (notif.type === "new_post" || notif.type === "new_reaction") {
+      // Điều hướng đến home và hiển thị post ở đầu trang
+      // Lưu postId vào sessionStorage để component Home biết cần scroll tới post nào
+      if (notif.refId) {
+        sessionStorage.setItem("scrollToPostId", notif.refId);
+      }
+      navigate("/home");
+    } else if (notif.type === "new_follower") {
+      // Điều hướng đến trang profile của người follow
+      if (senderId) {
+        navigate(`/profile/${senderId}`);
+      }
     }
+    // Với loại "system": không có action gì (chỉ đánh dấu đã đọc)
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -194,7 +212,15 @@ const Notification = () => {
             {/* Hiển thị số lượng chưa đọc */}
             {unreadCount > 0 && (
               <div className="section-title">
-                <span style={{ fontSize: '20px', fontWeight: '700', color: '#ef4444', minWidth: '28px', textAlign: 'center' }}>
+                <span
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: "700",
+                    color: "#ef4444",
+                    minWidth: "28px",
+                    textAlign: "center",
+                  }}
+                >
                   {unreadCount}
                 </span>
                 <span>thông báo chưa đọc</span>
@@ -210,10 +236,12 @@ const Notification = () => {
                 <div className="notif-left">
                   {!notif.isRead && <div className="notif-badge"></div>}
                   <div className="notif-avatar">
-                    {notif.sender?.profilePicture ? (
+                    {notif.type === "system" ? (
+                      <img src={adminAvatar} alt="Admin" />
+                    ) : notif.senderId?.avatar ? (
                       <img
-                        src={notif.sender.profilePicture}
-                        alt={notif.sender?.username || "User"}
+                        src={notif.senderId.avatar}
+                        alt={notif.senderId?.username || "User"}
                       />
                     ) : (
                       <i className="fa-solid fa-user"></i>
@@ -222,6 +250,11 @@ const Notification = () => {
                   <div className="notif-content">
                     <div className="notif-text">
                       <strong>{notif.title}</strong>
+                      {notif.type === "system" && (
+                        <span className="notif-admin-badge" title="Admin">
+                          <i className="fa-solid fa-check"></i>
+                        </span>
+                      )}
                       {notif.body && <p>{notif.body}</p>}
                     </div>
                     <div className="notif-time">

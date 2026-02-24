@@ -7,7 +7,6 @@ const AppError = require("../utils/appError");
 const mongoose = require("mongoose");
 
 const UserService = require("../services/user.service");
-const Follow = require("../models/follow.model");
 const notifService = require("../services/notification.service");
 
 const create = async (req, res) => {
@@ -40,15 +39,15 @@ const create = async (req, res) => {
       const author = await require("../models/user.model")
         .findById(req.user.id)
         .select("fullname username");
-      const followers = await Follow.find({ followingUserId: req.user.id })
-        .select("followerUserId")
-        .lean();
+      const mutualUserIds = await UserService.getMutualFollowUserIds(
+        req.user.id,
+      );
 
       const notifyName = author?.fullname || author?.username || "Ai đó";
       await Promise.all(
-        followers.map((f) =>
+        mutualUserIds.map((userId) =>
           notifService.createAndEmit(io, {
-            recipientId: f.followerUserId,
+            recipientId: userId,
             senderId: req.user.id,
             type: "new_post",
             title: `${notifyName} vừa đăng bài viết mới`,
@@ -108,15 +107,15 @@ const createWithMedia = async (req, res) => {
       const author = await require("../models/user.model")
         .findById(req.user.id)
         .select("fullname username");
-      const followers = await Follow.find({ followingUserId: req.user.id })
-        .select("followerUserId")
-        .lean();
+      const mutualUserIds = await UserService.getMutualFollowUserIds(
+        req.user.id,
+      );
 
       const notifyName = author?.fullname || author?.username || "Ai đó";
       await Promise.all(
-        followers.map((f) =>
+        mutualUserIds.map((userId) =>
           notifService.createAndEmit(io, {
-            recipientId: f.followerUserId,
+            recipientId: userId,
             senderId: req.user.id,
             type: "new_post",
             title: `${notifyName} vừa đăng bài viết mới`,

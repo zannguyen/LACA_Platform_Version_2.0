@@ -11,6 +11,7 @@ router.put("/me/profile", auth, controller.updateMyProfile);
 router.get("/:userId/profile", optionalAuth, controller.getUserProfile);
 
 // Block/Unblock (Auth)
+router.get("/blocked", auth, controller.getBlockedUsers);
 router.post("/:id/block", auth, controller.blockUser);
 router.delete("/:id/block", auth, controller.unblockUser);
 

@@ -216,16 +216,20 @@
 
 .post-media {
   border-radius: 8px;
-  overflow: hidden;
-  max-height: 300px;
+  overflow: visible;
+  background: #111827;
 }
 
 .post-media img,
 .post-media video {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
+}
+
+.post-media video {
+  max-height: 60vh;
 }
 
 .post-footer {

@@ -28,27 +28,42 @@ router.delete("/:id", auth, ctrl.deleteNotification);
 // ── Admin routes ───────────────────────────────────────────────────────────
 
 /**
- * Gửi thông báo broadcast từ admin.
+ * Gửi thông báo system từ admin.
  * Body: { recipientIds?: [ObjectId,...], title: string, body?: string, link?: string }
  * Nếu recipientIds rỗng => emit global (không lưu DB).
  */
-router.post("/admin/broadcast", auth, requireAdmin, ctrl.adminBroadcast);
+router.post("/system/broadcast", auth, requireAdmin, ctrl.systemBroadcast);
 
 /**
  * Gửi broadcast cho tất cả người dùng đang hoạt động
  * Body: { title: string, body?: string, link?: string }
  */
-router.post("/admin/broadcast-all", auth, requireAdmin, ctrl.sendBroadcastToAll);
+router.post(
+  "/admin/broadcast-all",
+  auth,
+  requireAdmin,
+  ctrl.sendBroadcastToAll,
+);
 
 /**
  * Lấy lịch sử broadcast của admin
  * Query: page, limit, status (all|pending|sending|completed|failed)
  */
-router.get("/admin/broadcast-history", auth, requireAdmin, ctrl.getBroadcastHistory);
+router.get(
+  "/admin/broadcast-history",
+  auth,
+  requireAdmin,
+  ctrl.getBroadcastHistory,
+);
 
 /**
  * Lấy chi tiết một broadcast
  */
-router.get("/admin/broadcast-history/:id", auth, requireAdmin, ctrl.getBroadcastDetails);
+router.get(
+  "/admin/broadcast-history/:id",
+  auth,
+  requireAdmin,
+  ctrl.getBroadcastDetails,
+);
 
 module.exports = router;
