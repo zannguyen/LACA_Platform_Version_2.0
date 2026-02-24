@@ -505,6 +505,132 @@
   flex-shrink: 0;
 }
 
+/* Message styling - matching private chat */
+.message-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-lg);
+  -webkit-overflow-scrolling: touch;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+
+.message-row.me {
+  flex-direction: row-reverse;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 78%;
+}
+
+.message-row.me .message-content {
+  align-items: flex-end;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-avatar i {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.message-sender-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+.message-sender-name:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.bubble {
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  font-size: 15px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-family: var(--font-sans);
+}
+
+.bubble.received {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+.bubble.sent {
+  background: var(--gradient-main);
+  border: none;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.message-image {
+  max-width: 78%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.message-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  padding: 0 var(--space-xs);
+}
+
+/* Override public chat wrapper for new styling */
+.public-chat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.public-chat-messages-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Responsive design */
 @media (max-width: 600px) {
   .public-chat-wrapper {

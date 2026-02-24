@@ -56,6 +56,17 @@ const userApi = {
       return Promise.reject(new Error("Missing userId for unblockUser"));
     return api.delete(`/user/${userId}/block`);
   },
+
+  // Preferred Tags (Sở thích)
+  getMyPreferredTags: () => api.get("/user/me/preferred-tags"),
+
+  updateMyPreferredTags: (tagIds) => api.put("/user/me/preferred-tags", { tagIds }),
+
+  getUserPreferredTags: (userId) => {
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for getUserPreferredTags"));
+    return api.get(`/user/${userId}/preferred-tags`);
+  },
 };
 
 export default userApi;

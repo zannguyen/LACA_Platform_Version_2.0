@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const tagService = require("../services/tag.service");
 const authMiddleware = require("../middlewares/auth.middleware");
+const { requireAdmin } = require("../middlewares/requireAdmin");
 const AppError = require("../utils/appError");
 
 // ============ CATEGORY ROUTES ============
@@ -48,13 +49,9 @@ router.get("/categories/:categoryId", async (req, res, next) => {
 router.post(
   "/categories",
   authMiddleware,
+  requireAdmin,
   async (req, res, next) => {
     try {
-      // Check if user is admin (optional - depends on your user model)
-      // if (!req.user.isAdmin) {
-      //   throw new AppError("Only admins can create categories", 403);
-      // }
-
       const { name, description, icon, color, order } = req.body;
 
       if (!name) {
@@ -88,12 +85,9 @@ router.post(
 router.put(
   "/categories/:categoryId",
   authMiddleware,
+  requireAdmin,
   async (req, res, next) => {
     try {
-      // if (!req.user.isAdmin) {
-      //   throw new AppError("Only admins can update categories", 403);
-      // }
-
       const { name, description, icon, color, order, isActive } = req.body;
 
       const category = await tagService.updateCategory(
@@ -126,12 +120,9 @@ router.put(
 router.delete(
   "/categories/:categoryId",
   authMiddleware,
+  requireAdmin,
   async (req, res, next) => {
     try {
-      // if (!req.user.isAdmin) {
-      //   throw new AppError("Only admins can delete categories", 403);
-      // }
-
       const category = await tagService.deleteCategory(req.params.categoryId);
 
       res.json({
@@ -194,12 +185,9 @@ router.get("/:tagId", async (req, res, next) => {
 router.post(
   "/categories/:categoryId/tags",
   authMiddleware,
+  requireAdmin,
   async (req, res, next) => {
     try {
-      // if (!req.user.isAdmin) {
-      //   throw new AppError("Only admins can create tags", 403);
-      // }
-
       const { name, description, icon, color, order } = req.body;
 
       if (!name) {
@@ -230,12 +218,8 @@ router.post(
  * Update tag (admin only)
  * Body: { name, description, icon, color, order, isActive }
  */
-router.put("/:tagId", authMiddleware, async (req, res, next) => {
+router.put("/:tagId", authMiddleware, requireAdmin, async (req, res, next) => {
   try {
-    // if (!req.user.isAdmin) {
-    //   throw new AppError("Only admins can update tags", 403);
-    // }
-
     const { name, description, icon, color, order, isActive } = req.body;
 
     const tag = await tagService.updateTag(req.params.tagId, {
@@ -261,11 +245,8 @@ router.put("/:tagId", authMiddleware, async (req, res, next) => {
  * DELETE /api/tags/:tagId
  * Soft delete tag (admin only)
  */
-router.delete("/:tagId", authMiddleware, async (req, res, next) => {
+router.delete("/:tagId", authMiddleware, requireAdmin, async (req, res, next) => {
   try {
-    // if (!req.user.isAdmin) {
-    //   throw new AppError("Only admins can delete tags", 403);
-    // }
 
     const tag = await tagService.deleteTag(req.params.tagId);
 

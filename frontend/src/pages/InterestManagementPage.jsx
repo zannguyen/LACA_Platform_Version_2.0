@@ -1,38 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import InterestGrid from "../components/interest/InterestGrid";
-import interestApi from "../api/interestApi";
+import { getCategoriesWithTags } from "../api/tagApi";
+import userApi from "../api/userApi";
 import "./InterestManagementPage.css";
 
 const InterestManagementPage = () => {
   const navigate = useNavigate();
-  const [interests, setInterests] = useState([]);
+  const [categoriesWithTags, setCategoriesWithTags] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  // Load interests and user's current selections
+  // Load tags and user's current selections
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Fetch all interests
-        const allInterests = await interestApi.getAllInterests();
-        setInterests(Array.isArray(allInterests) ? allInterests : []);
+        // Fetch all categories with tags
+        const res = await getCategoriesWithTags();
+        const data = res?.data?.data || res?.data || [];
+        setCategoriesWithTags(data);
 
-        // Fetch user's current interests
-        const userInterests = await interestApi.getMyInterests();
-        const userInterestIds = (Array.isArray(userInterests) ? userInterests : []).map(
-          (i) => i._id
+        // Fetch user's current preferred tags
+        const userTags = await userApi.getMyPreferredTags();
+        const userTagIds = (Array.isArray(userTags?.data) ? userTags.data : []).map(
+          (t) => t._id || t.id
         );
-        setSelectedIds(userInterestIds);
+        setSelectedIds(userTagIds);
       } catch (err) {
-        console.error("Error loading interests:", err);
-        setError("Không thể tải sở thích. Vui lòng thử lại.");
+        console.error("Error loading tags:", err);
+        setError("Không thể tải tags. Vui lòng thử lại.");
       } finally {
         setIsLoading(false);
       }
@@ -41,11 +42,11 @@ const InterestManagementPage = () => {
     loadData();
   }, []);
 
-  const handleToggleInterest = (interestId) => {
+  const handleToggleTag = (tagId) => {
     setSelectedIds((prev) =>
-      prev.includes(interestId)
-        ? prev.filter((id) => id !== interestId)
-        : [...prev, interestId]
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId]
     );
   };
 
@@ -55,17 +56,17 @@ const InterestManagementPage = () => {
       setError(null);
       setSuccessMessage(null);
 
-      await interestApi.updateMyInterests(selectedIds);
+      await userApi.updateMyPreferredTags(selectedIds);
 
-      setSuccessMessage("Sở thích đã được cập nhật thành công!");
+      setSuccessMessage("Tags đã được cập nhật thành công!");
 
       // Auto-hide success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
     } catch (err) {
-      console.error("Error saving interests:", err);
-      setError("Không thể lưu sở thích. Vui lòng thử lại.");
+      console.error("Error saving tags:", err);
+      setError("Không thể lưu tags. Vui lòng thử lại.");
     } finally {
       setIsSaving(false);
     }
@@ -75,6 +76,17 @@ const InterestManagementPage = () => {
     navigate(-1);
   };
 
+  if (isLoading) {
+    return (
+      <div className="interest-management-page">
+        <div className="interest-management-loading">
+          <div className="spinner"></div>
+          <p>Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="interest-management-page">
       {/* Header */}
@@ -82,9 +94,9 @@ const InterestManagementPage = () => {
         <button className="interest-management-back" onClick={handleCancel}>
           ← Quay lại
         </button>
-        <h1>Quản lý Sở thích</h1>
+        <h1>Quản lý Tags</h1>
         <p className="interest-management-subtitle">
-          Chọn những sở thích của bạn để nhận được gợi ý nội dung phù hợp
+          Chọn những tags bạn quan tâm để nhận được gợi ý nội dung phù hợp
         </p>
       </div>
 
@@ -96,18 +108,44 @@ const InterestManagementPage = () => {
 
       {/* Content */}
       <div className="interest-management-content">
-        <InterestGrid
-          interests={interests}
-          selectedIds={selectedIds}
-          onToggle={handleToggleInterest}
-          isLoading={isLoading}
-        />
+        {categoriesWithTags.length === 0 ? (
+          <div className="interest-management-empty">
+            Chưa có tags nào. Vui lòng liên hệ admin để thêm tags.
+          </div>
+        ) : (
+          <div className="tags-categories-list">
+            {categoriesWithTags.map((category) => (
+              <div key={category._id || category.id} className="tag-category-block">
+                <h3 className="tag-category-name">{category.name}</h3>
+                <div className="tag-category-items">
+                  {category.tags && category.tags.map((tag) => {
+                    const id = tag._id || tag.id;
+                    const isSelected = selectedIds.includes(id);
+                    return (
+                      <div
+                        key={id}
+                        className={`tag-select-item ${isSelected ? "selected" : ""}`}
+                        style={tag.color && isSelected ? { backgroundColor: tag.color, borderColor: tag.color } : {}}
+                        onClick={() => handleToggleTag(id)}
+                      >
+                        <span className="tag-select-name">{tag.name}</span>
+                        {isSelected && (
+                          <span className="tag-select-check">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
       <div className="interest-management-footer">
         <div className="interest-management-info">
-          Đã chọn: <strong>{selectedIds.length}</strong> sở thích
+          Đã chọn: <strong>{selectedIds.length}</strong> tags
         </div>
         <div className="interest-management-actions">
           <button
@@ -122,7 +160,7 @@ const InterestManagementPage = () => {
             onClick={handleSave}
             disabled={isSaving || isLoading}
           >
-            {isSaving ? "Đang lưu..." : "Lưu sở thích"}
+            {isSaving ? "Đang lưu..." : "Lưu tags"}
           </button>
         </div>
       </div>

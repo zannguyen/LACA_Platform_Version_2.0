@@ -189,7 +189,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Interest Management Quick Link */}
+      {/* Tags/Categories Management Quick Link */}
       <div className="quick-actions-section">
         <div className="section-header">
           <h2>Quick Actions</h2>
@@ -197,11 +197,11 @@ const AdminDashboard = () => {
         <div className="quick-actions-grid">
           <button
             className="quick-action-card"
-            onClick={() => navigate("/admin/interests")}
+            onClick={() => navigate("/admin/tags")}
           >
             <div className="quick-action-icon">🏷️</div>
-            <div className="quick-action-title">Manage Interests</div>
-            <div className="quick-action-desc">Create, edit, and manage user interests</div>
+            <div className="quick-action-title">Manage Tags & Categories</div>
+            <div className="quick-action-desc">Create, edit, and manage tags and categories</div>
           </button>
         </div>
       </div>

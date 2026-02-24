@@ -70,7 +70,13 @@ const ChatListPage = () => {
     if (activeTab === "private") {
       return conversations.filter((conv) => conv.type !== "public");
     } else {
-      return conversations.filter((conv) => conv.type === "public");
+      const publicConvs = conversations.filter(
+        (conv) => conv.type === "public",
+      );
+      console.log(
+        `Tab "Công khai" - filtered ${publicConvs.length} conversations from ${conversations.length} total`,
+      );
+      return publicConvs;
     }
   }, [conversations, activeTab]);
 
@@ -80,7 +86,13 @@ const ChatListPage = () => {
       try {
         setLoading(true);
         const response = await chatApi.getConversations();
+        console.log("ChatList API response:", response);
         const data = response.data || [];
+        console.log("ChatList conversations data:", data);
+        console.log(
+          "Public conversations:",
+          data.filter((c) => c.type === "public"),
+        );
         conversationsRef.current = data;
         setConversations(data);
         setError(null);
@@ -218,7 +230,9 @@ const ChatListPage = () => {
           </p>
         ) : filteredConversations.length === 0 ? (
           <p style={{ textAlign: "center", padding: 20 }}>
-            {activeTab === "private" ? "Chưa có cuộc trò chuyện riêng tư" : "Chưa có cuộc trò chuyện công khai"}
+            {activeTab === "private"
+              ? "Chưa có cuộc trò chuyện riêng tư"
+              : "Chưa có cuộc trò chuyện công khai"}
           </p>
         ) : (
           filteredConversations.map((conv) => {
@@ -259,7 +273,9 @@ const ChatListPage = () => {
                     <div className="avatar-circle" style={avatarStyle}>
                       {!other?.avatar && getInitials(other)}
                     </div>
-                    <span className={`status-dot ${isOnline ? "online" : ""}`} />
+                    <span
+                      className={`status-dot ${isOnline ? "online" : ""}`}
+                    />
                   </div>
 
                   <div className="chat-info">
@@ -272,10 +288,13 @@ const ChatListPage = () => {
                   <div className="chat-meta">
                     <span className="chat-time">
                       {lastMessageTime
-                        ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                        ? new Date(lastMessageTime).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )
                         : ""}
                     </span>
                     {isUnread && <span className="chat-unread-dot" />}
@@ -298,20 +317,35 @@ const ChatListPage = () => {
               const lastMessageTime =
                 conv.lastMessage?.createdAt || conv.updatedAt || null;
 
+              // Convert postId to string for navigation
+              const postIdStr = conv.postId ? String(conv.postId) : "";
+
+              console.log("Rendering public chat:", {
+                _id: conv._id,
+                postId: postIdStr,
+                postIdType: typeof conv.postId,
+                title: conv.title,
+              });
+
               return (
                 <div
                   key={conv._id}
                   className="chat-item"
-                  onClick={() => navigate(`/chat/public/${conv.postId}`)}
+                  onClick={() =>
+                    postIdStr && navigate(`/chat/public/${postIdStr}`)
+                  }
                 >
                   <div className="avatar-wrap">
-                    <div className="avatar-circle" style={{ background: "var(--primary)" }}>
+                    <div
+                      className="avatar-circle"
+                      style={{ background: "var(--primary)" }}
+                    >
                       <i className="fa-solid fa-comments"></i>
                     </div>
                   </div>
 
                   <div className="chat-info">
-                    <h4 className="chat-name">{conv.title || "Bình luận bài viết"}</h4>
+                    <h4 className="chat-name">{conv.title || "Cộng đồng"}</h4>
                     <p className="chat-preview">
                       {lastMessageText || "Không có tin nhắn"}
                     </p>
@@ -320,10 +354,13 @@ const ChatListPage = () => {
                   <div className="chat-meta">
                     <span className="chat-time">
                       {lastMessageTime
-                        ? new Date(lastMessageTime).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                        ? new Date(lastMessageTime).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )
                         : ""}
                     </span>
                     {isUnread && <span className="chat-unread-dot" />}

@@ -10,6 +10,15 @@ export const joinPublicChat = async (postId) => {
 };
 
 /**
+ * Auto-join public chat if user is post owner
+ * POST /api/chat/public/join-if-owner/:postId
+ */
+export const joinPublicChatIfOwner = async (postId) => {
+  const res = await api.post(`/chat/public/join-if-owner/${postId}`);
+  return res.data;
+};
+
+/**
  * Get all messages for a post chat
  * GET /api/chat/public/:postId
  */

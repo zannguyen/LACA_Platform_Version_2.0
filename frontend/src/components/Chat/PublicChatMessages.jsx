@@ -21,8 +21,8 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
 
   if (loading) {
     return (
-      <div className="public-chat-messages-container">
-        <div className="public-chat-loading">
+      <div className="message-container">
+        <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)" }}>
           <i className="fa-solid fa-spinner fa-spin"></i> Đang tải tin nhắn...
         </div>
       </div>
@@ -31,9 +31,9 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
 
   if (messages.length === 0) {
     return (
-      <div className="public-chat-messages-container">
-        <div className="public-chat-empty">
-          <i className="fa-regular fa-comments"></i>
+      <div className="message-container">
+        <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
+          <i className="fa-regular fa-comments" style={{ fontSize: 40, marginBottom: 10 }}></i>
           <p>Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</p>
         </div>
       </div>
@@ -41,7 +41,7 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
   }
 
   return (
-    <div className="public-chat-messages-container">
+    <div className="message-container">
       {messages.map((msg, idx) => {
         const sender = msg.senderId;
         const senderName = sender?.fullname || sender?.username || "User";
@@ -52,10 +52,10 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
         return (
           <div
             key={msg._id || idx}
-            className={`public-chat-message ${isSent ? "sent" : "received"}`}
+            className={`message-row ${isSent ? "me" : ""}`}
           >
             {!isSent && (
-              <div className="public-chat-message-avatar">
+              <div className="message-avatar">
                 {senderAvatar && !avatarErrors.has(String(senderId)) ? (
                   <img
                     src={senderAvatar}
@@ -67,10 +67,10 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
                 )}
               </div>
             )}
-            <div className="public-chat-message-content">
+            <div className="message-content">
               {!isSent && (
                 <button
-                  className="public-chat-message-sender-btn"
+                  className="message-sender-name"
                   onClick={() => navigate(`/profile/${senderId}`)}
                 >
                   {senderName}
@@ -80,13 +80,15 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
                 <img
                   src={msg.image}
                   alt="Message"
-                  className="public-chat-message-image"
+                  className="message-image"
                 />
               )}
               {msg.text && (
-                <div className="public-chat-message-text">{msg.text}</div>
+                <div className={`bubble ${isSent ? "sent" : "received"}`}>
+                  {msg.text}
+                </div>
               )}
-              <div className="public-chat-message-time">
+              <div className="message-time">
                 {new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
                   hour: "2-digit",
                   minute: "2-digit",

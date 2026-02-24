@@ -29,15 +29,43 @@ const PublicChatPage = () => {
         setLoading(true);
         setError("");
 
-        // Join public chat
-        const conversation = await publicChatApi.joinPublicChat(postId);
+        console.log(`=== PublicChatPage: Joining chat for post ${postId} ===`);
+
+        // First, try to auto-join if user is post owner
+        let isOwner = false;
+        try {
+          const ownerResult = await publicChatApi.joinPublicChatIfOwner(postId);
+          console.log("Auto-join as owner result:", ownerResult);
+          isOwner = true;
+        } catch (ownerErr) {
+          // Not owner or error - that's fine, join normally
+          const status = ownerErr?.response?.status;
+          if (status === 403) {
+            console.log("Not post owner, joining normally");
+          } else {
+            console.log("joinPublicChatIfOwner error:", ownerErr.message);
+          }
+        }
+
+        // Join public chat normally (if not already joined as owner)
+        if (!isOwner) {
+          try {
+            const conversation = await publicChatApi.joinPublicChat(postId);
+            console.log("Join conversation response:", conversation);
+          } catch (joinErr) {
+            console.log("Join chat error:", joinErr.message);
+            // Continue anyway - might already be in the conversation
+          }
+        }
 
         // Fetch all messages
         const msgs = await publicChatApi.getPublicMessages(postId);
+        console.log("Messages loaded:", msgs.length);
         setMessages(msgs);
 
         // Fetch participants
         const parts = await publicChatApi.getPublicParticipants(postId);
+        console.log("Participants loaded:", parts.length);
         setParticipants(parts);
 
         // Extract post info from first message or store it
@@ -108,7 +136,9 @@ const PublicChatPage = () => {
     try {
       setSending(true);
       await publicChatApi.sendPublicMessage(postId, text, image);
-      // Message will be added via Socket.IO event
+      // Refresh messages after sending (fallback in case socket fails)
+      const msgs = await publicChatApi.getPublicMessages(postId);
+      setMessages(msgs);
     } catch (err) {
       console.error("Send message error:", err);
       alert("Không thể gửi tin nhắn");
@@ -117,7 +147,14 @@ const PublicChatPage = () => {
     }
   };
 
+  // Back button just navigates back, doesn't leave the conversation
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
+  // Explicitly leave the conversation (for when user wants to leave permanently)
   const handleLeaveChat = async () => {
+    if (!window.confirm("Bạn có chắc muốn rời khỏi cuộc trò chuyện này?")) return;
     try {
       await publicChatApi.leavePublicChat(postId);
       navigate(-1);
@@ -132,7 +169,7 @@ const PublicChatPage = () => {
       <div className="public-chat-wrapper">
         {/* Header */}
         <div className="public-chat-header">
-          <button className="public-chat-back-btn" onClick={handleLeaveChat}>
+          <button className="public-chat-back-btn" onClick={handleGoBack}>
             <i className="fa-solid fa-arrow-left"></i>
           </button>
           <div className="public-chat-post-info">

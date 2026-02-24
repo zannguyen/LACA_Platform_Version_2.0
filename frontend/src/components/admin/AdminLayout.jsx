@@ -13,7 +13,7 @@ const AdminLayout = () => {
       { path: "/admin/users", icon: "👥", label: "Users" },
       { path: "/admin/content", icon: "🛡️", label: "Content" },
       { path: "/admin/map", icon: "🗺️", label: "Map" },
-      { path: "/admin/interests", icon: "🏷️", label: "Interests" },
+      { path: "/admin/tags", icon: "🏷️", label: "Tags/Categories" },
       { path: "/admin/broadcast", icon: "📢", label: "Broadcast" },
       { path: "/admin/analytics", icon: "📈", label: "Analytics" },
     ],

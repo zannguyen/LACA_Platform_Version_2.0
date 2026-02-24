@@ -1,24 +1,24 @@
 // src/components/home/home.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import ReportModal from "../report/ReportModal";
 import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
+import lacaLogo from "../../assets/images/laca_logo.png";
 import "./home.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 const Home = () => {
+  const routerLocation = useLocation();
   const navigate = useNavigate();
 
   const [feedPosts, setFeedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState("");
-  const [location, setLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
-
-  const [menuOpen, setMenuOpen] = useState(false);
 
   // Popup chat
   const [chatPopupOpen, setChatPopupOpen] = useState(false);
@@ -38,7 +38,9 @@ const Home = () => {
 
   // top search + filter UI (frontend-only)
   const [searchText, setSearchText] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("for-you");
   const [onlyNearby, setOnlyNearby] = useState(false);
   const [onlyHasLocation, setOnlyHasLocation] = useState(false);
 
@@ -91,7 +93,7 @@ const Home = () => {
   // ================== LOCATION ==================
   useEffect(() => {
     if (!locationEnabled) {
-      setLocation(null);
+      setUserLocation(null);
       setFeedPosts([]);
       setErrMsg(
         "Định vị đang tắt. Bật 'Allow location access' trong Setting để xem bài đăng gần bạn.",
@@ -105,7 +107,7 @@ const Home = () => {
       timeout: 10000,
       maximumAge: 0,
     })
-      .then((pos) => setLocation({ lat: pos.lat, lng: pos.lng }))
+      .then((pos) => setUserLocation({ lat: pos.lat, lng: pos.lng }))
       .catch(() => {
         setErrMsg("Vui lòng bật quyền vị trí để xem bài đăng gần bạn");
         setLoading(false);
@@ -113,9 +115,9 @@ const Home = () => {
   }, [locationEnabled, requestCurrentPosition]);
 
   useEffect(() => {
-    if (location) fetchHomePosts(location.lat, location.lng);
+    if (userLocation) fetchHomePosts(userLocation.lat, userLocation.lng);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location]);
+  }, [userLocation]);
 
   // Handle scroll to post from notification
   useEffect(() => {
@@ -175,22 +177,33 @@ const Home = () => {
       const posts = json?.data || [];
       setFeedPosts(posts);
 
-      // Fetch reaction counts for each post
+      // Fetch reaction counts and user status for each post
       const reactions = {};
       for (const post of posts) {
         try {
-          const countRes = await fetch(
-            `${API_BASE}/reactions/count/${post._id}`,
-          );
+          const [countRes, statusRes] = await Promise.all([
+            fetch(`${API_BASE}/reactions/count/${post._id}`),
+            fetch(`${API_BASE}/reactions/status/${post._id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          ]);
+
+          let count = 0;
+          let reacted = false;
+
           if (countRes.ok) {
             const countData = await countRes.json();
-            reactions[post._id] = {
-              count: countData.total || 0,
-              reacted: false,
-            };
+            count = countData.total || 0;
           }
+
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            reacted = statusData.reacted || false;
+          }
+
+          reactions[post._id] = { count, reacted };
         } catch (err) {
-          console.error("Fetch reaction count error:", err);
+          console.error("Fetch reaction error:", err);
         }
       }
       setReactionMeta(reactions);
@@ -266,23 +279,58 @@ const Home = () => {
   const reactHeart = async (postId) => {
     try {
       const token = getAccessToken();
-      const res = await fetch(`${API_BASE}/reactions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ postId, type: "heart" }),
-      });
+      const isReacted = reactionMeta[postId]?.reacted;
 
-      if (!res.ok) {
-        const err = await res.json();
-        console.error("React error:", err);
-        return;
+      if (isReacted) {
+        // Already reacted - remove reaction
+        const res = await fetch(`${API_BASE}/reactions/${postId}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          console.error("Unreact error:", err);
+          return;
+        }
+
+        // Update state to reflect removal
+        setReactionMeta((prev) => ({
+          ...prev,
+          [postId]: {
+            count: Math.max((prev[postId]?.count || 1) - 1, 0),
+            reacted: false,
+          },
+        }));
+      } else {
+        // Not reacted - add reaction
+        const res = await fetch(`${API_BASE}/reactions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            postId,
+            type: "heart",
+            lat: userLocation?.lat,
+            lng: userLocation?.lng,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          console.error("React error:", err);
+          alert(err.message || "Không thể tương tác bài viết này");
+          return;
+        }
+
+        // Fetch count after reaction
+        await fetchReactionCount(postId);
       }
-
-      // Fetch count after reaction
-      await fetchReactionCount(postId);
     } catch (err) {
       console.error("React heart error:", err);
     }
@@ -290,14 +338,33 @@ const Home = () => {
 
   const fetchReactionCount = async (postId) => {
     try {
-      const res = await fetch(`${API_BASE}/reactions/count/${postId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setReactionMeta((prev) => ({
-          ...prev,
-          [postId]: { count: data.total || 0, reacted: true },
-        }));
+      const token = getAccessToken();
+
+      // Fetch count and user status in parallel
+      const [countRes, statusRes] = await Promise.all([
+        fetch(`${API_BASE}/reactions/count/${postId}`),
+        fetch(`${API_BASE}/reactions/status/${postId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      let count = 0;
+      let reacted = false;
+
+      if (countRes.ok) {
+        const countData = await countRes.json();
+        count = countData.total || 0;
       }
+
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        reacted = statusData.reacted || false;
+      }
+
+      setReactionMeta((prev) => ({
+        ...prev,
+        [postId]: { count, reacted },
+      }));
     } catch (err) {
       console.error("Fetch reaction count error:", err);
     }
@@ -329,19 +396,6 @@ const Home = () => {
       `/map?focusLat=${p.lat}&focusLng=${p.lng}&openPosts=1&postId=${post._id}`,
     );
   };
-
-  // ================== MENU ==================
-  const closeMenu = () => setMenuOpen(false);
-  const openMenu = () => setMenuOpen(true);
-
-  useEffect(() => {
-    const main = document.querySelector(".home-main");
-    if (!main) return;
-    main.style.overflowY = menuOpen ? "hidden" : "auto";
-    return () => {
-      main.style.overflowY = "auto";
-    };
-  }, [menuOpen]);
 
   // ================== REPORT DROPDOWN ==================
   const toggleReportMenu = (e) => {
@@ -450,93 +504,98 @@ const Home = () => {
 
   return (
     <div className="mobile-wrapper">
-      <div
-        className={`home-overlay ${menuOpen ? "show" : ""}`}
-        onClick={closeMenu}
-      />
-
-      <nav className={`home-sidebar ${menuOpen ? "open" : ""}`}>
-        <div className="sidebar-header">MENU</div>
-
-        <Link to="/profile" className="sidebar-item" onClick={closeMenu}>
-          <i className="fa-regular fa-user"></i> Profile
-        </Link>
-        <Link to="/camera" className="sidebar-item" onClick={closeMenu}>
-          <i className="fa-solid fa-camera"></i> Camera
-        </Link>
-        <Link to="/chat" className="sidebar-item" onClick={closeMenu}>
-          <i className="fa-regular fa-comment-dots"></i> Chat
-        </Link>
-        <Link to="/map" className="sidebar-item" onClick={closeMenu}>
-          <i className="fa-regular fa-map"></i> Map
-        </Link>
-        <Link to="/setting" className="sidebar-item" onClick={closeMenu}>
-          <i className="fa-solid fa-gear"></i> Setting
-        </Link>
-      </nav>
-
       <header className="home-header">
-        <button className="icon-btn" type="button" onClick={openMenu}>
-          <i className="fa-solid fa-bars"></i>
+        {/* Logo - click to refresh */}
+        <button className="home-logo" title="Trang chủ" onClick={() => window.location.reload()}>
+          <img src={lacaLogo} alt="LACA" />
         </button>
 
-        <div className="header-title">LACA</div>
-
-        <Link
-          to="/notification"
-          className="icon-btn notif-icon-wrapper"
-          onClick={closeMenu}
-        >
-          <i className="fa-regular fa-bell"></i>
-          {unreadNotifCount > 0 && (
-            <span className="notif-badge">
-              {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
-            </span>
-          )}
-        </Link>
+        <div className="header-tabs">
+          <button
+            className={`header-tab ${activeTab === "for-you" ? "active" : ""}`}
+            onClick={() => setActiveTab("for-you")}
+          >
+            Cho bạn
+          </button>
+          <button
+            className={`header-tab ${activeTab === "following" ? "active" : ""}`}
+            onClick={() => setActiveTab("following")}
+          >
+            Đang follow
+          </button>
+        </div>
+        <div className="header-actions">
+          <button
+            className="header-action-btn search-trigger-btn"
+            onClick={() => setSearchExpanded(true)}
+            title="Tìm kiếm"
+          >
+            <i className="fa-solid fa-magnifying-glass"></i>
+          </button>
+          <Link
+            to="/notification"
+            className="header-action-btn"
+            title="Thông báo"
+          >
+            <i className="fa-regular fa-bell"></i>
+            {unreadNotifCount > 0 && (
+              <span className="notif-badge-small">
+                {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+              </span>
+            )}
+          </Link>
+          <button
+            className="header-action-btn"
+            onClick={() => setFilterOpen((v) => !v)}
+            title="Lọc"
+          >
+            <i className="fa-solid fa-sliders"></i>
+          </button>
+        </div>
       </header>
 
-      {/* search + filter */}
-      <div className="home-topbar" onClick={() => menuOpen && closeMenu()}>
-        <div className="home-search">
-          <i className="fa-solid fa-magnifying-glass home-search-icon" />
-          <input
-            type="text"
-            className="home-search-input"
-            placeholder="Tìm bạn bè bằng email hoặc username..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          {searchText && (
-            <button
-              type="button"
-              className="home-search-clear"
-              onClick={() => setSearchText("")}
-              aria-label="Clear search"
-              title="Xóa"
-            >
-              <i className="fa-solid fa-xmark" />
-            </button>
-          )}
+      {/* search + filter - only show when expanded */}
+      {searchExpanded && (
+        <div className="home-topbar expanded">
+          <div className="home-search">
+            <input
+              type="text"
+              className="home-search-input"
+              placeholder="Tìm bạn bè bằng email hoặc username..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              autoFocus
+            />
+            {searchText ? (
+              <button
+                type="button"
+                className="home-search-clear"
+                onClick={() => {
+                  setSearchText("");
+                  setSearchExpanded(false);
+                }}
+                aria-label="Close search"
+              >
+                <i className="fa-solid fa-arrow-left" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="home-search-clear"
+                onClick={() => setSearchExpanded(false)}
+                aria-label="Close search"
+              >
+                <i className="fa-solid fa-arrow-left" />
+              </button>
+            )}
+          </div>
         </div>
+      )}
 
-        <button
-          type="button"
-          className="home-filter-btn"
-          onClick={() => setFilterOpen((v) => !v)}
-          aria-label="Filter"
-          title="Filter"
-        >
-          <i className="fa-solid fa-sliders" />
-        </button>
-      </div>
-
+      {/* Filter panel */}
       {filterOpen && (
-        <div
-          className="home-filter-panel"
-          onClick={() => menuOpen && closeMenu()}
-        >
-          <div className="home-filter-title">Bộ lọc (demo UI)</div>
+        <div className="home-filter-panel">
+          <div className="home-filter-title">Bộ lọc</div>
 
           <label className="home-filter-row">
             <input
@@ -579,7 +638,7 @@ const Home = () => {
         </div>
       )}
 
-      <main className="home-main" onClick={() => menuOpen && closeMenu()}>
+      <main className="home-main">
         {loading && (
           <div style={{ padding: 12, textAlign: "center" }}>
             Đang tải bài đăng...
@@ -683,12 +742,22 @@ const Home = () => {
 
                 {/* Tags hiển thị dưới avatar, trên ảnh post */}
                 {post.tags && post.tags.length > 0 && (
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "0 16px 8px", marginLeft: 44, overflow: "hidden", maxWidth: "calc(100% - 60px)" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 4,
+                      flexWrap: "wrap",
+                      padding: "0 16px 8px",
+                      marginLeft: 44,
+                      overflow: "hidden",
+                      maxWidth: "calc(100% - 60px)",
+                    }}
+                  >
                     {post.tags.slice(0, 3).map((tag, idx) => (
                       <span
                         key={tag._id || idx}
                         style={{
-                          background: tag.color || "#2bd0d0",
+                          background: "#e94057",
                           color: "white",
                           padding: "2px 8px",
                           borderRadius: 10,
@@ -704,13 +773,15 @@ const Home = () => {
                       </span>
                     ))}
                     {post.tags.length > 3 && (
-                      <span style={{
-                        background: "#444",
-                        color: "#aaa",
-                        padding: "2px 6px",
-                        borderRadius: 10,
-                        fontSize: 10,
-                      }}>
+                      <span
+                        style={{
+                          background: "#b83245",
+                          color: "#aaa",
+                          padding: "2px 6px",
+                          borderRadius: 10,
+                          fontSize: 10,
+                        }}
+                      >
                         +{post.tags.length - 3}
                       </span>
                     )}
@@ -742,19 +813,19 @@ const Home = () => {
                   )}
                 </div>
 
-                {String(post.user?._id) !== String(currentUserId) && (
-                  <div className="post-actions">
-                    <button
-                      type="button"
-                      className={`heart-btn ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
-                      onClick={() => reactHeart(post._id)}
-                      aria-label="Heart"
-                    >
-                      <i className="fa-solid fa-heart action-icon"></i>
-                      <span className="like-count">
-                        {reactionMeta[post._id]?.count || 0}
-                      </span>
-                    </button>
+                <div className="post-actions">
+                  <button
+                    type="button"
+                    className={`heart-btn ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
+                    onClick={() => reactHeart(post._id)}
+                    aria-label="Heart"
+                  >
+                    <i className="fa-solid fa-heart action-icon"></i>
+                    <span className="like-count">
+                      {reactionMeta[post._id]?.count || 0}
+                    </span>
+                  </button>
+                  {String(post.user?._id) !== String(currentUserId) && (
                     <button
                       type="button"
                       className="chat-icon-btn"
@@ -763,12 +834,40 @@ const Home = () => {
                     >
                       <i className="fa-regular fa-comment action-icon"></i>
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </article>
             );
           })}
       </main>
+
+      {/* TikTok-style Bottom Navigation */}
+      <nav className="bottom-nav">
+        <Link
+          to="/home"
+          className={`bottom-nav-item ${routerLocation.pathname === "/home" ? "active" : ""}`}
+        >
+          <i className="fa-solid fa-house"></i>
+          <span>Trang chủ</span>
+        </Link>
+        <Link to="/map" className="bottom-nav-item">
+          <i className="fa-solid fa-map"></i>
+          <span>Bản đồ</span>
+        </Link>
+        <Link to="/camera" className="bottom-nav-item">
+          <div className="nav-icon-plus">
+            <i className="fa-solid fa-plus"></i>
+          </div>
+        </Link>
+        <Link to="/chat" className="bottom-nav-item">
+          <i className="fa-regular fa-comment-dots"></i>
+          <span>Nhắn tin</span>
+        </Link>
+        <Link to="/profile" className="bottom-nav-item">
+          <i className="fa-regular fa-user"></i>
+          <span>Hồ sơ</span>
+        </Link>
+      </nav>
 
       {/* Chat option popup modal */}
       {chatPopupOpen && (
@@ -789,7 +888,7 @@ const Home = () => {
               className="chat-option-modal-btn"
               onClick={handleChooseCommunityChat}
             >
-              Công khai
+              Cộng đồng
             </button>
           </div>
         </div>

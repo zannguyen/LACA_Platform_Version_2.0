@@ -448,20 +448,22 @@ export default function CameraPost() {
           >
             <i className="fa-solid fa-tag"></i>
             {selectedTags.length > 0 && (
-              <span style={{
-                position: "absolute",
-                top: -4,
-                right: -4,
-                background: "#2bd0d0",
-                color: "black",
-                borderRadius: "50%",
-                width: 16,
-                height: 16,
-                fontSize: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
+              <span
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  background: "#2bd0d0",
+                  color: "black",
+                  borderRadius: "50%",
+                  width: 16,
+                  height: 16,
+                  fontSize: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 {selectedTags.length}
               </span>
             )}
@@ -502,7 +504,15 @@ export default function CameraPost() {
       </div>
 
       {/* HIỂN THỊ PLACE & TAGS */}
-      <div style={{ padding: "8px 12px", color: "white", fontSize: 13, position: "relative", zIndex: 10 }}>
+      <div
+        style={{
+          padding: "8px 12px",
+          color: "white",
+          fontSize: 13,
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
         {pickedPlace ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ color: "#2bd0d0" }}>
@@ -645,7 +655,7 @@ export default function CameraPost() {
                 className="loc-create-toggle"
                 onClick={toggleCreate}
               >
-                <span className="loc-plus">+</span> Tạo vị trí
+                <span className="loc-plus">+</span>
               </button>
 
               {createOpen && (
@@ -742,12 +752,19 @@ export default function CameraPost() {
 
             {/* Selected tags */}
             {selectedTags.length > 0 && (
-              <div style={{ padding: "0 12px 12px", display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div
+                style={{
+                  padding: "0 12px 12px",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
                 {selectedTags.map((tag) => (
                   <span
                     key={tag._id}
                     style={{
-                      background: tag.color || "#2bd0d0",
+                      background: "#e94057",
                       color: "white",
                       padding: "4px 10px",
                       borderRadius: 12,
@@ -785,14 +802,16 @@ export default function CameraPost() {
               ) : (
                 categories.map((cat) => (
                   <div key={cat._id} style={{ marginBottom: 16 }}>
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 8,
-                      padding: "8px 0",
-                      borderBottom: "1px solid #333",
-                    }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 8,
+                        padding: "8px 0",
+                        borderBottom: "1px solid #333",
+                      }}
+                    >
                       <span style={{ fontSize: 16 }}>{cat.icon}</span>
                       <span style={{ fontWeight: 600, color: cat.color }}>
                         {cat.name}
@@ -800,16 +819,18 @@ export default function CameraPost() {
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {cat.tags?.map((tag) => {
-                        const isSelected = selectedTags.some((t) => t._id === tag._id);
+                        const isSelected = selectedTags.some(
+                          (t) => t._id === tag._id,
+                        );
                         return (
                           <button
                             key={tag._id}
                             type="button"
                             onClick={() => toggleTag(tag)}
                             style={{
-                              background: isSelected ? (tag.color || "#2bd0d0") : "#222",
+                              background: isSelected ? "#e94057" : "#222",
                               color: isSelected ? "white" : "#aaa",
-                              border: `1px solid ${isSelected ? (tag.color || "#2bd0d0") : "#444"}`,
+                              border: `1px solid ${isSelected ? "#e94057" : "#444"}`,
                               padding: "6px 12px",
                               borderRadius: 16,
                               fontSize: 12,

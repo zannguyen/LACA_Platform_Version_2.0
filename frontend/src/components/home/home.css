@@ -9,7 +9,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   margin: 0 auto;
   font-family: var(--font-sans);
 }
@@ -28,25 +28,6 @@
 }
 
 /* ----- Header ----- */
-.mobile-wrapper .home-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  height: var(--header-height);
-  flex-shrink: 0;
-  z-index: 5;
-}
-
-.mobile-wrapper .header-title {
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  margin: 0 auto 0 0;
-}
 
 .mobile-wrapper .icon-btn {
   width: var(--touch-min);
@@ -63,7 +44,9 @@
   justify-content: center;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -96,7 +79,9 @@
   font-weight: 800;
   line-height: 1;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px #fff;
+  box-shadow:
+    0 2px 8px rgba(239, 68, 68, 0.4),
+    0 0 0 2px #fff;
   border: 2px solid #fff;
   animation: badgePulse 2s ease-in-out infinite;
   border: 2px solid var(--bg-card);
@@ -157,7 +142,9 @@
   font-size: 16px;
   font-weight: 500;
   border-radius: var(--radius-md);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .mobile-wrapper .home-sidebar .sidebar-item i {
@@ -176,16 +163,19 @@
   color: var(--primary);
 }
 
-/* ----- Topbar: Search + Filter ----- */
-.mobile-wrapper .home-topbar {
+/* Expanded search bar */
+.mobile-wrapper .home-topbar.expanded {
   display: flex;
-  align-items: center;
-  gap: var(--space-md);
+  background: transparent;
+  border: none;
   padding: var(--space-md) var(--space-lg);
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  z-index: 4;
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  z-index: 98;
 }
 
 .mobile-wrapper .home-search {
@@ -193,18 +183,50 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-width: 0;
+  transition: all 0.3s ease;
+}
+
+/* Search icon button (collapsed state) */
+.mobile-wrapper .home-search .search-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  font-size: 18px;
+  transition: background 0.2s;
+}
+
+.mobile-wrapper .home-search .search-icon-btn:hover,
+.mobile-wrapper .home-search .search-icon-btn:active {
+  background: var(--bg-input);
+}
+
+/* Expanded search bar */
+.mobile-wrapper .home-topbar.expanded .home-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   background: var(--bg-input);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  padding: 10px var(--space-lg);
+  padding: 10px var(--space-md);
   min-width: 0;
-  transition: border-color 0.2s, background 0.2s;
 }
 
-.mobile-wrapper .home-search:focus-within {
+.mobile-wrapper .home-topbar.expanded .home-search:focus-within {
   background: var(--bg-card);
   border-color: var(--border-strong);
-  box-shadow: 0 0 0 2px rgba(233, 64, 87, 0.1);
 }
 
 .mobile-wrapper .home-search-icon {
@@ -256,7 +278,9 @@
   box-shadow: var(--shadow-sm);
   color: var(--text-primary);
   flex-shrink: 0;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -317,7 +341,9 @@
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 600;
-  transition: opacity 0.2s, transform 0.1s;
+  transition:
+    opacity 0.2s,
+    transform 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -340,7 +366,7 @@
 .mobile-wrapper .home-main {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-md) 0 var(--space-2xl);
+  padding: 60px var(--space-lg) var(--space-2xl);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -456,7 +482,9 @@
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .mobile-wrapper .report-btn:hover,
@@ -486,8 +514,14 @@
 }
 
 @keyframes homeFadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .mobile-wrapper .dropdown-item {
@@ -723,12 +757,258 @@
 }
 
 @keyframes badgePulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px #fff;
+    box-shadow:
+      0 2px 8px rgba(239, 68, 68, 0.4),
+      0 0 0 2px #fff;
   }
   50% {
     transform: scale(1.15);
-    box-shadow: 0 2px 12px rgba(239, 68, 68, 0.6), 0 0 0 2px #fff;
+    box-shadow:
+      0 2px 12px rgba(239, 68, 68, 0.6),
+      0 0 0 2px #fff;
   }
+}
+
+/* ----- Header Tabs (TikTok-style) ----- */
+.mobile-wrapper .home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  height: 50px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+}
+
+/* Logo - Facebook style */
+.mobile-wrapper .home-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: background 0.2s;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.mobile-wrapper .home-logo:hover {
+  background: var(--bg-input);
+}
+
+.mobile-wrapper .home-logo img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.mobile-wrapper .header-tabs {
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: center;
+  flex: 1;
+}
+
+.mobile-wrapper .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-wrapper .header-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  font-size: 18px;
+  text-decoration: none;
+  position: relative;
+  background: transparent;
+  border: none;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+/* Search trigger button - smaller, no border */
+.mobile-wrapper .search-trigger-btn {
+  width: 32px !important;
+  height: 32px !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.mobile-wrapper .search-trigger-btn i {
+  font-size: 16px !important;
+}
+
+.mobile-wrapper .header-action-btn:hover,
+.mobile-wrapper .header-action-btn:active {
+  background: var(--bg-input);
+  color: var(--primary);
+}
+
+.mobile-wrapper .notif-badge-small {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.mobile-wrapper .header-tab {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 8px 4px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.mobile-wrapper .header-tab.active {
+  color: var(--text-primary);
+}
+
+.mobile-wrapper .header-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 1px;
+}
+
+.mobile-wrapper .header-title {
+  display: none;
+}
+
+/* ----- TikTok-style Bottom Navigation Bar ----- */
+.mobile-wrapper .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobile-wrapper .bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-wrapper .bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+.mobile-wrapper .bottom-nav-item.active {
+  color: var(--primary);
+}
+
+.mobile-wrapper .bottom-nav-item i {
+  font-size: 22px;
+}
+
+.mobile-wrapper .bottom-nav-item .nav-icon-plus {
+  width: 40px;
+  height: 40px;
+  background: var(--gradient-main);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  margin-top: -20px;
+  box-shadow: 0 4px 12px rgba(233, 64, 87, 0.4);
+}
+
+.mobile-wrapper .home-main {
+  padding-top: 60px;
+  padding-bottom: 70px;
+}
+
+/* Floating Nav Buttons (Map, Setting) */
+.mobile-wrapper .floating-nav-buttons {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+
+.mobile-wrapper .floating-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s;
+}
+
+.mobile-wrapper .floating-nav-btn:hover,
+.mobile-wrapper .floating-nav-btn:active {
+  color: var(--primary);
+  transform: scale(1.05);
 }
