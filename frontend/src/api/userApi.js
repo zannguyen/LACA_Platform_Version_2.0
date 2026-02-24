@@ -18,24 +18,43 @@ const userApi = {
   updateMyProfile: (body) => api.put(`/user/me/profile`, body),
 
   getUserProfile: ({ userId, page = 1, limit = 10 } = {}) => {
-    if (!userId) return Promise.reject(new Error("Missing userId for getUserProfile"));
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for getUserProfile"));
     return api.get(`/user/${userId}/profile${buildQuery({ page, limit })}`);
   },
 
   // Follow / Unfollow
   followUser: (userId) => {
-    if (!userId) return Promise.reject(new Error("Missing userId for followUser"));
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for followUser"));
     return api.post(`/user/${userId}/follow`);
   },
 
   unfollowUser: (userId) => {
-    if (!userId) return Promise.reject(new Error("Missing userId for unfollowUser"));
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for unfollowUser"));
     return api.delete(`/user/${userId}/follow`);
   },
 
   getFollowStatus: (userId) => {
-    if (!userId) return Promise.reject(new Error("Missing userId for getFollowStatus"));
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for getFollowStatus"));
     return api.get(`/user/${userId}/follow-status`);
+  },
+
+  // Block / Unblock
+  getBlockedUsers: () => api.get("/user/blocked"),
+
+  blockUser: (userId) => {
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for blockUser"));
+    return api.post(`/user/${userId}/block`);
+  },
+
+  unblockUser: (userId) => {
+    if (!userId)
+      return Promise.reject(new Error("Missing userId for unblockUser"));
+    return api.delete(`/user/${userId}/block`);
   },
 };
 

@@ -43,7 +43,6 @@ exports.updateMyProfile = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Profile updated", data: user });
 });
 
-// ===== Block / Unblock (Auth required) =====
 exports.blockUser = asyncHandler(async (req, res) => {
   const blockedId = req.params.id;
   const blockerId = req.user.id;
@@ -58,6 +57,12 @@ exports.unblockUser = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json({ success: true, message: "User unblocked successfully" });
+});
+
+exports.getBlockedUsers = asyncHandler(async (req, res) => {
+  const blockerId = req.user.id;
+  const blockedUsers = await UserService.getBlockedUsers(blockerId);
+  res.status(200).json({ success: true, data: blockedUsers });
 });
 
 // ===== Follow / Unfollow (Auth required) =====

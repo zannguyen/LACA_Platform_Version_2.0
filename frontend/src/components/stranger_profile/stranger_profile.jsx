@@ -163,9 +163,21 @@ export default function StrangerProfile() {
   const displayName = profile?.fullname || profile?.username || "User";
   const displayBio = profile?.bio?.trim() ? profile.bio : "Chưa có bio";
 
-  const handleBlock = () => {
+  const handleBlock = async () => {
     setShowHeaderMenu(false);
-    alert("Block: (tạm thời chưa có BE)");
+    if (!profile?._id || isOwner) return;
+
+    const ok = window.confirm("Bạn có chắc muốn chặn người dùng này?");
+    if (!ok) return;
+
+    try {
+      await userApi.blockUser(profile._id);
+      alert("Đã chặn người dùng");
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message || e?.message || "Chặn người dùng thất bại";
+      alert(msg);
+    }
   };
 
   const handleReport = () => {
