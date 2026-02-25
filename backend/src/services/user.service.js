@@ -46,18 +46,51 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
       ? Follow.exists({ followerUserId: viewerId, followingUserId: targetId })
       : Promise.resolve(false);
 
-  const [totalPosts, posts, followersCount, followingCount, isFollowing] =
+  // Check mutual follow - both users must follow each other (inline logic)
+  const isMutualFollowPromise =
+    viewerId && !isOwner
+      ? (async () => {
+          const [aFollowsB, bFollowsA] = await Promise.all([
+            Follow.exists({ followerUserId: viewerId, followingUserId: targetId }),
+            Follow.exists({ followerUserId: targetId, followingUserId: viewerId }),
+          ]);
+          return Boolean(aFollowsB && bFollowsA);
+        })()
+      : Promise.resolve(false);
+
+  const [totalPosts, followersCount, followingCount, isFollowing, isMutualFollow] =
     await Promise.all([
       Post.countDocuments(postFilter),
-      Post.find(postFilter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
       followersCountPromise,
       followingCountPromise,
       isFollowingPromise,
+      isMutualFollowPromise,
     ]);
+
+  // Only return posts if: isOwner OR mutual follow
+  const canViewPosts = isOwner || isMutualFollow;
+
+  let posts = [];
+  let pagination = {
+    page,
+    limit,
+    total: 0,
+    totalPages: 1,
+  };
+
+  if (canViewPosts) {
+    posts = await Post.find(postFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    pagination = {
+      page,
+      limit,
+      total: totalPosts,
+      totalPages: Math.ceil(totalPosts / limit) || 1,
+    };
+  }
 
   const profileUser = {
     _id: user._id,
@@ -84,14 +117,11 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
     relationship: {
       isOwner: Boolean(isOwner),
       isFollowing: Boolean(isFollowing),
+      isMutualFollow: Boolean(isMutualFollow),
+      canViewPosts: Boolean(canViewPosts),
     },
     posts,
-    pagination: {
-      page,
-      limit,
-      total: totalPosts,
-      totalPages: Math.ceil(totalPosts / limit) || 1,
-    },
+    pagination,
   };
 }
 

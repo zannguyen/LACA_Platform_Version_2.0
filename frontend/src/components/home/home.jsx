@@ -1,5 +1,5 @@
 // src/components/home/home.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import ReportModal from "../report/ReportModal";
@@ -20,6 +20,14 @@ const Home = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
+  // Swipe card state
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState(null);
+  const cardRef = useRef(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+
   // Popup chat
   const [chatPopupOpen, setChatPopupOpen] = useState(false);
   const [chatTarget, setChatTarget] = useState({
@@ -39,6 +47,8 @@ const Home = () => {
   // top search + filter UI (frontend-only)
   const [searchText, setSearchText] = useState("");
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("for-you");
   const [onlyNearby, setOnlyNearby] = useState(false);
@@ -502,6 +512,55 @@ const Home = () => {
       });
   }, [feedPosts, searchText, onlyHasLocation, onlyNearby]);
 
+  // Swipe handlers
+  const handleTouchStart = (e) => {
+    startX.current = e.touches[0].clientX;
+    currentX.current = startX.current;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isSwiping) return;
+    currentX.current = e.touches[0].clientX;
+    const diff = currentX.current - startX.current;
+    setSwipeDirection(diff > 0 ? "right" : "left");
+  };
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) return;
+    const diff = currentX.current - startX.current;
+    const threshold = 100;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        // Swipe right - next card
+        setCurrentCardIndex(prev => Math.min(prev + 1, visiblePosts.length - 1));
+      } else {
+        // Swipe left - previous card
+        setCurrentCardIndex(prev => Math.max(prev - 1, 0));
+      }
+    }
+
+    setIsSwiping(false);
+    setSwipeDirection(null);
+  };
+
+  const goToNextCard = () => {
+    if (currentCardIndex < visiblePosts.length - 1) {
+      setCurrentCardIndex(prev => prev + 1);
+    }
+  };
+
+  const goToPrevCard = () => {
+    if (currentCardIndex > 0) {
+      setCurrentCardIndex(prev => prev - 1);
+    }
+  };
+
+  const currentPost = visiblePosts[currentCardIndex];
+  const cardRotation = isSwiping ? (currentX.current - startX.current) * 0.05 : 0;
+  const cardTranslate = isSwiping ? currentX.current - startX.current : 0;
+
   return (
     <div className="mobile-wrapper">
       <header className="home-header">
@@ -563,7 +622,24 @@ const Home = () => {
               className="home-search-input"
               placeholder="Tìm bạn bè bằng email hoặc username..."
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={async (e) => {
+                const value = e.target.value;
+                setSearchText(value);
+                if (value.trim().length > 0) {
+                  setSearchLoading(true);
+                  try {
+                    const res = await userApi.searchUsers(value);
+                    setSearchResults(res.data || []);
+                  } catch (err) {
+                    console.error("Search error:", err);
+                    setSearchResults([]);
+                  } finally {
+                    setSearchLoading(false);
+                  }
+                } else {
+                  setSearchResults([]);
+                }
+              }}
               autoFocus
             />
             {searchText ? (
@@ -589,6 +665,72 @@ const Home = () => {
               </button>
             )}
           </div>
+
+          {/* Search Results */}
+          {searchText.trim().length > 0 && (
+            <div className="search-results">
+              {searchLoading ? (
+                <div className="search-loading">Đang tìm...</div>
+              ) : searchResults.length > 0 ? (
+                searchResults.map((user) => (
+                  <div key={user._id} className="search-result-item">
+                    <Link
+                      to={`/profile/${user._id}`}
+                      className="search-result-link"
+                      onClick={() => {
+                        setSearchText("");
+                        setSearchExpanded(false);
+                        setSearchResults([]);
+                      }}
+                    >
+                      <div className="search-result-avatar">
+                        {user.avatar ? (
+                          <img src={user.avatar} alt={user.fullname || user.username} />
+                        ) : (
+                          <i className="fa-solid fa-user"></i>
+                        )}
+                      </div>
+                      <div className="search-result-info">
+                        <div className="search-result-name">
+                          {user.fullname || user.username}
+                        </div>
+                        <div className="search-result-username">@{user.username}</div>
+                      </div>
+                    </Link>
+                    <button
+                      className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        try {
+                          if (user.isFollowing) {
+                            await userApi.unfollowUser(user._id);
+                            setSearchResults((prev) =>
+                              prev.map((u) =>
+                                u._id === user._id ? { ...u, isFollowing: false } : u
+                              )
+                            );
+                          } else {
+                            await userApi.followUser(user._id);
+                            setSearchResults((prev) =>
+                              prev.map((u) =>
+                                u._id === user._id ? { ...u, isFollowing: true } : u
+                              )
+                            );
+                          }
+                        } catch (err) {
+                          console.error("Follow error:", err);
+                        }
+                      }}
+                    >
+                      {user.isFollowing ? "Following" : "Follow"}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="search-no-results">Không tìm thấy người dùng</div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -652,193 +794,180 @@ const Home = () => {
           </div>
         )}
 
-        {!loading &&
-          !errMsg &&
-          visiblePosts.map((post) => {
-            const media = getFirstMedia(post);
-            const isVideo = post.type === "video" || isVideoUrl(media);
-            const hasPlace = !!getPostLatLng(post);
+        {!loading && !errMsg && visiblePosts.length > 0 && (
+          <div className="swipe-cards-container">
+            {/* Card stack */}
+            <div
+              className="swipe-card-wrapper"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{ touchAction: 'none' }}
+            >
+              {visiblePosts.map((post, idx) => {
+                const isActive = idx === currentCardIndex;
+                const isVisible = idx >= currentCardIndex && idx <= currentCardIndex + 1;
 
-            return (
-              <article
-                className="post-card"
-                key={post._id}
-                data-post-id={post._id}
-              >
-                <div className="post-header">
-                  <Link to={`/profile/${post.user?._id}`} className="user-info">
-                    <div className="user-avatar">
-                      {post.user?.avatar ? (
-                        <img
-                          src={post.user.avatar}
-                          alt=""
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            borderRadius: 999,
-                          }}
-                        />
+                if (!isVisible) return null;
+
+                const media = getFirstMedia(post);
+                const isVideo = post.type === "video" || isVideoUrl(media);
+                const hasPlace = !!getPostLatLng(post);
+
+                return (
+                  <article
+                    key={post._id}
+                    className={`swipe-card ${isActive ? "active" : ""}`}
+                    style={{
+                      transform: isActive
+                        ? `translateX(${cardTranslate}px) rotate(${cardRotation}deg)`
+                        : `translateX(${(idx - currentCardIndex) * 20}px) translateY(${(idx - currentCardIndex) * 10}px) scale(${1 - (idx - currentCardIndex) * 0.05})`,
+                      zIndex: visiblePosts.length - idx,
+                      opacity: isVisible ? 1 : 0,
+                      pointerEvents: isActive ? 'auto' : 'none',
+                    }}
+                  >
+                    <div className="swipe-card-media">
+                      {media ? (
+                        isVideo ? (
+                          <video
+                            src={media}
+                            className="swipe-card-image"
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                          />
+                        ) : (
+                          <img src={media} alt="Post" className="swipe-card-image" />
+                        )
                       ) : (
-                        <i className="fa-solid fa-user"></i>
+                        <div className="swipe-card-no-media">{post.content}</div>
+                      )}
+
+                      {/* Location button */}
+                      {hasPlace && (
+                        <button
+                          className="swipe-card-location-btn"
+                          onClick={(e) => { e.stopPropagation(); goToPostOnMap(post); }}
+                        >
+                          <i className="fa-solid fa-location-dot"></i>
+                        </button>
+                      )}
+
+                      {/* Report button */}
+                      <button
+                        className="swipe-card-more-btn"
+                        onClick={(e) => { e.stopPropagation(); toggleReportMenu(e); }}
+                      >
+                        <i className="fa-solid fa-ellipsis"></i>
+                      </button>
+                      <div className="report-dropdown" style={{ position: 'absolute', top: 60, right: 16 }}>
+                       </div>
+                    </div>
+
+                    {/* Overlay: User info, Tags, Content on image */}
+                    <div className="swipe-card-overlay">
+                      <Link to={`/profile/${post.user?._id}`} className="swipe-card-user-row">
+                        <div className="swipe-card-avatar">
+                          {post.user?.avatar ? (
+                            <img src={post.user.avatar} alt="" />
+                          ) : (
+                            <i className="fa-solid fa-user"></i>
+                          )}
+                        </div>
+                        <div className="swipe-card-name">
+                          <span className="swipe-card-username">{getDisplayName(post)}</span>
+                          {post.distanceKm != null && (
+                            <span className="swipe-card-distance">
+                              {formatDistance(post.distanceKm)}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+
+                      {/* Tags */}
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="swipe-card-tags">
+                          {post.tags.slice(0, 3).map((tag, idx) => (
+                            <span key={tag._id || idx} className="swipe-card-tag">
+                              {tag.icon} {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Content */}
+                      {post.content && (
+                        <div className="swipe-card-content">
+                          <p>{post.content}</p>
+                        </div>
                       )}
                     </div>
 
-                    <div className="user-name-distance">
-                      <span className="username">{getDisplayName(post)}</span>
-
-                      {post.distanceKm != null &&
-                        typeof post.distanceKm === "number" && (
-                          <span className="post-distance">
-                            · {formatDistance(post.distanceKm)}
-                          </span>
-                        )}
-                    </div>
-                  </Link>
-
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 10 }}
-                  >
-                    {hasPlace && (post.place?.name || post.place?.address) && (
+                    {/* Bottom white bar: Actions only */}
+                    <div className="swipe-card-actions">
                       <button
-                        type="button"
-                        className="post-location-icon-btn"
-                        onClick={() => goToPostOnMap(post)}
-                        title={post.place?.name || post.place?.address}
-                        aria-label="Vị trí"
+                        className={`swipe-action-btn heart ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
+                        onClick={() => reactHeart(post._id)}
                       >
-                        <i className="fa-solid fa-location-dot" />
-                      </button>
-                    )}
-                    <div className="report-wrapper">
-                      <button
-                        type="button"
-                        className="report-btn"
-                        onClick={toggleReportMenu}
-                        aria-label="Report menu"
-                        title="Report menu"
-                      >
-                        <i className="fa-solid fa-circle-exclamation"></i>
+                        <i className="fa-solid fa-heart"></i>
                       </button>
 
-                      <div className="report-dropdown">
-                        <div
-                          className="dropdown-item"
-                          onClick={(e) => handleAction("block", post, e)}
+                      {String(post.user?._id) !== String(currentUserId) && (
+                        <button
+                          className="swipe-action-btn chat"
+                          onClick={() => openChatWithPostUser(post)}
                         >
-                          <i className="fa-solid fa-ban"></i> Block
-                        </div>
-
-                        <div
-                          className="dropdown-item warning"
-                          onClick={(e) => handleAction("report", post, e)}
-                        >
-                          <i className="fa-solid fa-flag"></i> Report
-                        </div>
-                      </div>
+                          <i className="fa-regular fa-comment"></i>
+                        </button>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  </article>
+                );
+              })}
+            </div>
 
-                {/* Tags hiển thị dưới avatar, trên ảnh post */}
-                {post.tags && post.tags.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 4,
-                      flexWrap: "wrap",
-                      padding: "0 16px 8px",
-                      marginLeft: 44,
-                      overflow: "hidden",
-                      maxWidth: "calc(100% - 60px)",
-                    }}
-                  >
-                    {post.tags.slice(0, 3).map((tag, idx) => (
-                      <span
-                        key={tag._id || idx}
-                        style={{
-                          background: "#e94057",
-                          color: "white",
-                          padding: "2px 8px",
-                          borderRadius: 10,
-                          fontSize: 10,
-                          fontWeight: 500,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {tag.icon} {tag.name}
-                      </span>
-                    ))}
-                    {post.tags.length > 3 && (
-                      <span
-                        style={{
-                          background: "#b83245",
-                          color: "#aaa",
-                          padding: "2px 6px",
-                          borderRadius: 10,
-                          fontSize: 10,
-                        }}
-                      >
-                        +{post.tags.length - 3}
-                      </span>
-                    )}
-                  </div>
-                )}
+            {/* Navigation dots */}
+            <div className="swipe-dots">
+              {visiblePosts.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`swipe-dot ${idx === currentCardIndex ? "active" : ""}`}
+                  onClick={() => setCurrentCardIndex(idx)}
+                />
+              ))}
+            </div>
 
-                <div className="post-image-wrapper">
-                  {media ? (
-                    isVideo ? (
-                      <video
-                        src={media}
-                        className="post-image"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : (
-                      <img src={media} alt="Post" className="post-image" />
-                    )
-                  ) : (
-                    <div style={{ padding: 16 }}>{post.content}</div>
-                  )}
+            {/* Navigation arrows */}
+            <div className="swipe-arrows">
+              <button
+                className="swipe-arrow prev"
+                onClick={goToPrevCard}
+                disabled={currentCardIndex === 0}
+              >
+                <i className="fa-solid fa-chevron-left"></i>
+              </button>
+              <span className="swipe-counter">
+                {currentCardIndex + 1} / {visiblePosts.length}
+              </span>
+              <button
+                className="swipe-arrow next"
+                onClick={goToNextCard}
+                disabled={currentCardIndex === visiblePosts.length - 1}
+              >
+                <i className="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
 
-                  {post.content && (
-                    <div className="caption-overlay">
-                      <p>{post.content}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="post-actions">
-                  <button
-                    type="button"
-                    className={`heart-btn ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
-                    onClick={() => reactHeart(post._id)}
-                    aria-label="Heart"
-                  >
-                    <i className="fa-solid fa-heart action-icon"></i>
-                    <span className="like-count">
-                      {reactionMeta[post._id]?.count || 0}
-                    </span>
-                  </button>
-                  {String(post.user?._id) !== String(currentUserId) && (
-                    <button
-                      type="button"
-                      className="chat-icon-btn"
-                      onClick={() => openChatWithPostUser(post)}
-                      aria-label="Chat"
-                    >
-                      <i className="fa-regular fa-comment action-icon"></i>
-                    </button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
+        {!loading && !errMsg && visiblePosts.length === 0 && (
+          <div className="swipe-empty">
+            <i className="fa-solid fa-inbox"></i>
+            <p>Không có bài đăng nào</p>
+          </div>
+        )}
       </main>
 
       {/* TikTok-style Bottom Navigation */}

@@ -85,6 +85,7 @@ export default function StrangerProfile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followPending, setFollowPending] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [canViewPosts, setCanViewPosts] = useState(true);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
   // Tags
@@ -116,6 +117,7 @@ export default function StrangerProfile() {
       setStats(payload?.stats || { posts: 0, followers: 0 });
       setIsFollowing(Boolean(payload?.relationship?.isFollowing));
       setIsOwner(Boolean(payload?.relationship?.isOwner));
+      setCanViewPosts(Boolean(payload?.relationship?.canViewPosts));
       setPosts(payload?.posts || []);
       setPagination(
         payload?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 },
@@ -199,6 +201,8 @@ export default function StrangerProfile() {
       if (isFollowing) {
         const res = await userApi.unfollowUser(profile._id);
         setIsFollowing(false);
+        setCanViewPosts(false); // After unfollow, may not see posts anymore
+        setPosts([]); // Clear posts
         const newCount = res?.data?.data?.followers;
         if (typeof newCount === "number") {
           setStats((s) => ({ ...s, followers: newCount }));
@@ -217,6 +221,8 @@ export default function StrangerProfile() {
         } else {
           setStats((s) => ({ ...s, followers: (s.followers || 0) + 1 }));
         }
+        // Refresh profile to check if mutual follow - then can view posts
+        fetchProfile(1);
       }
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || "Follow failed";
@@ -342,7 +348,24 @@ export default function StrangerProfile() {
 
         <h3 className="post-title">POSTS</h3>
 
-        {/* Mỗi post có header giống user_profile: avatar + username */}
+        {/* Show message if cannot view posts (not mutual follow) */}
+        {!canViewPosts ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            color: 'var(--text-muted)'
+          }}>
+            <i className="fa-solid fa-lock" style={{ fontSize: 32, marginBottom: 12 }}></i>
+            <p style={{ margin: 0, fontSize: 14 }}>
+              Chỉ có thể xem bài viết khi hai người follow nhau
+            </p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div style={{ textAlign: "center", marginTop: 50, color: "#666" }}>
+            NO POST YET
+          </div>
+        ) : (
+        /* Mỗi post có header giống user_profile: avatar + username */
         <div className="posts-grid">
           {posts.map((p) => {
             const media = Array.isArray(p.mediaUrl) ? p.mediaUrl[0] : "";
@@ -380,8 +403,9 @@ export default function StrangerProfile() {
             );
           })}
         </div>
+        )}
 
-        {pagination.page < pagination.totalPages && (
+        {canViewPosts && pagination.page < pagination.totalPages && (
           <button
             className="follow-btn"
             style={{ width: "100%", marginTop: 12 }}
