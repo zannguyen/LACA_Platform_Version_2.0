@@ -138,22 +138,55 @@ const searchUsers = asyncHandler(async (req, res) => {
   if (!query)
     return res.status(400).json({ message: "Vui lòng nhập từ khóa tìm kiếm" });
 
-  const users = await User.find({
-    $and: [
-      { _id: { $ne: currentUserId } },
-      {
-        $or: [
-          { username: { $regex: query, $options: "i" } },
-          { fullname: { $regex: query, $options: "i" } },
-          { email: { $regex: query, $options: "i" } },
-        ],
-      },
+  const searchQuery = query.trim().toLowerCase();
+  console.log("Search query:", searchQuery, "currentUserId:", currentUserId);
+
+  // First, let's find ALL users that match the email (for debugging)
+  const allByEmail = await User.find({
+    email: { $regex: searchQuery, $options: 'i' }
+  }).select("_id username email").limit(5);
+  console.log("Users matching email:", allByEmail.length, allByEmail.map(u => ({ id: u._id, email: u.email })));
+
+  // Build search filter
+  const searchFilter = {
+    $or: [
+      { username: { $regex: searchQuery, $options: 'i' } },
+      { fullname: { $regex: searchQuery, $options: 'i' } },
+      { email: { $regex: searchQuery, $options: 'i' } },
     ],
+  };
+
+  // Exclude current user
+  const users = await User.find({
+    _id: { $ne: currentUserId },
+    ...searchFilter
   })
     .select("_id username fullname email avatar")
     .limit(10);
 
-  return res.status(200).json(users);
+  console.log("Found users (excluding self):", users.length);
+
+  // Get follow status for each user
+  const Follow = require("../models/follow.model");
+  const userIds = users.map(u => u._id);
+  const follows = await Follow.find({
+    followerUserId: currentUserId,
+    followingUserId: { $in: userIds }
+  }).lean();
+
+  const followingIds = new Set(follows.map(f => String(f.followingUserId)));
+
+  // Add isFollowing to each user
+  const usersWithFollowStatus = users.map(user => ({
+    _id: user._id,
+    username: user.username,
+    fullname: user.fullname,
+    email: user.email,
+    avatar: user.avatar,
+    isFollowing: followingIds.has(String(user._id))
+  }));
+
+  return res.status(200).json(usersWithFollowStatus);
 });
 
 // 5) Get or create conversation

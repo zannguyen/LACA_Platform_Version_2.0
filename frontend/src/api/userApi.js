@@ -67,6 +67,14 @@ const userApi = {
       return Promise.reject(new Error("Missing userId for getUserPreferredTags"));
     return api.get(`/user/${userId}/preferred-tags`);
   },
+
+  // Search users by username, fullname or email
+  searchUsers: (query) => {
+    if (!query || query.trim().length === 0) {
+      return Promise.resolve({ data: [] });
+    }
+    return api.get(`/chat/search${buildQuery({ query: query.trim() })}`);
+  },
 };
 
 export default userApi;
