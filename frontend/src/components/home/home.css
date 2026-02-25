@@ -1270,13 +1270,14 @@
 .mobile-wrapper .swipe-card-overlay .swipe-card-username {
   font-size: 15px;
   font-weight: 700;
-  color: #333;
-  text-shadow: none;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-distance {
   font-size: 13px;
-  color: #666;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-tags {
@@ -1287,21 +1288,20 @@
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-tag {
-  background: rgba(255,255,255,0.9);
+  background: rgba(0,0,0,0.6);
   backdrop-filter: blur(8px);
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  color: #333;
-  border: 1px solid #ddd;
+  color: #fff;
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-content {
   font-size: 14px;
-  color: #333;
+  color: #fff;
   line-height: 1.4;
-  text-shadow: none;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
   max-height: 40px;
   overflow: hidden;
   text-overflow: ellipsis;
