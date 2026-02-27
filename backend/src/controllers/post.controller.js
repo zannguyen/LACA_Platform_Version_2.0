@@ -147,20 +147,90 @@ const createWithMedia = async (req, res) => {
 const getHomePosts = async (req, res) => {
   try {
     let blockedUserIds = [];
+    let userPreferredTagIds = [];
+    let userInterestNames = [];
+
     if (req.user?.id) {
       blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+
+      // Get user's preferred tags and interests for recommendations
+      const User = require("../models/user.model");
+      const user = await User.findById(req.user.id)
+        .populate("preferredTags")
+        .populate("interests");
+
+      if (user) {
+        // Get preferredTags IDs
+        if (user.preferredTags && user.preferredTags.length > 0) {
+          userPreferredTagIds = user.preferredTags.map((tag) => tag._id.toString());
+        }
+
+        // Get interest names for broader matching
+        if (user.interests && user.interests.length > 0) {
+          userInterestNames = user.interests
+            .map((interest) => {
+              if (typeof interest === "object" && interest.name) {
+                return interest.name.toLowerCase();
+              }
+              return String(interest).toLowerCase();
+            })
+            .filter(Boolean);
+        }
+      }
     }
 
     const query = { status: "active" };
     if (blockedUserIds.length) query.userId = { $nin: blockedUserIds };
 
+    // Fetch posts with tags populated
     const posts = await Post.find(query)
-      .populate("userId", "fullname username avatar") // ✅ dùng fullname/username/avatar
+      .populate("userId", "fullname username avatar")
       .populate("placeId", "name")
+      .populate("tags", "name")
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(50) // Get more posts for sorting
+      .lean();
 
-    return res.json(posts);
+    // Separate posts into matching and non-matching based on user's preferred tags
+    const matchingPosts = [];
+    const nonMatchingPosts = [];
+
+    posts.forEach((post) => {
+      // Check if post has tags that match user's preferred tags (by ID)
+      const postTagIds = post.tags ? post.tags.map((tag) => tag._id.toString()) : [];
+      const postTagNames = post.tags
+        ? post.tags.map((tag) => tag.name?.toLowerCase()).filter(Boolean)
+        : [];
+
+      // Check for tag ID match
+      const hasMatchingTagId = postTagIds.some((tagId) =>
+        userPreferredTagIds.includes(tagId)
+      );
+
+      // Check for interest name match (if user has interests)
+      const hasMatchingInterest =
+        userInterestNames.length > 0 &&
+        userInterestNames.some((interestName) =>
+          postTagNames.some((tagName) => tagName?.includes(interestName))
+        );
+
+      const hasMatchingTag = hasMatchingTagId || hasMatchingInterest;
+
+      if (hasMatchingTag) {
+        matchingPosts.push({ ...post, isRecommended: true });
+      } else {
+        nonMatchingPosts.push({ ...post, isRecommended: false });
+      }
+    });
+
+    // Sort each group by newest first
+    matchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    nonMatchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Combine: matching posts first, then non-matching
+    const sortedPosts = [...matchingPosts, ...nonMatchingPosts].slice(0, 20);
+
+    return res.json(sortedPosts);
   } catch (error) {
     console.error("Get home posts error:", error);
     return res.status(500).json({ message: error.message });
@@ -184,4 +254,47 @@ const deletePost = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Post deleted", ...result });
 });
 
-module.exports = { create, createWithMedia, getHomePosts, deletePost };
+// Get single post detail
+const getPostDetail = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user?.id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
+
+    const post = await Post.findById(postId)
+      .populate("userId", "fullname username avatar")
+      .populate("placeId", "name")
+      .populate("tags", "name color")
+      .lean();
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Get reactions for this post
+    const Reaction = require("../models/reaction.model");
+    const reactions = await Reaction.find({ postId })
+      .populate("userId", "fullname username avatar")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: {
+        ...post,
+        reactions,
+        commentCount: 0, // Comment feature not implemented yet
+        isLiked: reactions.some(r => r.userId?._id?.toString() === userId),
+        likeCount: reactions.length,
+      },
+    });
+  } catch (error) {
+    console.error("Get post detail error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { create, createWithMedia, getHomePosts, getPostDetail, deletePost };

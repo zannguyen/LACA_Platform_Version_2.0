@@ -428,11 +428,7 @@ const handleSaveCroppedAvatar = async (blob) => {
   };
 
   const displayName = profile?.fullname || profile?.username || "User";
-  const displayBio = (isEditing ? draftBio : profile?.bio)?.trim()
-    ? isEditing
-      ? draftBio
-      : profile?.bio
-    : "Chưa có bio";
+  const displayBio = isEditing ? draftBio : (profile?.bio || "");
 
   if (loading && !profile) {
     return (
@@ -446,142 +442,137 @@ const handleSaveCroppedAvatar = async (blob) => {
 
   return (
     <div className="mobile-wrapper my-profile">
-      {/* ✅ HEADER giống stranger_profile */}
-      <header className="top-nav">
-        <button
-          type="button"
-          className="nav-btn"
-          aria-label="Back"
-          onClick={handleBack}
-        >
-          <i className="fa-solid fa-arrow-left"></i>
-        </button>
-
-        <div className="header-actions">
-          <Link to="/setting" className="nav-btn" title="Cài đặt">
+      {/* Header */}
+      <header className="profile-header">
+        <div className="profile-header-left">
+          <button
+            type="button"
+            className="profile-header-btn"
+            aria-label="Back"
+            onClick={handleBack}
+          >
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+        </div>
+        <span className="profile-header-title">{displayName}</span>
+        <div className="profile-header-right">
+          <Link to="/setting" className="profile-header-icon" title="Cài đặt">
             <i className="fa-solid fa-gear"></i>
           </Link>
         </div>
       </header>
 
-      {/* ✅ MAIN giống stranger_profile */}
-      <div className="profile-container">
+      {/* Main Profile Section */}
+      <div className="profile-main">
         {!!error && (
           <div style={{ marginBottom: 12, color: "#b00020", fontSize: 13 }}>
             {error}
           </div>
         )}
 
-        <div className="details-section">
-          <div
-            className="avatar-large"
-            onClick={triggerAvatarPick}
-            style={{ cursor: isEditing ? "pointer" : "default" }}
-            title={isEditing ? "Bấm để đổi avatar" : ""}
-          >
-            {profile?.avatar ? (
-              <img src={profile.avatar} alt="avatar" />
-            ) : (
-              <div className="avatar-fallback">
-                <span className="avatar-dot" />
-              </div>
-            )}
+        {/* Profile Info - Instagram Style */}
+        <div className="profile-info-section">
+          {/* Avatar */}
+          <div className="profile-avatar-section">
+            <div
+              className="profile-avatar"
+              onClick={triggerAvatarPick}
+              style={{ cursor: isEditing ? "pointer" : "default" }}
+              title={isEditing ? "Bấm để đổi avatar" : ""}
+            >
+              {profile?.avatar ? (
+                <img src={profile.avatar} alt="avatar" />
+              ) : (
+                <div className="avatar-fallback">
+                  <span className="avatar-dot" />
+                </div>
+              )}
+              {isEditing && (
+                <div className="profile-avatar-edit">
+                  <i className="fa-solid fa-camera"></i>
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={onAvatarSelected}
+            />
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={onAvatarSelected}
-          />
-
-          <div className="user-name-distance">
-            {isEditing ? (
-              <input
-                className="user-name editable"
-                value={draftFullname}
-                onChange={(e) => setDraftFullname(e.target.value)}
-                maxLength={120}
-              />
-            ) : (
-              <div className="user-name">{displayName}</div>
-            )}
-
-            <div className="user-id">ID: {profile?._id || "-"}</div>
-
-            {isEditing ? (
-              <textarea
-                className="user-bio editable"
-                value={draftBio}
-                onChange={(e) => setDraftBio(e.target.value)}
-                maxLength={200}
-                rows={2}
-              />
-            ) : (
-              <div className="user-bio">{displayBio}</div>
-            )}
-
-            {/* Tags Section */}
-            <TagDisplay
-              tags={userTags}
-              maxVisible={3}
-              onShowAll={() => setShowTagModal(true)}
-            />
-
-            {isEditing && (
-              <button
-                type="button"
-                className="edit-interests-btn"
-                onClick={() => setShowTagModal(true)}
-                style={{
-                  marginTop: "8px",
-                  padding: "8px 16px",
-                  background:
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-              >
-                Edit Tags
-              </button>
-            )}
-
-            {isEditing ? (
-              <div className="edit-hint">Tip: bấm vào avatar để đổi ảnh.</div>
-            ) : null}
+          {/* Stats Row */}
+          <div className="profile-user-stats">
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.posts !== undefined ? stats.posts : posts.length}</span>
+              <span className="profile-stat-label">posts</span>
+            </div>
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.followers !== undefined ? stats.followers : 0}</span>
+              <span className="profile-stat-label">followers</span>
+            </div>
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.following !== undefined ? stats.following : 0}</span>
+              <span className="profile-stat-label">following</span>
+            </div>
           </div>
         </div>
 
-        {/* ✅ STATS ROW giống stranger_profile (nút phải là EDIT/DONE) */}
-        <div className="stats-row">
-          <div className="stats-group">
-            <span className="stat-item">
-              <strong>{stats?.posts ?? posts.length}</strong> Posts
-            </span>
-            <span className="stat-item">
-              <strong>{stats?.followers ?? 0}</strong> Followers
-            </span>
+        {/* Name and Bio */}
+        <div className="profile-name-section">
+          <div className="profile-name-row">
+            <span className="profile-username">{displayName}</span>
           </div>
+          {isEditing ? (
+            <textarea
+              className="profile-bio-input"
+              placeholder="Viết bio của bạn..."
+              value={draftBio}
+              onChange={(e) => setDraftBio(e.target.value)}
+              rows={3}
+              maxLength={150}
+            />
+          ) : (
+            displayBio && <p className="profile-bio">{displayBio}</p>
+          )}
+        </div>
 
+        {/* Action Buttons */}
+        <div className="profile-actions">
           <button
-            className={`follow-btn ${isEditing ? "following" : ""}`}
+            className="profile-action-btn primary"
             onClick={handleEditToggle}
             disabled={saving}
           >
-            {saving ? "SAVING..." : isEditing ? "DONE" : "EDIT"}
+            {saving ? "Saving..." : isEditing ? "Done" : "Edit Profile"}
           </button>
         </div>
 
-        <h3 className="post-title">POSTS</h3>
+        {/* Interests/Tags Section */}
+        {(userTags && userTags.length > 0) && (
+          <div className="profile-interests">
+            <h4 className="profile-section-title">Sở thích</h4>
+            <div className="profile-tags-scroll">
+              {userTags.map((tag) => (
+                <span key={tag._id || tag.id} className="profile-tag">
+                  <i className="fa-solid fa-hashtag"></i>
+                  {tag.name}
+                </span>
+              ))}
+              <button
+                className="profile-tag"
+                onClick={() => setShowTagModal(true)}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                <i className="fa-solid fa-plus"></i> Thêm
+              </button>
+            </div>
+          </div>
+        )}
 
-        {/* ✅ POSTS LIST giống stranger_profile */}
-        <div className="posts-grid">
+        {/* Posts Grid - Instagram Style */}
+        <div className="profile-posts">
           {posts.length > 0 ? (
             posts.map((p) => {
               const id = String(p._id || p.id);
@@ -591,74 +582,25 @@ const handleSaveCroppedAvatar = async (blob) => {
               const caption = p.content || p.caption || "";
 
               return (
-                <div className="post-item" key={id}>
-                  <div className="mini-post-header">
-                    <div className="mini-user">
-                      <div className="mini-avatar">
-                        {profile?.avatar ? (
-                          <img src={profile.avatar} alt="" />
-                        ) : null}
-                      </div>
-                      <span className="mini-username">{displayName}</span>
-                      {createdAt ? (
-                        <span className="mini-date">{createdAt}</span>
-                      ) : null}
+                <div
+                  className="profile-post-item"
+                  key={id}
+                  onClick={() => navigate(`/posts/${id}`)}
+                >
+                  {media ? (
+                    <img src={media} alt="post" />
+                  ) : (
+                    <div style={{ color: "#8e8e8e", fontSize: 12 }}>
+                      No media
                     </div>
-
-                    {/* ✅ vẫn giữ menu Edit/Delete của bạn */}
-                    <div
-                      className="mini-post-actions"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        type="button"
-                        className="post-options-btn"
-                        onClick={(e) => togglePostMenu(e, id)}
-                        aria-label="More options"
-                      >
-                        <IconMore />
-                      </button>
-
-                      <div
-                        className={`post-options-menu ${activeMenuId === id ? "show" : ""}`}
-                      >
-                        <button
-                          type="button"
-                          className="option-item"
-                          onClick={handlePostEditClick}
-                        >
-                          <IconEdit />
-                          <span>Edit</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          className="option-item danger"
-                          onClick={(e) => handleDeleteClick(e, id)}
-                        >
-                          <IconTrash />
-                          <span>Delete</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="post-media">
-                    {media ? (
-                      isVideo ? (
-                        <video src={media} controls playsInline />
-                      ) : (
-                        <img src={media} alt="post" />
-                      )
-                    ) : (
-                      <div style={{ color: "#fff", fontSize: 12 }}>
-                        No media
-                      </div>
-                    )}
-
-                    {caption ? (
-                      <div className="post-caption">{caption}</div>
-                    ) : null}
+                  )}
+                  <div className="profile-post-overlay">
+                    <span className="profile-post-stat">
+                      <i className="fa-solid fa-heart"></i>
+                    </span>
+                    <span className="profile-post-stat">
+                      <i className="fa-solid fa-comment"></i>
+                    </span>
                   </div>
                 </div>
               );
@@ -684,7 +626,8 @@ const handleSaveCroppedAvatar = async (blob) => {
 
       {/* Modal delete (giữ nguyên) */}
       <div
-        className={`modal-overlay ${showModal ? "show" : ""}`}
+        className="modal-overlay"
+        style={{ display: showModal ? "flex" : "none" }}
         onClick={closeDeleteModal}
       >
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>

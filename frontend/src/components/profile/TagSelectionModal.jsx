@@ -41,10 +41,16 @@ export default function TagSelectionModal({
     }
   };
 
+  const MAX_TAGS = 5;
+
   const handleToggleTag = (tagId) => {
     setSelectedIds((prev) => {
       if (prev.includes(tagId)) {
         return prev.filter((id) => id !== tagId);
+      }
+      // Limit to 5 tags
+      if (prev.length >= MAX_TAGS) {
+        return prev;
       }
       return [...prev, tagId];
     });
@@ -142,7 +148,7 @@ export default function TagSelectionModal({
 
         <div className="tag-selection-footer">
           <div className="tag-selection-count">
-            Selected: {selectedIds.length} tags
+            Selected: {selectedIds.length}/{MAX_TAGS} tags
           </div>
           <div className="tag-selection-actions">
             <button

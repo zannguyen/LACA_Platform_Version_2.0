@@ -1,4 +1,5 @@
 /* Home - Mobile-first, design system */
+@import url("../../styles/design-tokens.css");
 
 .mobile-wrapper {
   width: 100%;
@@ -623,13 +624,13 @@
   right: 0;
   top: 100%;
   margin-top: 4px;
-  background: var(--bg-card);
-  min-width: 160px;
-  box-shadow: var(--shadow-lg);
-  border-radius: var(--radius-md);
+  background: #fff;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
   z-index: 50;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid #dbdbdb;
 }
 
 .mobile-wrapper .report-dropdown.show {
@@ -649,28 +650,29 @@
 }
 
 .mobile-wrapper .dropdown-item {
-  padding: var(--space-md) var(--space-lg);
-  font-size: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #262626;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: 8px;
   transition: background 0.2s;
   border: none;
   width: 100%;
   text-align: left;
-  background: var(--bg-card);
-  font-family: var(--font-sans);
+  background: #fff;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .mobile-wrapper .dropdown-item:hover {
-  background: var(--bg-input);
+  background: #f5f5f5;
 }
 
 .mobile-wrapper .dropdown-item.warning {
-  color: var(--error);
+  color: #ed4956;
 }
 
 .mobile-wrapper .dropdown-item.warning:hover {
@@ -1174,10 +1176,12 @@
   width: auto;
   height: 100%;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
   background: #fff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1191,15 +1195,17 @@
 .mobile-wrapper .swipe-card-media {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   background: #fff;
   min-height: 0;
+  border-radius: 20px;
 }
 
 .mobile-wrapper .swipe-card-media > * {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 20px;
 }
 
 .mobile-wrapper .swipe-card-image {
@@ -1271,13 +1277,13 @@
   font-size: 15px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-distance {
   font-size: 13px;
   color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-tags {
@@ -1288,7 +1294,7 @@
 }
 
 .mobile-wrapper .swipe-card-overlay .swipe-card-tag {
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   padding: 4px 10px;
   border-radius: 12px;
@@ -1301,7 +1307,7 @@
   font-size: 14px;
   color: #fff;
   line-height: 1.4;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   max-height: 40px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1497,7 +1503,6 @@
   font-size: 16px;
   cursor: pointer;
 }
-
 
 /* Separator between actions and user info */
 .mobile-wrapper .swipe-card-separator {

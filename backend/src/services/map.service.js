@@ -22,6 +22,9 @@ exports.getPostsInRadius = async ({
   radiusMeters = 5000,
   blockedUserIds = [],
   followedUserIds = [],
+  userPreferredTagIds = [],
+  userInterestNames = [],
+  useRecommendation = false,
 }) => {
   const blockedIds = normalizeObjectIds(blockedUserIds);
   const followedIds = normalizeObjectIds(followedUserIds);
@@ -218,11 +221,68 @@ exports.getPostsInRadius = async ({
   const merged = [];
   const seen = new Set();
 
+  // Helper to check if post tags match user's preferences
+  const checkIsRecommended = (post) => {
+    if (!useRecommendation || (!userPreferredTagIds.length && !userInterestNames.length)) {
+      return false;
+    }
+
+    const postTagIds = post.tags ? post.tags.map((tag) => String(tag._id)) : [];
+    const postTagNames = post.tags ? post.tags.map((tag) => (tag.name || "").toLowerCase()) : [];
+
+    // Check for tag ID match
+    const hasMatchingTagId = postTagIds.some((tagId) =>
+      userPreferredTagIds.includes(tagId)
+    );
+
+    // Check for interest name match
+    const hasMatchingInterest =
+      userInterestNames.length > 0 &&
+      userInterestNames.some((interestName) =>
+        postTagNames.some((tagName) => tagName?.includes(interestName))
+      );
+
+    return hasMatchingTagId || hasMatchingInterest;
+  };
+
   for (const p of [...nearbyPosts, ...followedPosts]) {
     const key = String(p._id);
     if (seen.has(key)) continue;
     seen.add(key);
-    merged.push(p);
+
+    // Add isRecommended flag
+    const postWithRecommendation = {
+      ...p,
+      isRecommended: checkIsRecommended(p),
+    };
+    merged.push(postWithRecommendation);
+  }
+
+  if (useRecommendation && (userPreferredTagIds.length || userInterestNames.length)) {
+    // Separate matching and non-matching posts
+    const matchingPosts = [];
+    const nonMatchingPosts = [];
+
+    merged.forEach((post) => {
+      if (post.isRecommended) {
+        matchingPosts.push(post);
+      } else {
+        nonMatchingPosts.push(post);
+      }
+    });
+
+    // Sort each group by newest first
+    matchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    nonMatchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Combine: matching posts first, then non-matching
+    const result = [...matchingPosts, ...nonMatchingPosts].slice(0, Math.max(limit, 10));
+
+    if (!result.length) {
+      throw new AppError("No posts found in this area", 404);
+    }
+
+    return result;
   }
 
   merged.sort((a, b) => {

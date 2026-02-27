@@ -1,6 +1,6 @@
 // frontend/src/components/stranger_profile/stranger_profile.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
 import TagDisplay from "../profile/TagDisplay";
 import TagSelectionModal from "../profile/TagSelectionModal";
@@ -61,6 +61,7 @@ const isVideoUrl = (url = "") => {
 
 export default function StrangerProfile() {
   const params = useParams();
+  const navigate = useNavigate();
 
   // hỗ trợ cả 2 route param:
   // - /profile/:userId  -> params.userId
@@ -263,15 +264,23 @@ export default function StrangerProfile() {
 
   return (
     <div className="mobile-wrapper stranger-profile">
-      <header className="top-nav">
-        <Link to="/home" className="nav-btn" aria-label="Back">
-          <i className="fa-solid fa-arrow-left"></i>
-        </Link>
-
-        <div className="header-actions" ref={menuRef}>
+      {/* Header */}
+      <header className="profile-header">
+        <div className="profile-header-left">
           <button
             type="button"
-            className="nav-btn"
+            className="profile-header-btn"
+            aria-label="Back"
+            onClick={() => navigate(-1)}
+          >
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+        </div>
+        <span className="profile-header-title">{displayName}</span>
+        <div className="profile-header-right" ref={menuRef}>
+          <button
+            type="button"
+            className="profile-header-btn"
             aria-label="More"
             onClick={(e) => {
               e.stopPropagation();
@@ -298,122 +307,139 @@ export default function StrangerProfile() {
         </div>
       </header>
 
-      <div className="profile-container">
-        <div className="details-section">
-          <div className="avatar-large">
-            {profile?.avatar ? (
-              <img src={profile.avatar} alt="avatar" />
-            ) : (
-              <div className="avatar-fallback">
-                <span className="avatar-dot" />
-              </div>
-            )}
+      {/* Main Profile Section */}
+      <div className="profile-main">
+        {/* Profile Info - Instagram Style */}
+        <div className="profile-info-section">
+          {/* Avatar */}
+          <div className="profile-avatar-section">
+            <div className="profile-avatar">
+              {profile?.avatar ? (
+                <img src={profile.avatar} alt="avatar" />
+              ) : (
+                <div className="avatar-fallback">
+                  <span className="avatar-dot" />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="user-name-distance">
-            <div className="user-name">{displayName}</div>
-            <div className="user-id">ID: {profile?._id}</div>
-            <div className="user-bio">{displayBio}</div>
-
-            {/* Tags Section */}
-            <TagDisplay
-              tags={userTags}
-              maxVisible={3}
-              onShowAll={handleShowAllTags}
-            />
+          {/* Stats Row */}
+          <div className="profile-user-stats">
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.posts ?? posts.length ?? 0}</span>
+              <span className="profile-stat-label">posts</span>
+            </div>
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.followers ?? 0}</span>
+              <span className="profile-stat-label">followers</span>
+            </div>
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.following ?? 0}</span>
+              <span className="profile-stat-label">following</span>
+            </div>
           </div>
         </div>
 
-        {/* Stats giống user_profile: posts + followers sát nhau, follow bên phải */}
-        <div className="stats-row">
-          <div className="stats-group">
-            <span className="stat-item">
-              <strong>{stats?.posts ?? posts.length ?? 0}</strong> Posts
-            </span>
-            <span className="stat-item">
-              <strong>{stats?.followers ?? 0}</strong> Followers
-            </span>
+        {/* Name and Bio */}
+        <div className="profile-name-section">
+          <div className="profile-name-row">
+            <span className="profile-username">{displayName}</span>
           </div>
+          {displayBio && <p className="profile-bio">{displayBio}</p>}
+        </div>
 
+        {/* Action Buttons */}
+        <div className="profile-actions">
           {!isOwner && (
             <button
-              className={`follow-btn ${isFollowing ? "following" : ""}`}
+              className={`profile-action-btn ${isFollowing ? "" : "primary"}`}
               onClick={handleToggleFollow}
               disabled={followPending}
             >
-              {followPending ? "..." : isFollowing ? "FOLLOWING" : "FOLLOW"}
+              {followPending ? "..." : isFollowing ? "Following" : "Follow"}
             </button>
           )}
         </div>
 
-        <h3 className="post-title">POSTS</h3>
+        {/* Interests/Tags Section */}
+        {userTags && userTags.length > 0 && (
+          <div className="profile-interests">
+            <h4 className="profile-section-title">Sở thích</h4>
+            <div className="profile-tags-scroll">
+              {userTags.map((tag) => (
+                <span key={tag._id || tag.id} className="profile-tag">
+                  <i className="fa-solid fa-hashtag"></i>
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
-        {/* Show message if cannot view posts (not mutual follow) */}
-        {!canViewPosts ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            color: 'var(--text-muted)'
-          }}>
-            <i className="fa-solid fa-lock" style={{ fontSize: 32, marginBottom: 12 }}></i>
-            <p style={{ margin: 0, fontSize: 14 }}>
-              Chỉ có thể xem bài viết khi hai người follow nhau
-            </p>
-          </div>
-        ) : posts.length === 0 ? (
-          <div style={{ textAlign: "center", marginTop: 50, color: "#666" }}>
-            NO POST YET
-          </div>
-        ) : (
-        /* Mỗi post có header giống user_profile: avatar + username */
-        <div className="posts-grid">
+      {/* Posts Grid - Instagram Style */}
+      {!canViewPosts ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          color: '#8e8e8e'
+        }}>
+          <i className="fa-solid fa-lock" style={{ fontSize: 32, marginBottom: 12 }}></i>
+          <p style={{ margin: 0, fontSize: 14 }}>
+            Chỉ có thể xem bài viết khi hai người follow nhau
+          </p>
+        </div>
+      ) : posts.length > 0 ? (
+        <div className="profile-posts">
           {posts.map((p) => {
-            const media = Array.isArray(p.mediaUrl) ? p.mediaUrl[0] : "";
+            const id = String(p._id || p.id);
+            const media = Array.isArray(p.mediaUrl) ? p.mediaUrl[0] : p.mediaUrl;
             const isVideo = p.type === "video" || isVideoUrl(media);
 
-            const createdAt = p.createdAt
-              ? new Date(p.createdAt).toLocaleString()
-              : "";
-
             return (
-              <div className="post-item" key={p._id}>
-                <div className="mini-post-header">
-                  <div className="mini-user">
-                    <div className="mini-avatar">
-                      {profile?.avatar ? (
-                        <img src={profile.avatar} alt="" />
-                      ) : null}
-                    </div>
-                    <span className="mini-username">{displayName}</span>
-                    {createdAt ? (
-                      <span className="mini-date">{createdAt}</span>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="post-media">
-                  {isVideo ? (
-                    <video src={media} controls playsInline />
+              <div
+                className="profile-post-item"
+                key={id}
+                onClick={() => window.location.href = `/posts/${id}`}
+              >
+                {media ? (
+                  isVideo ? (
+                    <video src={media} />
                   ) : (
                     <img src={media} alt="post" />
-                  )}
-                  <div className="post-caption">{p.content}</div>
+                  )
+                ) : (
+                  <div style={{ color: "#8e8e8e", fontSize: 12 }}>
+                    No media
+                  </div>
+                )}
+                <div className="profile-post-overlay">
+                  <span className="profile-post-stat">
+                    <i className="fa-solid fa-heart"></i>
+                  </span>
+                  <span className="profile-post-stat">
+                    <i className="fa-solid fa-comment"></i>
+                  </span>
                 </div>
               </div>
             );
           })}
         </div>
-        )}
+      ) : (
+        <div style={{ textAlign: "center", marginTop: 50, color: "#666" }}>
+          NO POST YET
+        </div>
+      )}
 
-        {canViewPosts && pagination.page < pagination.totalPages && (
-          <button
-            className="follow-btn"
-            style={{ width: "100%", marginTop: 12 }}
-            onClick={() => fetchProfile(pagination.page + 1)}
-          >
-            TẢI THÊM
-          </button>
-        )}
+      {canViewPosts && pagination.page < pagination.totalPages && (
+        <button
+          className="profile-action-btn"
+          style={{ width: "100%", marginTop: 12 }}
+          onClick={() => fetchProfile(pagination.page + 1)}
+        >
+          TẢI THÊM
+        </button>
+      )}
       </div>
 
       {/* Tag Modal - View only mode */}

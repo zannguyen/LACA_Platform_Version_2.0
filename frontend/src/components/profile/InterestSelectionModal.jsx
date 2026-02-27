@@ -41,10 +41,16 @@ export default function InterestSelectionModal({
     }
   };
 
+  const MAX_INTERESTS = 5;
+
   const handleToggleInterest = (interestId) => {
     setSelectedIds((prev) => {
       if (prev.includes(interestId)) {
         return prev.filter((i) => i !== interestId);
+      }
+      // Limit to 5 interests
+      if (prev.length >= MAX_INTERESTS) {
+        return prev;
       }
       return [...prev, interestId];
     });

@@ -19,6 +19,9 @@ router.post(
 
 router.get("/home", auth, controller.getHomePosts);
 
+// Get single post detail
+router.get("/:postId", auth, controller.getPostDetail);
+
 // Delete post (hard delete) - only owner can delete
 router.delete("/:postId", auth, controller.deletePost);
 

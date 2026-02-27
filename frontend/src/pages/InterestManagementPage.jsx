@@ -42,12 +42,19 @@ const InterestManagementPage = () => {
     loadData();
   }, []);
 
+  const MAX_TAGS = 5;
+
   const handleToggleTag = (tagId) => {
-    setSelectedIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
-    );
+    setSelectedIds((prev) => {
+      if (prev.includes(tagId)) {
+        return prev.filter((id) => id !== tagId);
+      }
+      // Limit to 5 tags
+      if (prev.length >= MAX_TAGS) {
+        return prev;
+      }
+      return [...prev, tagId];
+    });
   };
 
   const handleSave = async () => {

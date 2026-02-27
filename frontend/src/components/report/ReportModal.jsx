@@ -1,7 +1,5 @@
 // src/components/report/ReportModal.jsx
 import React, { useMemo, useState } from "react";
-import GradientButton from "../ui/GradientButton";
-import TextArea from "../ui/TextArea";
 import { createReport } from "../../api/reportApi";
 import "./ReportModal.css";
 
@@ -10,10 +8,10 @@ const MAX_DESC = 1000;
 
 const CATEGORIES = [
   { value: "spam", label: "Spam" },
-  { value: "harassment", label: "Harassment" },
-  { value: "inappropriate", label: "Inappropriate" },
-  { value: "false_info", label: "False info" },
-  { value: "other", label: "Other" },
+  { value: "harassment", label: "Quấy rối" },
+  { value: "inappropriate", label: "Không phù hợp" },
+  { value: "false_info", label: "Thông tin sai" },
+  { value: "other", label: "Khác" },
 ];
 
 export default function ReportModal({
@@ -51,15 +49,15 @@ export default function ReportModal({
         return;
       }
       if (reasonTrim.length < 5) {
-        setErr("Reason phải ít nhất 5 ký tự.");
+        setErr("Lý do phải ít nhất 5 ký tự.");
         return;
       }
       if (reasonTrim.length > MAX_REASON) {
-        setErr(`Reason tối đa ${MAX_REASON} ký tự.`);
+        setErr(`Lý do tối đa ${MAX_REASON} ký tự.`);
         return;
       }
       if (descTrim.length > MAX_DESC) {
-        setErr(`Description tối đa ${MAX_DESC} ký tự.`);
+        setErr(`Mô tả tối đa ${MAX_DESC} ký tự.`);
         return;
       }
 
@@ -74,7 +72,7 @@ export default function ReportModal({
 
       close(true);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Report failed");
+      setErr(e?.response?.data?.message || e?.message || "Báo cáo thất bại");
     } finally {
       setIsSubmitting(false);
     }
@@ -86,28 +84,25 @@ export default function ReportModal({
     <div className="report-modal-backdrop" onClick={() => close(false)}>
       <div className="report-modal" onClick={(e) => e.stopPropagation()}>
         <div className="report-modal-header">
-          <div className="report-modal-title">Report</div>
+          <span className="report-modal-title">Báo cáo</span>
           <button
             type="button"
             className="report-modal-close"
             onClick={() => close(false)}
-            aria-label="Close"
-            title="Close"
+            aria-label="Đóng"
           >
             ✕
           </button>
         </div>
 
         <div className="report-field">
-          <label>Category</label>
+          <label>Loại vi phạm</label>
           <div className="report-chips">
             {CATEGORIES.map((c) => (
               <button
                 key={c.value}
                 type="button"
-                className={`chip chip-${c.value} ${
-                  category === c.value ? "active" : ""
-                }`}
+                className={`chip ${category === c.value ? "active" : ""}`}
                 onClick={() => setCategory(c.value)}
                 disabled={isSubmitting}
               >
@@ -118,12 +113,13 @@ export default function ReportModal({
         </div>
 
         <div className="report-field">
-          <label>Reason (5–500)</label>
+          <label>Lý do (5-500 ký tự)</label>
           <input
+            type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value.slice(0, MAX_REASON))}
             maxLength={MAX_REASON}
-            placeholder="Ví dụ: Bài đăng spam quảng cáo..."
+            placeholder="Nhập lý do báo cáo..."
             disabled={isSubmitting}
           />
           <div className="report-counter">
@@ -132,9 +128,9 @@ export default function ReportModal({
         </div>
 
         <div className="report-field">
-          <label>Description (optional, ≤ 1000)</label>
-          <TextArea
-            rows={7}
+          <label>Mô tả chi tiết (không bắt buộc)</label>
+          <textarea
+            rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESC))}
             placeholder="Mô tả chi tiết hơn..."
@@ -150,21 +146,21 @@ export default function ReportModal({
         {err && <div className="report-error">{err}</div>}
 
         <div className="report-actions">
-          <GradientButton
-            text={isSubmitting ? "SENDING..." : "SUBMIT"}
-            onClick={submit}
-            disabled={isSubmitting || reasonTrim.length === 0}
-          />
-
           <button
             type="button"
-            className="report-cancel-icon"
+            className="report-cancel-btn"
             onClick={() => close(false)}
             disabled={isSubmitting}
-            aria-label="Cancel"
-            title="Cancel"
           >
-            ✕
+            Hủy
+          </button>
+          <button
+            type="button"
+            className="report-submit-btn"
+            onClick={submit}
+            disabled={isSubmitting || reasonTrim.length === 0}
+          >
+            {isSubmitting ? "Đang gửi..." : "Gửi"}
           </button>
         </div>
       </div>

@@ -55,4 +55,10 @@ export const getRecommendedTopics = async (days = 7, limit = 5) => {
   return res.data.data || [];
 };
 
+// Get single post detail
+export const getPostDetail = async (postId) => {
+  const res = await api.get(`/posts/${postId}`);
+  return res.data;
+};
+
 export default api;

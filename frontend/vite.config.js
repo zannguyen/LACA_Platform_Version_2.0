@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/', // Đổi thành '/ten-folder/' nếu deploy vào subfolder
   plugins: [react()],
   server: {
     // host: "0.0.0.0", // Truy cập từ IP ngoài
