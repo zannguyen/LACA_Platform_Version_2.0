@@ -318,7 +318,12 @@ const ChatListPage = () => {
                 conv.lastMessage?.createdAt || conv.updatedAt || null;
 
               // Convert postId to string for navigation
-              const postIdStr = conv.postId ? String(conv.postId) : "";
+              // Handle both populated object {_id, content} and raw ID
+              const postIdStr = conv.postId?._id
+                ? String(conv.postId._id)
+                : conv.postId
+                  ? String(conv.postId)
+                  : "";
 
               console.log("Rendering public chat:", {
                 _id: conv._id,

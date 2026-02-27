@@ -113,11 +113,19 @@ const ChatDetailPage = () => {
         }
 
         // Extract receiver avatar from first message if available
-        if (first?.senderId?.avatar && String(first.senderId._id) !== String(me)) {
+        if (
+          first?.senderId?.avatar &&
+          String(first.senderId._id) !== String(me)
+        ) {
           setReceiverAvatar(first.senderId.avatar);
-        } else if (first?.senderId?.avatar && String(first.senderId._id) === String(me)) {
+        } else if (
+          first?.senderId?.avatar &&
+          String(first.senderId._id) === String(me)
+        ) {
           // If first message is from current user, look for receiver's message
-          const receiverMsg = response.data?.find((m) => String(m.senderId._id) !== String(me));
+          const receiverMsg = response.data?.find(
+            (m) => String(m.senderId._id) !== String(me),
+          );
           if (receiverMsg?.senderId?.avatar) {
             setReceiverAvatar(receiverMsg.senderId.avatar);
           }
@@ -225,7 +233,7 @@ const ChatDetailPage = () => {
 
   return (
     <div className="auth-form chat-detail-page">
-      <div className="page-header" style={{ borderBottom: "1px solid #ccc" }}>
+      <div className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
           <i className="fa-solid fa-arrow-left"></i>
         </button>
@@ -235,7 +243,12 @@ const ChatDetailPage = () => {
             <img
               src={receiverAvatar}
               alt={receiverName}
-              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                borderRadius: "50%",
+              }}
               onError={() => setReceiverAvatar(null)}
             />
           ) : (
@@ -265,9 +278,14 @@ const ChatDetailPage = () => {
             const isLatest = idx === messages.length - 1;
             const showUnread = msg.isSent && isLatest && msg.isRead === false;
             const senderInfo = msg.senderId;
-            const senderName = typeof senderInfo === "object" ? senderInfo.fullname || senderInfo.username : "User";
-            const senderAvatar = typeof senderInfo === "object" ? senderInfo.avatar : null;
-            const senderId = typeof senderInfo === "object" ? senderInfo._id : senderInfo;
+            const senderName =
+              typeof senderInfo === "object"
+                ? senderInfo.fullname || senderInfo.username
+                : "User";
+            const senderAvatar =
+              typeof senderInfo === "object" ? senderInfo.avatar : null;
+            const senderId =
+              typeof senderInfo === "object" ? senderInfo._id : senderInfo;
 
             return (
               <div
@@ -283,7 +301,12 @@ const ChatDetailPage = () => {
                       <img
                         src={senderAvatar}
                         alt={senderName}
-                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "50%",
+                        }}
                         onError={() => handleAvatarError(senderId)}
                       />
                     ) : (
@@ -306,7 +329,7 @@ const ChatDetailPage = () => {
                         cursor: "pointer",
                         padding: "0 var(--space-sm)",
                         marginBottom: "4px",
-                        textAlign: "left"
+                        textAlign: "left",
                       }}
                     >
                       {senderName}

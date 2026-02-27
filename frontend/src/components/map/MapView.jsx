@@ -1,7 +1,7 @@
 // src/components/map/MapView.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -162,6 +162,7 @@ const DEFAULT_CENTER = [16.0544, 108.2208];
 const DEFAULT_ZOOM = 13;
 
 const MapView = () => {
+  const navigate = useNavigate();
   const { enabled: locationEnabled, requestCurrentPosition } =
     useLocationAccess();
 
@@ -370,15 +371,77 @@ const MapView = () => {
 
   if (loading) {
     return (
-      <div className="map-loading">
-        <div className="spinner" />
-        <p>Đang tải bản đồ...</p>
+      <div className="map-view-container">
+        <div className="page-header">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+          <h2 className="page-title">Maps</h2>
+        </div>
+
+        <div className="map-loading">
+          <div className="spinner" />
+          <p>Đang tải bản đồ...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="map-view-container">
+      <div className="page-header">
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          <i className="fa-solid fa-arrow-left"></i>
+        </button>
+        <h2 className="page-title">Maps</h2>
+      </div>
+
+      <div className="map-info-bar">
+        <div className="checkin-count">
+          {hotspotMeta.places} điểm • {hotspotMeta.total} bài viết trong bán
+          kính {radiusKm}km
+        </div>
+
+        <div className="map-info-controls">
+          <button
+            className="recenter-btn"
+            onClick={handleRecenterToUser}
+            disabled={!userLocation}
+            title={!userLocation ? "Chưa có vị trí" : "Về vị trí của bạn"}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+
+          <button
+            className="refresh-btn"
+            onClick={() => userLocation && setUserLocation([...userLocation])}
+            title="Tải lại hotspots"
+            disabled={!userLocation}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
@@ -402,8 +465,7 @@ const MapView = () => {
             ref={focusMarkerRef}
             position={[focusTarget.lat, focusTarget.lng]}
             eventHandlers={{
-              click: () =>
-                openPostsModalAt(focusTarget.lat, focusTarget.lng),
+              click: () => openPostsModalAt(focusTarget.lat, focusTarget.lng),
             }}
           >
             <Popup>
@@ -450,55 +512,11 @@ const MapView = () => {
         )}
       </MapContainer>
 
-      <div className="map-controls">
-        <button
-          className="recenter-btn"
-          onClick={handleRecenterToUser}
-          disabled={!userLocation}
-          title={!userLocation ? "Chưa có vị trí" : "Về vị trí của bạn"}
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        </button>
-
-        <button
-          className="refresh-btn"
-          onClick={() => userLocation && setUserLocation([...userLocation])}
-          title="Tải lại hotspots"
-          disabled={!userLocation}
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-          </svg>
-        </button>
-      </div>
-
       {notice && (
         <div className="notice-banner">
           <p>{notice}</p>
         </div>
       )}
-
-      <div className="checkin-count">
-        {hotspotMeta.places} điểm • {hotspotMeta.total} bài viết trong bán kính{" "}
-        {radiusKm}km
-      </div>
 
       <PostsModal
         isOpen={isModalOpen}

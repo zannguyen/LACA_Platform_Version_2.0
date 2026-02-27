@@ -49,6 +49,52 @@
   background: var(--success);
 }
 
+/* Page header - shared with other pages */
+.page-header {
+  padding: var(--space-md) var(--space-xl);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.back-btn {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition:
+    background 0.2s,
+    color 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.back-btn:hover,
+.back-btn:active {
+  background: var(--bg-input);
+  color: var(--primary);
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
 /* Chat Tabs */
 .chat-tabs {
   display: flex;
@@ -293,7 +339,9 @@
   cursor: pointer;
   font-size: 18px;
   flex-shrink: 0;
-  transition: opacity 0.2s, transform 0.1s;
+  transition:
+    opacity 0.2s,
+    transform 0.1s;
 }
 
 .send-btn-circle:hover {
