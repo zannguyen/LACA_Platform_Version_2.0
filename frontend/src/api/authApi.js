@@ -8,6 +8,7 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
+  withCredentials: true,
 });
 
 apiClient.interceptors.request.use((config) => {
@@ -45,7 +46,13 @@ export const authApi = {
     return data;
   },
 
-  logout: () => {
+  logout: async () => {
+    try {
+      await apiClient.post("/auth/logout");
+    } catch (error) {
+      // best-effort logout
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");

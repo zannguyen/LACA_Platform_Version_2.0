@@ -9,12 +9,52 @@
   margin: 0 auto;
   box-shadow: var(--shadow-lg);
   font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Map header */
+.map-view-container .page-header {
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+/* Map info bar - dưới header, trên map */
+.map-info-bar {
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.checkin-count {
+  background: var(--bg-input);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Map info controls - buttons in info bar */
+.map-info-controls {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
 }
 
 /* Map container */
 .map-container {
   width: 100%;
-  height: 100%;
+  flex: 1;
   z-index: 1;
 }
 
@@ -30,17 +70,23 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  background: var(--gradient-main);
-  color: white;
+  flex: 1;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.map-loading p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -52,30 +98,19 @@
   }
 }
 
-/* Map Controls */
-.map-controls {
-  position: absolute;
-  top: 16px;
-  right: 12px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 /* Recenter & Refresh buttons */
 .recenter-btn,
 .refresh-btn {
-  width: 44px;
-  height: 44px;
-  background: var(--bg-card);
+  width: 36px;
+  height: 36px;
+  background: var(--bg-input);
   border: none;
   border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
   transition: all 0.2s ease;
   color: var(--text-primary);
   touch-action: manipulation;
@@ -89,22 +124,21 @@
 
 .recenter-btn svg,
 .refresh-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .recenter-btn:hover:not(:disabled),
 .refresh-btn:hover:not(:disabled) {
-  background: var(--gradient-main);
+  background: var(--primary);
   color: white;
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(233, 64, 87, 0.35);
+  transform: scale(1.08);
 }
 
 /* Notice banner (thay vì error đỏ) */
 .notice-banner {
   position: absolute;
-  top: 70px;
+  top: 120px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--text-primary);
@@ -117,20 +151,6 @@
   max-width: calc(100% - 24px);
 }
 
-.checkin-count {
-  position: absolute;
-  top: 16px;
-  left: 12px;
-  background: var(--bg-card);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-md);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  z-index: 1000;
-}
-
 /* Responsive - Desktop */
 @media (min-width: 769px) {
   .map-view-container {
@@ -138,36 +158,42 @@
     box-shadow: none;
   }
 
-  .map-controls {
-    top: 20px;
-    right: 20px;
-    gap: 12px;
-  }
-
   .recenter-btn,
   .refresh-btn {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .recenter-btn svg,
+  .refresh-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .map-info-bar {
+    padding: var(--space-lg);
   }
 
   .checkin-count {
-    top: 20px;
-    left: 20px;
     padding: 10px 20px;
     font-size: 14px;
   }
 
   .notice-banner {
-    top: 80px;
+    top: 150px;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   .recenter-btn,
-  .refresh-btn,
-  .checkin-count {
+  .refresh-btn {
     background: var(--text-primary);
     color: #fff;
+  }
+
+  .checkin-count {
+    background: var(--bg-input);
+    color: var(--text-primary);
   }
 }
 

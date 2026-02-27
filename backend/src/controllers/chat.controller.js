@@ -13,6 +13,17 @@ const toObjectId = (v) => {
   }
 };
 
+// Helper function to generate conversation title from post content
+const generateConversationTitle = (postContent) => {
+  if (!postContent) return null;
+  // Take first 50 characters and add ellipsis if longer
+  const maxLength = 50;
+  if (postContent.length > maxLength) {
+    return postContent.substring(0, maxLength) + "...";
+  }
+  return postContent;
+};
+
 // 1) Send message
 const sendMessage = asyncHandler(async (req, res) => {
   const { receiverId, text, image } = req.body;
@@ -105,10 +116,12 @@ const getConversations = asyncHandler(async (req, res) => {
   // First, get ALL conversations to debug
   const allConvs = await Conversation.find({});
   console.log(`Total conversations in DB: ${allConvs.length}`);
-  allConvs.forEach(c => {
-    const pIds = c.participants.map(p => String(p));
+  allConvs.forEach((c) => {
+    const pIds = c.participants.map((p) => String(p));
     const hasUser = pIds.includes(userIdStr);
-    console.log(`  - ${c._id} | type: ${c.type} | participants: [${pIds.join(', ')}] | hasUser: ${hasUser}`);
+    console.log(
+      `  - ${c._id} | type: ${c.type} | participants: [${pIds.join(", ")}] | hasUser: ${hasUser}`,
+    );
   });
 
   // Try querying with string version
@@ -116,15 +129,19 @@ const getConversations = asyncHandler(async (req, res) => {
     participants: { $in: [userIdStr, userId] },
   })
     .populate("participants", "username fullname avatar")
+    .populate("postId", "_id content") // Populate postId to get ID and post content
     .sort({ updatedAt: -1 });
 
   console.log(`Final result: ${conversations.length} conversations`);
-  console.log("Conversation types:", conversations.map(c => ({
-    type: c.type,
-    postId: c.postId,
-    _id: String(c._id),
-    participantIds: c.participants.map(p => String(p._id))
-  })));
+  console.log(
+    "Conversation types:",
+    conversations.map((c) => ({
+      type: c.type,
+      postId: c.postId,
+      _id: String(c._id),
+      participantIds: c.participants.map((p) => String(p._id)),
+    })),
+  );
 
   return res.status(200).json(conversations);
 });
@@ -278,34 +295,48 @@ const joinPublicChat = asyncHandler(async (req, res) => {
 
   console.log(`User ${userId} joining public chat for post ${postId}`);
 
+  // Get post to generate title
+  const Post = require("../models/post.model");
+  const post = await Post.findById(pid);
+  const postTitle = generateConversationTitle(post?.content);
+
   // Find existing public conversation for this post
   let conversation = await Conversation.findOne({
     type: "public",
     postId: pid,
   });
 
-  console.log(`Found conversation: ${conversation?._id || 'none'}`);
-  console.log(`Current participants in DB: ${conversation?.participants || 'N/A'}`);
+  console.log(`Found conversation: ${conversation?._id || "none"}`);
+  console.log(
+    `Current participants in DB: ${conversation?.participants || "N/A"}`,
+  );
 
   if (!conversation) {
     // Create new conversation with user as participant
-    console.log(`Creating new public conversation for post ${postId} with user ${userId}`);
+    console.log(
+      `Creating new public conversation for post ${postId} with user ${userId}`,
+    );
     conversation = await Conversation.create({
       type: "public",
       postId: pid,
       createdBy: userId,
-      participants: [userId],  // Ensure user is added here
+      title: postTitle,
+      participants: [userId], // Ensure user is added here
     });
     console.log(`Created conversation _id: ${conversation._id}`);
+  } else if (!conversation.title && postTitle) {
+    // If conversation exists but doesn't have a title yet, set it
+    conversation.title = postTitle;
+    await conversation.save();
   }
 
   // Check if user is in participants array (handle both populated and non-populated)
-  const participantIds = conversation.participants.map(p =>
-    typeof p === 'object' ? String(p._id) : String(p)
+  const participantIds = conversation.participants.map((p) =>
+    typeof p === "object" ? String(p._id) : String(p),
   );
   const userIdStr = String(userId);
 
-  console.log(`Participant IDs: ${participantIds.join(', ')}`);
+  console.log(`Participant IDs: ${participantIds.join(", ")}`);
   console.log(`User ID: ${userIdStr}`);
   console.log(`User in participants: ${participantIds.includes(userIdStr)}`);
 
@@ -343,10 +374,11 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
     postId: pid,
   });
 
-  // Get post to find owner
+  // Get post to find owner and generate title
   const Post = require("../models/post.model");
   const post = await Post.findById(pid);
   const postOwnerId = post?.userId;
+  const postTitle = generateConversationTitle(post?.content);
 
   // Build participants list - add sender AND post owner (if different)
   const participantsToAdd = [senderId];
@@ -360,11 +392,14 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
       type: "public",
       postId: pid,
       createdBy: senderId,
+      title: postTitle,
       participants: participantsToAdd,
     });
   } else {
     // Add participants if not already in the list
-    const currentParticipantIds = conversation.participants.map(p => String(p));
+    const currentParticipantIds = conversation.participants.map((p) =>
+      String(p),
+    );
     let hasChanges = false;
 
     for (const userId of participantsToAdd) {
@@ -372,6 +407,12 @@ const sendPublicMessage = asyncHandler(async (req, res) => {
         conversation.participants.push(userId);
         hasChanges = true;
       }
+    }
+
+    // If conversation exists but doesn't have a title yet, set it
+    if (!conversation.title && postTitle) {
+      conversation.title = postTitle;
+      hasChanges = true;
     }
 
     if (hasChanges) {
@@ -524,12 +565,14 @@ const joinPublicChatIfOwner = asyncHandler(async (req, res) => {
   if (!isOwner) {
     return res.status(403).json({
       message: "Chỉ chủ bài viết mới có thể tự động tham gia",
-      isOwner: false
+      isOwner: false,
     });
   }
 
   // User is owner - join/create public chat
-  console.log(`Post owner ${userId} auto-joining public chat for post ${postId}`);
+  console.log(
+    `Post owner ${userId} auto-joining public chat for post ${postId}`,
+  );
 
   let conversation = await Conversation.findOne({
     type: "public",
@@ -547,8 +590,8 @@ const joinPublicChatIfOwner = asyncHandler(async (req, res) => {
   }
 
   // Check if user is in participants
-  const participantIds = conversation.participants.map(p =>
-    typeof p === 'object' ? String(p._id) : String(p)
+  const participantIds = conversation.participants.map((p) =>
+    typeof p === "object" ? String(p._id) : String(p),
   );
 
   if (!participantIds.includes(String(userId))) {
@@ -562,7 +605,7 @@ const joinPublicChatIfOwner = asyncHandler(async (req, res) => {
   return res.status(200).json({
     joined: true,
     isOwner: true,
-    conversation
+    conversation,
   });
 });
 

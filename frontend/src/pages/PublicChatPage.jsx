@@ -18,6 +18,8 @@ const PublicChatPage = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [postInfo, setPostInfo] = useState(null);
+  const [conversationTitle, setConversationTitle] =
+    useState("Bình luận bài viết");
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
 
   const currentUserId = JSON.parse(localStorage.getItem("user") || "{}")?._id;
@@ -33,10 +35,12 @@ const PublicChatPage = () => {
 
         // First, try to auto-join if user is post owner
         let isOwner = false;
+        let conversation = null;
         try {
           const ownerResult = await publicChatApi.joinPublicChatIfOwner(postId);
           console.log("Auto-join as owner result:", ownerResult);
           isOwner = true;
+          conversation = ownerResult;
         } catch (ownerErr) {
           // Not owner or error - that's fine, join normally
           const status = ownerErr?.response?.status;
@@ -50,12 +54,17 @@ const PublicChatPage = () => {
         // Join public chat normally (if not already joined as owner)
         if (!isOwner) {
           try {
-            const conversation = await publicChatApi.joinPublicChat(postId);
+            conversation = await publicChatApi.joinPublicChat(postId);
             console.log("Join conversation response:", conversation);
           } catch (joinErr) {
             console.log("Join chat error:", joinErr.message);
             // Continue anyway - might already be in the conversation
           }
+        }
+
+        // Set conversation title from the title field
+        if (conversation?.title) {
+          setConversationTitle(conversation.title);
         }
 
         // Fetch all messages
@@ -154,7 +163,8 @@ const PublicChatPage = () => {
 
   // Explicitly leave the conversation (for when user wants to leave permanently)
   const handleLeaveChat = async () => {
-    if (!window.confirm("Bạn có chắc muốn rời khỏi cuộc trò chuyện này?")) return;
+    if (!window.confirm("Bạn có chắc muốn rời khỏi cuộc trò chuyện này?"))
+      return;
     try {
       await publicChatApi.leavePublicChat(postId);
       navigate(-1);
@@ -173,8 +183,8 @@ const PublicChatPage = () => {
             <i className="fa-solid fa-arrow-left"></i>
           </button>
           <div className="public-chat-post-info">
-            <div className="public-chat-post-title">
-              Bình luận bài viết
+            <div className="public-chat-post-title" title={conversationTitle}>
+              {conversationTitle}
             </div>
           </div>
           <button
@@ -183,13 +193,21 @@ const PublicChatPage = () => {
             title="Xem người tham gia"
           >
             <i className="fa-solid fa-users"></i>
-            <span className="public-chat-participants-count">{participants.length}</span>
+            <span className="public-chat-participants-count">
+              {participants.length}
+            </span>
           </button>
         </div>
 
         {/* Error message */}
         {error && (
-          <div style={{ padding: "var(--space-md)", color: "var(--error)", textAlign: "center" }}>
+          <div
+            style={{
+              padding: "var(--space-md)",
+              color: "var(--error)",
+              textAlign: "center",
+            }}
+          >
             {error}
           </div>
         )}
@@ -202,14 +220,23 @@ const PublicChatPage = () => {
               currentUserId={currentUserId}
               loading={loading}
             />
-            <PublicChatInput onSendMessage={handleSendMessage} loading={sending} />
+            <PublicChatInput
+              onSendMessage={handleSendMessage}
+              loading={sending}
+            />
           </div>
         </div>
 
         {/* Participants Modal */}
         {showParticipantsModal && (
-          <div className="public-chat-modal-overlay" onClick={() => setShowParticipantsModal(false)}>
-            <div className="public-chat-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="public-chat-modal-overlay"
+            onClick={() => setShowParticipantsModal(false)}
+          >
+            <div
+              className="public-chat-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="public-chat-modal-header">
                 <h3>Người tham gia ({participants.length})</h3>
                 <button
@@ -221,13 +248,21 @@ const PublicChatPage = () => {
               </div>
               <div className="public-chat-modal-content">
                 {participants.length === 0 ? (
-                  <div className="public-chat-modal-empty">Chưa có ai tham gia</div>
+                  <div className="public-chat-modal-empty">
+                    Chưa có ai tham gia
+                  </div>
                 ) : (
                   participants.map((participant) => (
-                    <div key={participant._id} className="public-chat-modal-participant">
+                    <div
+                      key={participant._id}
+                      className="public-chat-modal-participant"
+                    >
                       <div className="public-chat-modal-avatar">
                         {participant.avatar ? (
-                          <img src={participant.avatar} alt={participant.username} />
+                          <img
+                            src={participant.avatar}
+                            alt={participant.username}
+                          />
                         ) : (
                           <i className="fa-solid fa-user"></i>
                         )}
@@ -238,7 +273,9 @@ const PublicChatPage = () => {
                             {participant.fullname || participant.username}
                           </div>
                           {participant.role === "post_owner" && (
-                            <span className="public-chat-role-badge">Chủ bài viết</span>
+                            <span className="public-chat-role-badge">
+                              Chủ bài viết
+                            </span>
                           )}
                         </div>
                         <div className="public-chat-modal-username">
