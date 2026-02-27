@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Setting.css";
 import { useLocationAccess } from "../../context/LocationAccessContext";
+import { authApi } from "../../api/authApi";
 
 /* ===== ICONS (inline SVG) ===== */
 const I = ({ children }) => <span className="st-icon">{children}</span>;
@@ -266,14 +267,11 @@ export default function Setting() {
   };
 
   // ✅ LOGOUT HOÀN CHỈNH
-  const handleLogout = () => {
+  const handleLogout = async () => {
     const ok = window.confirm("Bạn chắc chắn muốn đăng xuất?");
     if (!ok) return;
 
-    // clear toàn bộ auth keys từng dùng trong dự án
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    await authApi.logout();
     localStorage.removeItem("refreshToken");
 
     // về login và chặn back
@@ -384,18 +382,7 @@ export default function Setting() {
           <RowButton
             icon={<IconLogout />}
             label="Log out"
-            onClick={() => {
-              const ok = window.confirm("Bạn chắc chắn muốn đăng xuất?");
-              if (!ok) return;
-
-              localStorage.removeItem("authToken");
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-              localStorage.removeItem("refreshToken");
-
-              navigate("/login", { replace: true });
-              window.location.reload();
-            }}
+            onClick={handleLogout}
           />
           <RowButton
             icon={<IconTrash />}

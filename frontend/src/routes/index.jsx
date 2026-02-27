@@ -33,8 +33,15 @@ import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Redirect root -> login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Redirect root -> home when authenticated */}
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <Navigate to="/home" replace />
+          </RequireAuth>
+        }
+      />
 
       {/* Auth pages */}
       <Route path="/login" element={<LoginPage />} />

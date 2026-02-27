@@ -5,7 +5,10 @@ const EmailOTP = require("../models/emailOTP.model");
 const jwtUtil = require("../utils/jwt");
 const authService = require("../services/auth.service");
 const { randomUUID } = require("crypto");
-const { setRefreshTokenCookie } = require("../utils/cookie");
+const {
+  setRefreshTokenCookie,
+  clearRefreshTokenCookie,
+} = require("../utils/cookie");
 const emailService = require("../services/email.service");
 const RefreshToken = require("../models/refreshToken.model");
 
@@ -272,6 +275,133 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error("LOGIN ERROR:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.refreshToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (!refreshToken) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Missing refresh token" });
+    }
+
+    let payload;
+    try {
+      payload = jwtUtil.verifyRefreshToken(refreshToken);
+    } catch (error) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid refresh token" });
+    }
+
+    const user = await User.findById(payload.userID).select(
+      "fullname username email role isActive isEmailVerified deletedAt suspendUntil",
+    );
+
+    const check = assertUserCanLogin(user);
+    if (!check.ok) {
+      return res.status(check.status).json({
+        success: false,
+        message: check.message,
+        ...(check.extra ? check.extra : {}),
+      });
+    }
+
+    const activeTokens = await RefreshToken.find({
+      userId: payload.userID,
+      isRevoked: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    let matchedToken = null;
+    for (const tokenDoc of activeTokens) {
+      if (await bcrypt.compare(refreshToken, tokenDoc.token)) {
+        matchedToken = tokenDoc;
+        break;
+      }
+    }
+
+    if (!matchedToken) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Refresh token revoked" });
+    }
+
+    matchedToken.isRevoked = true;
+    await matchedToken.save();
+
+    const newAccessToken = jwtUtil.generateAccessToken(payload.userID);
+    const newRefreshToken = jwtUtil.generateRefreshToken(payload.userID);
+
+    const tokenHash = await bcrypt.hash(
+      newRefreshToken,
+      Number(process.env.SALT_ROUNDS),
+    );
+
+    await RefreshToken.create({
+      userId: payload.userID,
+      token: tokenHash,
+      userAgent: req.headers["user-agent"] || "unknown",
+      ipAddress: req.ip,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      isRevoked: false,
+    });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    return res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    console.error("REFRESH TOKEN ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (refreshToken) {
+      try {
+        const payload = jwtUtil.verifyRefreshToken(refreshToken);
+        const activeTokens = await RefreshToken.find({
+          userId: payload.userID,
+          isRevoked: false,
+          expiresAt: { $gt: new Date() },
+        });
+
+        for (const tokenDoc of activeTokens) {
+          if (await bcrypt.compare(refreshToken, tokenDoc.token)) {
+            tokenDoc.isRevoked = true;
+            await tokenDoc.save();
+            break;
+          }
+        }
+      } catch (error) {
+        // Ignore invalid refresh token on logout
+      }
+    }
+
+    clearRefreshTokenCookie(res);
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out",
+    });
+  } catch (error) {
+    console.error("LOGOUT ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 

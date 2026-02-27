@@ -29,7 +29,9 @@ class SimpleAnalysisQueue {
     this.jobs.push(job);
     this.stats.waiting++;
 
-    console.log(`[Queue] Enqueued job ${job.id} (${this.stats.waiting} waiting)`);
+    console.log(
+      `[Queue] Enqueued job ${job.id} (${this.stats.waiting} waiting)`,
+    );
 
     // Start processing
     this.process();
@@ -49,7 +51,7 @@ class SimpleAnalysisQueue {
 
       try {
         console.log(
-          `[Queue] Processing job ${job.id} (${job.attempts + 1}/${job.maxAttempts})`
+          `[Queue] Processing job ${job.id} (${job.attempts + 1}/${job.maxAttempts})`,
         );
 
         const result = await this.processJob(job);
@@ -57,10 +59,7 @@ class SimpleAnalysisQueue {
         this.stats.active--;
         this.stats.completed++;
 
-        console.log(
-          `[Queue] ✅ Job ${job.id} completed:`,
-          result
-        );
+        console.log(`[Queue] ✅ Job ${job.id} completed:`, result);
       } catch (error) {
         this.stats.active--;
 
@@ -70,7 +69,7 @@ class SimpleAnalysisQueue {
           // Retry with exponential backoff
           const delay = job.backoffDelay * Math.pow(2, job.attempts - 1);
           console.warn(
-            `[Queue] ⚠️ Job ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts}), retrying in ${delay}ms...`
+            `[Queue] ⚠️ Job ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts}), retrying in ${delay}ms...`,
           );
 
           // Re-queue with delay
@@ -81,7 +80,7 @@ class SimpleAnalysisQueue {
           this.stats.failed++;
           console.error(
             `[Queue] ❌ Job ${job.id} failed after ${job.maxAttempts} attempts:`,
-            error.message
+            error.message,
           );
         }
       }
@@ -119,16 +118,19 @@ class SimpleAnalysisQueue {
     console.log("\n========== POST ANALYSIS ==========");
     console.log("PostId     :", String(postId));
     console.log("Content    :", postData.content || "(no caption)");
-    console.log("Place      :", place ? `${place.name} (${place.category})` : "none");
+    console.log(
+      "Place      :",
+      place ? `${place.name} (${place.category})` : "none",
+    );
     console.log(
       "Interests  :",
-      userInterests.map((i) => i.name || i).join(", ") || "none"
+      userInterests.map((i) => i.name || i).join(", ") || "none",
     );
     console.log(
       "Result     :",
       analysisResult
         ? JSON.stringify(analysisResult, null, 2)
-        : "null (failed)"
+        : "null (failed)",
     );
     console.log("====================================\n");
 
@@ -186,14 +188,14 @@ const enqueuePostAnalysis = async (postId, postData) => {
         backoff: {
           delay: 2000, // 2s, 4s, 8s between retries
         },
-      }
+      },
     );
 
     return job.id;
   } catch (error) {
     console.error(
       `[Queue] Error enqueuing post analysis for ${postId}:`,
-      error.message
+      error.message,
     );
     return null;
   }
@@ -219,4 +221,3 @@ module.exports = {
   clearQueue,
   analysisQueue,
 };
-
