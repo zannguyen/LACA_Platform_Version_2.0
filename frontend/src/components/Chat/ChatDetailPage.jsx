@@ -230,7 +230,12 @@ const ChatDetailPage = () => {
           <i className="fa-solid fa-arrow-left"></i>
         </button>
 
-        <div className="avatar-circle" style={{ width: 40, height: 40 }}>
+        <div
+              className="avatar-circle"
+              style={{ width: 40, height: 40, cursor: "pointer" }}
+              onClick={() => receiverId && navigate(`/profile/${receiverId}`)}
+              title="Xem trang cá nhân"
+            >
           {receiverAvatar ? (
             <img
               src={receiverAvatar}
@@ -276,9 +281,11 @@ const ChatDetailPage = () => {
               >
                 {!msg.isSent && (
                   <div
-                    className="avatar-circle"
-                    style={{ width: 30, height: 30, marginRight: 8 }}
-                  >
+                      className="avatar-circle"
+                      style={{ width: 30, height: 30, marginRight: 8, cursor: "pointer" }}
+                      onClick={() => senderId && navigate(`/profile/${senderId}`)}
+                      title="Xem trang cá nhân"
+                    >
                     {senderAvatar && !avatarErrors.has(String(senderId)) ? (
                       <img
                         src={senderAvatar}

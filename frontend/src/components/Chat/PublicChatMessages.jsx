@@ -55,7 +55,12 @@ const PublicChatMessages = ({ messages, currentUserId, loading }) => {
             className={`message-row ${isSent ? "me" : ""}`}
           >
             {!isSent && (
-              <div className="message-avatar">
+              <div
+                className="message-avatar"
+                style={{ cursor: "pointer" }}
+                onClick={() => senderId && navigate(`/profile/${senderId}`)}
+                title="Xem trang cá nhân"
+              >
                 {senderAvatar && !avatarErrors.has(String(senderId)) ? (
                   <img
                     src={senderAvatar}
