@@ -6,6 +6,7 @@ import { deletePost, uploadMedia } from "../../api/postApi";
 import TagDisplay from "./TagDisplay";
 import TagSelectionModal from "./TagSelectionModal";
 import "./user_profile.css";
+import AvatarCropModal from "./AvatarCropModal";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
 const IconMore = ({ size = 22 }) => (
@@ -116,6 +117,9 @@ const formatPostDate = (post) => {
 export default function UserProfile() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+
+  const [cropOpen, setCropOpen] = useState(false);
+  const [avatarPick, setAvatarPick] = useState(null); // { src: string }
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -280,41 +284,63 @@ export default function UserProfile() {
   };
 
   const onAvatarSelected = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setSaving(true);
-    setError("");
-    try {
-      const up = await uploadMedia(file);
-      const url = up?.secure_url || up?.url;
-      if (!url) throw new Error("Upload avatar thất bại (không có URL)");
+  // tạo preview (để crop)
+  const src = URL.createObjectURL(file);
+  setAvatarPick({ src });
+  setCropOpen(true);
 
-      setDraftAvatar(url);
+  // reset input để chọn lại cùng 1 file vẫn trigger
+  e.target.value = "";
+};
+const closeCropModal = () => {
+  setCropOpen(false);
+  if (avatarPick?.src) URL.revokeObjectURL(avatarPick.src);
+  setAvatarPick(null);
+};
 
-      const res = await userApi.updateMyProfile({ avatar: url });
-      const root = res?.data ? res : { data: res };
-      const body = root.data;
-      if (body?.success === false)
-        throw new Error(body?.message || "Update failed");
-      const updatedUser = body?.data || body;
+const handleSaveCroppedAvatar = async (blob) => {
+  setSaving(true);
+  setError("");
+  try {
+    // blob -> File để uploadMedia dùng được tên file
+    const file = new File([blob], `avatar_${Date.now()}.jpg`, {
+      type: blob.type || "image/jpeg",
+    });
 
-      setProfile((prev) => ({
-        ...(prev || {}),
-        ...(updatedUser || {}),
-        avatar: updatedUser?.avatar || url,
-      }));
-    } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Không thể cập nhật avatar",
-      );
-    } finally {
-      setSaving(false);
-      e.target.value = "";
-    }
-  };
+    const up = await uploadMedia(file);
+    const url = up?.secure_url || up?.url;
+    if (!url) throw new Error("Upload avatar thất bại (không có URL)");
+
+    setDraftAvatar(url);
+
+    const res = await userApi.updateMyProfile({ avatar: url });
+    const root = res?.data ? res : { data: res };
+    const body = root.data;
+    if (body?.success === false)
+      throw new Error(body?.message || "Update failed");
+
+    const updatedUser = body?.data || body;
+
+    setProfile((prev) => ({
+      ...(prev || {}),
+      ...(updatedUser || {}),
+      avatar: updatedUser?.avatar || url,
+    }));
+
+    closeCropModal();
+  } catch (err) {
+    setError(
+      err?.response?.data?.message ||
+        err?.message ||
+        "Không thể cập nhật avatar",
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleSaveTags = async (tagIds) => {
     try {
@@ -694,6 +720,13 @@ export default function UserProfile() {
         currentTags={userTags}
         onSave={handleSaveTags}
       />
+      <AvatarCropModal
+  open={cropOpen}
+  imageSrc={avatarPick?.src}
+  busy={saving}
+  onCancel={closeCropModal}
+  onSaveBlob={handleSaveCroppedAvatar}
+/>
     </div>
   );
 }
