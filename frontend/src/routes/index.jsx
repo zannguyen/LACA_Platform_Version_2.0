@@ -28,6 +28,7 @@ import Blocked from "../components/setting/Blocked";
 import PrivacyData from "../components/setting/PrivacyData";
 import InterestManagementPage from "../pages/InterestManagementPage";
 import TagPreferencePage from "../pages/TagPreferencePage";
+import PostDetailPage from "../pages/PostDetailPage";
 import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
@@ -78,6 +79,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <InterestManagementPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/posts/:postId"
+        element={
+          <RequireAuth>
+            <PostDetailPage />
           </RequireAuth>
         }
       />

@@ -1,19 +1,49 @@
 const MapService = require("../services/map.service");
 const asyncHandler = require("../utils/asyncHandler");
 const UserService = require("../services/user.service");
+const User = require("../models/user.model");
 
-// GET /map/posts/nearby?limit=10
+// GET /map/posts/nearby?limit=10&recommendation=true
 exports.getPostsInRadius = asyncHandler(async (req, res) => {
   const { lng, lat } = req.geo;
   const limit = Number(req.query.limit || 10);
+  const useRecommendation = req.query.recommendation === "true";
 
   let blockedUserIds = [];
   let followedUserIds = [];
+  let userPreferredTagIds = [];
+  let userInterestNames = [];
 
   if (req.user?.id) {
     blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
     // Chỉ mutual follow mới xem bài + vị trí ngoài 5km
     followedUserIds = await UserService.getMutualFollowUserIds(req.user.id);
+
+    // Get user's preferred tags and interests for recommendations
+    if (useRecommendation) {
+      const user = await User.findById(req.user.id)
+        .populate("preferredTags")
+        .populate("interests");
+
+      if (user) {
+        // Get preferredTags IDs
+        if (user.preferredTags && user.preferredTags.length > 0) {
+          userPreferredTagIds = user.preferredTags.map((tag) => String(tag._id));
+        }
+
+        // Get interest names for broader matching
+        if (user.interests && user.interests.length > 0) {
+          userInterestNames = user.interests
+            .map((interest) => {
+              if (typeof interest === "object" && interest.name) {
+                return interest.name.toLowerCase();
+              }
+              return String(interest).toLowerCase();
+            })
+            .filter(Boolean);
+        }
+      }
+    }
   }
 
   const posts = await MapService.getPostsInRadius({
@@ -22,6 +52,9 @@ exports.getPostsInRadius = asyncHandler(async (req, res) => {
     limit,
     blockedUserIds,
     followedUserIds,
+    userPreferredTagIds,
+    userInterestNames,
+    useRecommendation,
   });
 
   res.status(200).json({

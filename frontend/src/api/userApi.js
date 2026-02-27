@@ -58,14 +58,21 @@ const userApi = {
   },
 
   // Preferred Tags (Sở thích)
-  getMyPreferredTags: () => api.get("/user/me/preferred-tags"),
+  getMyPreferredTags: async () => {
+    const res = await api.get("/user/me/preferred-tags");
+    return res.data?.data || res.data || [];
+  },
 
-  updateMyPreferredTags: (tagIds) => api.put("/user/me/preferred-tags", { tagIds }),
+  updateMyPreferredTags: async (tagIds) => {
+    const res = await api.put("/user/me/preferred-tags", { tagIds });
+    return res.data?.data || res.data || [];
+  },
 
-  getUserPreferredTags: (userId) => {
+  getUserPreferredTags: async (userId) => {
     if (!userId)
       return Promise.reject(new Error("Missing userId for getUserPreferredTags"));
-    return api.get(`/user/${userId}/preferred-tags`);
+    const res = await api.get(`/user/${userId}/preferred-tags`);
+    return res.data?.data || res.data || [];
   },
 
   // Search users by username, fullname or email

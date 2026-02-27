@@ -43,6 +43,7 @@ const Home = () => {
   // report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
+  const [dropdownPostId, setDropdownPostId] = useState(null);
 
   // top search + filter UI (frontend-only)
   const [searchText, setSearchText] = useState("");
@@ -161,7 +162,7 @@ const Home = () => {
       }
 
       const res = await fetch(
-        `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}`,
+        `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}&recommendation=true`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
@@ -408,21 +409,13 @@ const Home = () => {
   };
 
   // ================== REPORT DROPDOWN ==================
-  const toggleReportMenu = (e) => {
+  const toggleReportMenu = (e, postId) => {
     e.stopPropagation();
-    const dropdown = e.currentTarget.nextElementSibling;
-
-    document.querySelectorAll(".report-dropdown.show").forEach((d) => {
-      if (d !== dropdown) d.classList.remove("show");
-    });
-
-    dropdown.classList.toggle("show");
+    setDropdownPostId(prev => prev === postId ? null : postId);
   };
 
   const closeAllReportDropdowns = () => {
-    document
-      .querySelectorAll(".report-dropdown.show")
-      .forEach((d) => d.classList.remove("show"));
+    setDropdownPostId(null);
   };
 
   const handleAction = async (type, post, e) => {
@@ -474,7 +467,7 @@ const Home = () => {
 
   useEffect(() => {
     const close = (e) => {
-      if (!e.target.closest(".report-wrapper")) closeAllReportDropdowns();
+      if (!e.target.closest(".report-dropdown")) closeAllReportDropdowns();
     };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
@@ -858,12 +851,20 @@ const Home = () => {
                       {/* Report button */}
                       <button
                         className="swipe-card-more-btn"
-                        onClick={(e) => { e.stopPropagation(); toggleReportMenu(e); }}
+                        onClick={(e) => { e.stopPropagation(); toggleReportMenu(e, post._id); }}
                       >
                         <i className="fa-solid fa-ellipsis"></i>
                       </button>
-                      <div className="report-dropdown" style={{ position: 'absolute', top: 60, right: 16 }}>
-                       </div>
+                      {dropdownPostId === post._id && (
+                        <div className="report-dropdown" style={{ position: 'absolute', top: 50, right: 16, zIndex: 200 }}>
+                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); setReportTarget(post); setReportOpen(true); setDropdownPostId(null); }}>
+                            <i className="fa-solid fa-flag"></i> Báo cáo
+                          </button>
+                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); setDropdownPostId(null); }}>
+                            <i className="fa-solid fa-ban"></i> Chặn
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Overlay: User info, Tags, Content on image */}
