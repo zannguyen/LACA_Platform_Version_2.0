@@ -3,8 +3,10 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import ReportModal from "../report/ReportModal";
+import RankingModal from "../ranking/RankingModal";
 import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
+import rankingApi from "../../api/rankingApi";
 import lacaLogo from "../../assets/images/laca_logo.png";
 import "./home.css";
 
@@ -45,6 +47,11 @@ const Home = () => {
   const [reportTarget, setReportTarget] = useState(null);
   const [dropdownPostId, setDropdownPostId] = useState(null);
 
+  // Ranking modal
+  const [rankingOpen, setRankingOpen] = useState(false);
+  const [rankingData, setRankingData] = useState({ locations: [], users: [] });
+  const [rankingLoading, setRankingLoading] = useState(false);
+
   // top search + filter UI (frontend-only)
   const [searchText, setSearchText] = useState("");
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -52,11 +59,37 @@ const Home = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("for-you");
+
+  // Filter states
   const [onlyNearby, setOnlyNearby] = useState(false);
   const [onlyHasLocation, setOnlyHasLocation] = useState(false);
+  const [filterDistance, setFilterDistance] = useState("all"); // all, 5, 10, 20
+  const [filterTime, setFilterTime] = useState("all"); // all, today, week, month
+  const [filterSort, setFilterSort] = useState("newest"); // newest, popular
+  const [filterType, setFilterType] = useState("all"); // all, image, video
 
   const getAccessToken = () =>
     localStorage.getItem("token") || localStorage.getItem("authToken");
+
+  // Fetch ranking data
+  const fetchRanking = async () => {
+    setRankingLoading(true);
+    try {
+      const res = await rankingApi.getFeaturedRanking();
+      if (res.data?.success) {
+        setRankingData(res.data.data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch ranking:", e);
+    } finally {
+      setRankingLoading(false);
+    }
+  };
+
+  const openRanking = () => {
+    fetchRanking();
+    setRankingOpen(true);
+  };
 
   const currentUserId = useMemo(() => {
     try {
@@ -485,25 +518,71 @@ const Home = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [reportOpen]);
 
+  // Check if any filter is active
+  const hasActiveFilter = useMemo(() => {
+    return filterDistance !== "all" || filterTime !== "all" ||
+           filterSort !== "newest" || filterType !== "all" || onlyHasLocation;
+  }, [filterDistance, filterTime, filterSort, filterType, onlyHasLocation]);
+
   // ================== FRONTEND-ONLY FILTER/SEARCH ==================
   const visiblePosts = useMemo(() => {
     const q = searchText.trim().toLowerCase();
 
-    return (feedPosts || [])
-      .filter((p) => {
-        if (!q) return true;
-        const name = (getDisplayName(p) || "").toLowerCase();
-        const content = (p?.content || "").toLowerCase();
-        return name.includes(q) || content.includes(q);
-      })
-      .filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)))
-      .filter((p) => {
-        if (!onlyNearby) return true;
-        const d = p?.distanceKm;
-        if (typeof d !== "number") return false;
-        return d <= 5;
-      });
-  }, [feedPosts, searchText, onlyHasLocation, onlyNearby]);
+    let posts = (feedPosts || [])
+
+    // Search filter
+    posts = posts.filter((p) => {
+      if (!q) return true;
+      const name = (getDisplayName(p) || "").toLowerCase();
+      const content = (p?.content || "").toLowerCase();
+      return name.includes(q) || content.includes(q);
+    })
+
+    // Has location filter
+    posts = posts.filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)))
+
+    // Distance filter
+    posts = posts.filter((p) => {
+      if (filterDistance === "all") return true;
+      const d = p?.distanceKm;
+      if (typeof d !== "number") return false;
+      return d <= parseInt(filterDistance);
+    })
+
+    // Time filter
+    posts = posts.filter((p) => {
+      if (filterTime === "all") return true;
+      const postDate = new Date(p.createdAt);
+      const now = new Date();
+      const diffTime = now - postDate;
+
+      if (filterTime === "today") {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return postDate >= today;
+      } else if (filterTime === "week") {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return postDate >= weekAgo;
+      } else if (filterTime === "month") {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return postDate >= monthAgo;
+      }
+      return true;
+    })
+
+    // Type filter (image/video)
+    posts = posts.filter((p) => {
+      if (filterType === "all") return true;
+      const mediaType = p.type || "image";
+      return mediaType === filterType;
+    })
+
+    // Sort
+    if (filterSort === "popular") {
+      posts = [...posts].sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+    }
+
+    return posts;
+  }, [feedPosts, searchText, onlyHasLocation, onlyNearby, filterDistance, filterTime, filterSort, filterType]);
 
   // Swipe handlers
   const handleTouchStart = (e) => {
@@ -598,8 +677,16 @@ const Home = () => {
           </Link>
           <button
             className="header-action-btn"
+            onClick={openRanking}
+            title="Bảng xếp hạng"
+          >
+            <i className="fa-solid fa-trophy"></i>
+          </button>
+          <button
+            className="header-action-btn"
             onClick={() => setFilterOpen((v) => !v)}
             title="Lọc"
+            style={{ display: 'none' }}
           >
             <i className="fa-solid fa-sliders"></i>
           </button>
@@ -724,52 +811,6 @@ const Home = () => {
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Filter panel */}
-      {filterOpen && (
-        <div className="home-filter-panel">
-          <div className="home-filter-title">Bộ lọc</div>
-
-          <label className="home-filter-row">
-            <input
-              type="checkbox"
-              checked={onlyNearby}
-              onChange={(e) => setOnlyNearby(e.target.checked)}
-            />
-            <span>Chỉ hiện bài gần tôi (≤ 5km)</span>
-          </label>
-
-          <label className="home-filter-row">
-            <input
-              type="checkbox"
-              checked={onlyHasLocation}
-              onChange={(e) => setOnlyHasLocation(e.target.checked)}
-            />
-            <span>Chỉ bài có vị trí</span>
-          </label>
-
-          <div className="home-filter-actions">
-            <button
-              type="button"
-              className="home-filter-reset"
-              onClick={() => {
-                setOnlyNearby(false);
-                setOnlyHasLocation(false);
-              }}
-            >
-              Reset
-            </button>
-
-            <button
-              type="button"
-              className="home-filter-apply"
-              onClick={() => setFilterOpen(false)}
-            >
-              Apply
-            </button>
-          </div>
         </div>
       )}
 
@@ -1034,6 +1075,186 @@ const Home = () => {
           if (ok) alert("Đã gửi report");
         }}
       />
+
+      <RankingModal
+        open={rankingOpen}
+        onClose={() => setRankingOpen(false)}
+        data={rankingData}
+        loading={rankingLoading}
+      />
+
+      {/* Floating Filter Button - Top left */}
+      <button
+        className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
+        onClick={() => setFilterOpen(true)}
+        title="Bộ lọc"
+      >
+        <i className="fa-solid fa-sliders"></i>
+        {hasActiveFilter && <span className="filter-active-dot"></span>}
+      </button>
+
+      {/* Filter Modal - Floating panel */}
+      {filterOpen && (
+        <div
+          className="filter-modal-backdrop"
+          onClick={() => setFilterOpen(false)}
+        >
+          <div
+            className="filter-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="filter-modal-header">
+              <h3>Bộ lọc</h3>
+              <button
+                className="filter-modal-close"
+                onClick={() => setFilterOpen(false)}
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            {/* Loại bài đăng */}
+            <div className="filter-section">
+              <label className="filter-label">Loại bài đăng</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-option-btn ${filterType === "all" ? "active" : ""}`}
+                  onClick={() => setFilterType("all")}
+                >
+                  Tất cả
+                </button>
+                <button
+                  className={`filter-option-btn ${filterType === "image" ? "active" : ""}`}
+                  onClick={() => setFilterType("image")}
+                >
+                  <i className="fa-regular fa-image"></i> Hình ảnh
+                </button>
+                <button
+                  className={`filter-option-btn ${filterType === "video" ? "active" : ""}`}
+                  onClick={() => setFilterType("video")}
+                >
+                  <i className="fa-solid fa-video"></i> Video
+                </button>
+              </div>
+            </div>
+
+            {/* Khoảng cách */}
+            <div className="filter-section">
+              <label className="filter-label">Khoảng cách</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-option-btn ${filterDistance === "all" ? "active" : ""}`}
+                  onClick={() => setFilterDistance("all")}
+                >
+                  Tất cả
+                </button>
+                <button
+                  className={`filter-option-btn ${filterDistance === "5" ? "active" : ""}`}
+                  onClick={() => setFilterDistance("5")}
+                >
+                  ≤ 5km
+                </button>
+                <button
+                  className={`filter-option-btn ${filterDistance === "10" ? "active" : ""}`}
+                  onClick={() => setFilterDistance("10")}
+                >
+                  ≤ 10km
+                </button>
+                <button
+                  className={`filter-option-btn ${filterDistance === "20" ? "active" : ""}`}
+                  onClick={() => setFilterDistance("20")}
+                >
+                  ≤ 20km
+                </button>
+              </div>
+            </div>
+
+            {/* Thời gian */}
+            <div className="filter-section">
+              <label className="filter-label">Thời gian</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-option-btn ${filterTime === "all" ? "active" : ""}`}
+                  onClick={() => setFilterTime("all")}
+                >
+                  Tất cả
+                </button>
+                <button
+                  className={`filter-option-btn ${filterTime === "today" ? "active" : ""}`}
+                  onClick={() => setFilterTime("today")}
+                >
+                  Hôm nay
+                </button>
+                <button
+                  className={`filter-option-btn ${filterTime === "week" ? "active" : ""}`}
+                  onClick={() => setFilterTime("week")}
+                >
+                  Tuần này
+                </button>
+                <button
+                  className={`filter-option-btn ${filterTime === "month" ? "active" : ""}`}
+                  onClick={() => setFilterTime("month")}
+                >
+                  Tháng này
+                </button>
+              </div>
+            </div>
+
+            {/* Sắp xếp */}
+            <div className="filter-section">
+              <label className="filter-label">Sắp xếp</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-option-btn ${filterSort === "newest" ? "active" : ""}`}
+                  onClick={() => setFilterSort("newest")}
+                >
+                  <i className="fa-solid fa-clock"></i> Mới nhất
+                </button>
+                <button
+                  className={`filter-option-btn ${filterSort === "popular" ? "active" : ""}`}
+                  onClick={() => setFilterSort("popular")}
+                >
+                  <i className="fa-solid fa-fire"></i> Nổi bật
+                </button>
+              </div>
+            </div>
+
+            {/* Checkbox options */}
+            <label className="filter-modal-row">
+              <input
+                type="checkbox"
+                checked={onlyHasLocation}
+                onChange={(e) => setOnlyHasLocation(e.target.checked)}
+              />
+              <span>Chỉ bài có vị trí</span>
+            </label>
+
+            <div className="filter-modal-actions">
+              <button
+                type="button"
+                className="filter-modal-reset"
+                onClick={() => {
+                  setFilterDistance("all");
+                  setFilterTime("all");
+                  setFilterSort("newest");
+                  setFilterType("all");
+                  setOnlyHasLocation(false);
+                }}
+              >
+                Reset
+              </button>
+
+              <button
+                type="button"
+                className="filter-modal-apply"
+                onClick={() => setFilterOpen(false)}
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
