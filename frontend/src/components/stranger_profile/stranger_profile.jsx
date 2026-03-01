@@ -59,16 +59,12 @@ const isVideoUrl = (url = "") => {
   );
 };
 
-<<<<<<< HEAD
 const formatDateOfBirth = (value) => {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("vi-VN");
 };
-
-=======
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 export default function StrangerProfile() {
   const params = useParams();
   const navigate = useNavigate();
@@ -174,14 +170,11 @@ export default function StrangerProfile() {
 
   const displayName = profile?.fullname || profile?.username || "User";
   const displayBio = profile?.bio?.trim() ? profile.bio : "Chưa có bio";
-<<<<<<< HEAD
   const profileMetaRows = [
     { label: "Email", value: profile?.email || "" },
     { label: "SĐT", value: profile?.phoneNumber || "" },
     { label: "Ngày sinh", value: formatDateOfBirth(profile?.dateOfBirth) },
   ].filter((row) => row.value);
-=======
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 
   const handleBlock = async () => {
     setShowHeaderMenu(false);
@@ -345,13 +338,9 @@ export default function StrangerProfile() {
           {/* Stats Row */}
           <div className="profile-user-stats">
             <div className="profile-stat">
-<<<<<<< HEAD
               <span className="profile-stat-num">
                 {stats?.posts ?? posts.length ?? 0}
               </span>
-=======
-              <span className="profile-stat-num">{stats?.posts ?? posts.length ?? 0}</span>
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
               <span className="profile-stat-label">posts</span>
             </div>
             <div className="profile-stat">
@@ -371,7 +360,6 @@ export default function StrangerProfile() {
             <span className="profile-username">{displayName}</span>
           </div>
           {displayBio && <p className="profile-bio">{displayBio}</p>}
-<<<<<<< HEAD
           {profileMetaRows.length > 0 && (
             <div className="profile-meta-list">
               {profileMetaRows.map((row) => (
@@ -381,8 +369,6 @@ export default function StrangerProfile() {
               ))}
             </div>
           )}
-=======
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
         </div>
 
         {/* Action Buttons */}
@@ -412,7 +398,6 @@ export default function StrangerProfile() {
             </div>
           </div>
         )}
-<<<<<<< HEAD
 
         {/* Posts Grid - Instagram Style */}
         {!canViewPosts ? (
@@ -484,72 +469,6 @@ export default function StrangerProfile() {
             TẢI THÊM
           </button>
         )}
-=======
-
-      {/* Posts Grid - Instagram Style */}
-      {!canViewPosts ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          color: '#8e8e8e'
-        }}>
-          <i className="fa-solid fa-lock" style={{ fontSize: 32, marginBottom: 12 }}></i>
-          <p style={{ margin: 0, fontSize: 14 }}>
-            Chỉ có thể xem bài viết khi hai người follow nhau
-          </p>
-        </div>
-      ) : posts.length > 0 ? (
-        <div className="profile-posts">
-          {posts.map((p) => {
-            const id = String(p._id || p.id);
-            const media = Array.isArray(p.mediaUrl) ? p.mediaUrl[0] : p.mediaUrl;
-            const isVideo = p.type === "video" || isVideoUrl(media);
-
-            return (
-              <div
-                className="profile-post-item"
-                key={id}
-                onClick={() => window.location.href = `/posts/${id}`}
-              >
-                {media ? (
-                  isVideo ? (
-                    <video src={media} />
-                  ) : (
-                    <img src={media} alt="post" />
-                  )
-                ) : (
-                  <div style={{ color: "#8e8e8e", fontSize: 12 }}>
-                    No media
-                  </div>
-                )}
-                <div className="profile-post-overlay">
-                  <span className="profile-post-stat">
-                    <i className="fa-solid fa-heart"></i>
-                  </span>
-                  <span className="profile-post-stat">
-                    <i className="fa-solid fa-comment"></i>
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{ textAlign: "center", marginTop: 50, color: "#666" }}>
-          NO POST YET
-        </div>
-      )}
-
-      {canViewPosts && pagination.page < pagination.totalPages && (
-        <button
-          className="profile-action-btn"
-          style={{ width: "100%", marginTop: 12 }}
-          onClick={() => fetchProfile(pagination.page + 1)}
-        >
-          TẢI THÊM
-        </button>
-      )}
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
       </div>
 
       {/* Tag Modal - View only mode */}

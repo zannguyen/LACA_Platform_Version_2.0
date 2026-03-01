@@ -114,16 +114,12 @@ const formatPostDate = (post) => {
   return d.toLocaleString("vi-VN");
 };
 
-<<<<<<< HEAD
 const formatDateOfBirth = (value) => {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("vi-VN");
 };
-
-=======
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 export default function UserProfile() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -294,7 +290,6 @@ export default function UserProfile() {
   };
 
   const onAvatarSelected = async (e) => {
-<<<<<<< HEAD
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -352,65 +347,6 @@ export default function UserProfile() {
       setSaving(false);
     }
   };
-=======
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  // tạo preview (để crop)
-  const src = URL.createObjectURL(file);
-  setAvatarPick({ src });
-  setCropOpen(true);
-
-  // reset input để chọn lại cùng 1 file vẫn trigger
-  e.target.value = "";
-};
-const closeCropModal = () => {
-  setCropOpen(false);
-  if (avatarPick?.src) URL.revokeObjectURL(avatarPick.src);
-  setAvatarPick(null);
-};
-
-const handleSaveCroppedAvatar = async (blob) => {
-  setSaving(true);
-  setError("");
-  try {
-    // blob -> File để uploadMedia dùng được tên file
-    const file = new File([blob], `avatar_${Date.now()}.jpg`, {
-      type: blob.type || "image/jpeg",
-    });
-
-    const up = await uploadMedia(file);
-    const url = up?.secure_url || up?.url;
-    if (!url) throw new Error("Upload avatar thất bại (không có URL)");
-
-    setDraftAvatar(url);
-
-    const res = await userApi.updateMyProfile({ avatar: url });
-    const root = res?.data ? res : { data: res };
-    const body = root.data;
-    if (body?.success === false)
-      throw new Error(body?.message || "Update failed");
-
-    const updatedUser = body?.data || body;
-
-    setProfile((prev) => ({
-      ...(prev || {}),
-      ...(updatedUser || {}),
-      avatar: updatedUser?.avatar || url,
-    }));
-
-    closeCropModal();
-  } catch (err) {
-    setError(
-      err?.response?.data?.message ||
-        err?.message ||
-        "Không thể cập nhật avatar",
-    );
-  } finally {
-    setSaving(false);
-  }
-};
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 
   const handleSaveTags = async (tagIds) => {
     try {
@@ -498,16 +434,12 @@ const handleSaveCroppedAvatar = async (blob) => {
   };
 
   const displayName = profile?.fullname || profile?.username || "User";
-<<<<<<< HEAD
   const displayBio = isEditing ? draftBio : profile?.bio || "";
   const profileMetaRows = [
     { label: "Email", value: profile?.email || "" },
     { label: "SĐT", value: profile?.phoneNumber || "" },
     { label: "Ngày sinh", value: formatDateOfBirth(profile?.dateOfBirth) },
   ].filter((row) => row.value);
-=======
-  const displayBio = isEditing ? draftBio : (profile?.bio || "");
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 
   if (loading && !profile) {
     return (
@@ -584,7 +516,6 @@ const handleSaveCroppedAvatar = async (blob) => {
           {/* Stats Row */}
           <div className="profile-user-stats">
             <div className="profile-stat">
-<<<<<<< HEAD
               <span className="profile-stat-num">
                 {stats?.posts !== undefined ? stats.posts : posts.length}
               </span>
@@ -600,17 +531,6 @@ const handleSaveCroppedAvatar = async (blob) => {
               <span className="profile-stat-num">
                 {stats?.following !== undefined ? stats.following : 0}
               </span>
-=======
-              <span className="profile-stat-num">{stats?.posts !== undefined ? stats.posts : posts.length}</span>
-              <span className="profile-stat-label">posts</span>
-            </div>
-            <div className="profile-stat">
-              <span className="profile-stat-num">{stats?.followers !== undefined ? stats.followers : 0}</span>
-              <span className="profile-stat-label">followers</span>
-            </div>
-            <div className="profile-stat">
-              <span className="profile-stat-num">{stats?.following !== undefined ? stats.following : 0}</span>
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
               <span className="profile-stat-label">following</span>
             </div>
           </div>
@@ -633,7 +553,6 @@ const handleSaveCroppedAvatar = async (blob) => {
           ) : (
             displayBio && <p className="profile-bio">{displayBio}</p>
           )}
-<<<<<<< HEAD
           {profileMetaRows.length > 0 && (
             <div className="profile-meta-list">
               {profileMetaRows.map((row) => (
@@ -643,8 +562,6 @@ const handleSaveCroppedAvatar = async (blob) => {
               ))}
             </div>
           )}
-=======
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
         </div>
 
         {/* Action Buttons */}
@@ -654,20 +571,12 @@ const handleSaveCroppedAvatar = async (blob) => {
             onClick={handleEditToggle}
             disabled={saving}
           >
-<<<<<<< HEAD
             {saving ? "Saving..." : isEditing ? "Save Note" : "Edit Note"}
-=======
-            {saving ? "Saving..." : isEditing ? "Done" : "Edit Profile"}
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
           </button>
         </div>
 
         {/* Interests/Tags Section */}
-<<<<<<< HEAD
         {userTags && userTags.length > 0 && (
-=======
-        {(userTags && userTags.length > 0) && (
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
           <div className="profile-interests">
             <h4 className="profile-section-title">Sở thích</h4>
             <div className="profile-tags-scroll">
@@ -781,21 +690,12 @@ const handleSaveCroppedAvatar = async (blob) => {
         onSave={handleSaveTags}
       />
       <AvatarCropModal
-<<<<<<< HEAD
         open={cropOpen}
         imageSrc={avatarPick?.src}
         busy={saving}
         onCancel={closeCropModal}
         onSaveBlob={handleSaveCroppedAvatar}
       />
-=======
-  open={cropOpen}
-  imageSrc={avatarPick?.src}
-  busy={saving}
-  onCancel={closeCropModal}
-  onSaveBlob={handleSaveCroppedAvatar}
-/>
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
     </div>
   );
 }

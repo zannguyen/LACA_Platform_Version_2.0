@@ -6,11 +6,8 @@ const controller = require("../controllers/user.controller");
 // My profile (Auth)
 router.get("/me/profile", auth, controller.getMyProfile);
 router.put("/me/profile", auth, controller.updateMyProfile);
-<<<<<<< HEAD
 router.get("/me/account-settings", auth, controller.getMyAccountSettings);
 router.put("/me/account-settings", auth, controller.updateMyAccountSettings);
-=======
->>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 
 // Preferred tags (sở thích)
 router.get("/me/preferred-tags", auth, controller.getMyPreferredTags);
