@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const AppError = require("../utils/appError");
 
 const User = require("../models/user.model");
@@ -6,6 +7,18 @@ const Post = require("../models/post.model");
 const BlockUser = require("../models/blockUser.model");
 const Follow = require("../models/follow.model");
 
+const PASSWORD_LENGTH_MIN = Number(process.env.PASSWORD_LENGTH_MIN || 6);
+const PASSWORD_LENGTH_MAX = Number(process.env.PASSWORD_LENGTH_MAX || 50);
+const SALT_ROUNDS = Number(process.env.SALT_ROUNDS || 10);
+
+const DEFAULT_VISIBILITY = {
+  fullname: true,
+  avatar: true,
+  bio: true,
+  email: false,
+  phoneNumber: false,
+  dateOfBirth: false,
+};
 // ===== Helpers =====
 function parsePagination(query) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -21,6 +34,55 @@ function safeObjectId(id) {
   return new mongoose.Types.ObjectId(id);
 }
 
+function normalizeVisibility(raw = {}) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  return {
+    fullname:
+      typeof src.fullname === "boolean"
+        ? src.fullname
+        : DEFAULT_VISIBILITY.fullname,
+    avatar:
+      typeof src.avatar === "boolean" ? src.avatar : DEFAULT_VISIBILITY.avatar,
+    bio: typeof src.bio === "boolean" ? src.bio : DEFAULT_VISIBILITY.bio,
+    email:
+      typeof src.email === "boolean" ? src.email : DEFAULT_VISIBILITY.email,
+    phoneNumber:
+      typeof src.phoneNumber === "boolean"
+        ? src.phoneNumber
+        : DEFAULT_VISIBILITY.phoneNumber,
+    dateOfBirth:
+      typeof src.dateOfBirth === "boolean"
+        ? src.dateOfBirth
+        : DEFAULT_VISIBILITY.dateOfBirth,
+  };
+}
+
+function toPublicUser(user, isOwner = false) {
+  const visibility = normalizeVisibility(user?.profileVisibility);
+
+  const profileUser = {
+    _id: user._id,
+    username: user.username,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  if (isOwner || visibility.fullname) profileUser.fullname = user.fullname;
+  if (isOwner || visibility.avatar) profileUser.avatar = user.avatar || "";
+  if (isOwner || visibility.bio) profileUser.bio = user.bio || "";
+  if (isOwner || visibility.email) profileUser.email = user.email;
+  if (isOwner || visibility.phoneNumber)
+    profileUser.phoneNumber = user.phoneNumber || "";
+  if (isOwner || visibility.dateOfBirth)
+    profileUser.dateOfBirth = user.dateOfBirth || null;
+
+  if (isOwner) {
+    profileUser.isEmailVerified = user.isEmailVerified;
+    profileUser.profileVisibility = visibility;
+  }
+
+  return profileUser;
+}
 // ===== Profile =====
 async function getProfile({ targetUserId, viewerUserId, query }) {
   const targetId = safeObjectId(targetUserId);
@@ -92,20 +154,7 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
     };
   }
 
-  const profileUser = {
-    _id: user._id,
-    fullname: user.fullname,
-    username: user.username,
-    avatar: user.avatar || "",
-    bio: user.bio || "",
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
-
-  if (isOwner) {
-    profileUser.email = user.email;
-    profileUser.isEmailVerified = user.isEmailVerified;
-  }
+  const profileUser = toPublicUser(user, Boolean(isOwner));
 
   return {
     user: profileUser,
@@ -261,6 +310,156 @@ async function updateMyProfile({ userId, body }) {
   };
 }
 
+async function getMyAccountSettings(userId) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id).lean();
+  if (!user) throw new AppError("User not found", 404);
+
+  return {
+    _id: user._id,
+    fullname: user.fullname || "",
+    username: user.username,
+    email: user.email,
+    phoneNumber: user.phoneNumber || "",
+    dateOfBirth: user.dateOfBirth || null,
+    avatar: user.avatar || "",
+    bio: user.bio || "",
+    isEmailVerified: user.isEmailVerified,
+    profileVisibility: normalizeVisibility(user.profileVisibility),
+    updatedAt: user.updatedAt,
+  };
+}
+
+async function updateMyAccountSettings({ userId, body }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id);
+  if (!user) throw new AppError("User not found", 404);
+
+  let changed = false;
+
+  if (typeof body.fullname === "string") {
+    const next = body.fullname.trim();
+    if (!next) throw new AppError("fullname is required", 400);
+    if (next.length > 120) throw new AppError("fullname is too long", 400);
+    user.fullname = next;
+    changed = true;
+  }
+
+  if (typeof body.bio === "string") {
+    const next = body.bio.trim();
+    if (next.length > 200) throw new AppError("bio/note is too long", 400);
+    user.bio = next;
+    changed = true;
+  }
+
+  if (typeof body.avatar === "string") {
+    user.avatar = body.avatar.trim();
+    changed = true;
+  }
+
+  if (typeof body.phoneNumber === "string") {
+    const phoneNumber = body.phoneNumber.trim();
+    if (phoneNumber.length > 20)
+      throw new AppError("phone number is too long", 400);
+    user.phoneNumber = phoneNumber;
+    changed = true;
+  }
+
+  if (body.dateOfBirth === null || body.dateOfBirth === "") {
+    user.dateOfBirth = null;
+    changed = true;
+  } else if (typeof body.dateOfBirth === "string" || body.dateOfBirth instanceof Date) {
+    const dob = new Date(body.dateOfBirth);
+    if (Number.isNaN(dob.getTime())) {
+      throw new AppError("dateOfBirth is invalid", 400);
+    }
+    if (dob.getTime() > Date.now()) {
+      throw new AppError("dateOfBirth cannot be in the future", 400);
+    }
+    user.dateOfBirth = dob;
+    changed = true;
+  }
+
+  if (typeof body.email === "string") {
+    const email = body.email.trim().toLowerCase();
+    const isEmailFormatValid = /^\S+@\S+\.\S+$/.test(email);
+    if (!isEmailFormatValid) throw new AppError("Invalid email", 400);
+
+    const existed = await User.findOne({
+      email,
+      _id: { $ne: id },
+    }).lean();
+
+    if (existed) throw new AppError("Email already exists", 400);
+
+    if (email !== user.email) {
+      user.email = email;
+      user.isEmailVerified = false;
+      changed = true;
+    }
+  }
+
+  if (body.profileVisibility && typeof body.profileVisibility === "object") {
+    const visibility = normalizeVisibility({
+      ...normalizeVisibility(user.profileVisibility),
+      ...body.profileVisibility,
+    });
+    user.profileVisibility = visibility;
+    changed = true;
+  }
+
+  const passwordFieldsProvided =
+    typeof body.currentPassword === "string" ||
+    typeof body.newPassword === "string" ||
+    typeof body.confirmPassword === "string";
+
+  if (passwordFieldsProvided) {
+    const currentPassword = String(body.currentPassword || "");
+    const newPassword = String(body.newPassword || "");
+    const confirmPassword = String(body.confirmPassword || "");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      throw new AppError(
+        "currentPassword, newPassword, confirmPassword are required",
+        400,
+      );
+    }
+
+    if (
+      newPassword.length < PASSWORD_LENGTH_MIN ||
+      newPassword.length > PASSWORD_LENGTH_MAX
+    ) {
+      throw new AppError(
+        `Password must be between ${PASSWORD_LENGTH_MIN} and ${PASSWORD_LENGTH_MAX} characters`,
+        400,
+      );
+    }
+
+    if (newPassword !== confirmPassword) {
+      throw new AppError("Password does not match", 400);
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+    if (!isCurrentPasswordValid) {
+      throw new AppError("Current password is incorrect", 400);
+    }
+
+    user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    changed = true;
+  }
+
+  if (!changed) {
+    throw new AppError("Nothing to update", 400);
+  }
+
+  user.updatedAt = new Date();
+  await user.save();
+
+  return getMyAccountSettings(userId);
+}
 async function getBlockedUsers(userId) {
   const rows = await BlockUser.find({ blockerUserId: userId })
     .populate({ path: "blockedUserId", select: "fullname username avatar" })
@@ -333,6 +532,8 @@ module.exports = {
   // profile
   getProfile,
   updateMyProfile,
+  getMyAccountSettings,
+  updateMyAccountSettings,
 
   // follow
   getFollowingUserIds,

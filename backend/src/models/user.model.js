@@ -1,5 +1,14 @@
 const mongoose = require("mongoose");
 
+const defaultProfileVisibility = {
+  fullname: true,
+  avatar: true,
+  bio: true,
+  email: false,
+  phoneNumber: false,
+  dateOfBirth: false,
+};
+
 const userSchema = new mongoose.Schema({
   fullname: {
     type: String,
@@ -51,6 +60,29 @@ const userSchema = new mongoose.Schema({
     default: "",
     maxlength: 200,
   },
+  phoneNumber: {
+    type: String,
+    default: "",
+    maxlength: 20,
+  },
+  dateOfBirth: {
+    type: Date,
+    default: null,
+  },
+  profileVisibility: {
+    fullname: { type: Boolean, default: defaultProfileVisibility.fullname },
+    avatar: { type: Boolean, default: defaultProfileVisibility.avatar },
+    bio: { type: Boolean, default: defaultProfileVisibility.bio },
+    email: { type: Boolean, default: defaultProfileVisibility.email },
+    phoneNumber: {
+      type: Boolean,
+      default: defaultProfileVisibility.phoneNumber,
+    },
+    dateOfBirth: {
+      type: Boolean,
+      default: defaultProfileVisibility.dateOfBirth,
+    },
+  },
   interests: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -65,31 +97,6 @@ const userSchema = new mongoose.Schema({
   ],
 });
 
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
 
-userSchema.statics.findByIdAndUpdate = async function (
-  userId,
-  updateData,
-  options = {},
-) {
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid userId");
-  }
-
-  const user = await this.findById(userId);
-  if (!user) {
-    return null;
-  }
-
-  Object.keys(updateData).forEach((key) => {
-    user[key] = updateData[key];
-  });
-
-  user.updatedAt = new Date();
-
-  await user.save();
-
-  return options.new ? user : null;
-};
-
-module.exports = mongoose.model("User", userSchema);
+module.exports = User;

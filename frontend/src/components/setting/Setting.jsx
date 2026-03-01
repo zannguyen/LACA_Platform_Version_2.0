@@ -185,6 +185,23 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconUser = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
+    <path
+      d="M4 20c1.5-3.6 4.1-5.4 8-5.4s6.5 1.8 8 5.4"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 // ✅ RowButton giờ nhận onClick để bấm được
 const RowButton = ({ icon, label, onClick, danger = false }) => (
   <button
@@ -379,6 +396,11 @@ export default function Setting() {
 
         <div className="st-section">
           <div className="st-section-title">Account</div>
+          <RowButton
+            icon={<IconUser />}
+            label="Edit Profile"
+            onClick={() => navigate("/setting/edit-profile")}
+          />
           <RowButton
             icon={<IconLogout />}
             label="Log out"

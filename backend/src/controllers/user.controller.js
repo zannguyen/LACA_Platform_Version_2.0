@@ -43,6 +43,28 @@ exports.updateMyProfile = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Profile updated", data: user });
 });
 
+/**
+ * GET /api/user/me/account-settings
+ * (Auth required)
+ */
+exports.getMyAccountSettings = asyncHandler(async (req, res) => {
+  const data = await UserService.getMyAccountSettings(req.user.id);
+  return res.status(200).json({ success: true, data });
+});
+
+/**
+ * PUT /api/user/me/account-settings
+ * (Auth required)
+ */
+exports.updateMyAccountSettings = asyncHandler(async (req, res) => {
+  const data = await UserService.updateMyAccountSettings({
+    userId: req.user.id,
+    body: req.body,
+  });
+  return res
+    .status(200)
+    .json({ success: true, message: "Account settings updated", data });
+});
 exports.blockUser = asyncHandler(async (req, res) => {
   const blockedId = req.params.id;
   const blockerId = req.user.id;

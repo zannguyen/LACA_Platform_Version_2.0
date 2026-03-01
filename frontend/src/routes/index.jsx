@@ -24,6 +24,7 @@ import ChatDetailPage from "../pages/ChatDetailPage";
 import PublicChatPage from "../pages/PublicChatPage";
 import DeleteAccountConfirmPage from "../pages/DeleteAccountConfirmPage";
 import SettingPage from "../pages/SettingPage";
+import EditProfileSettingPage from "../pages/EditProfileSettingPage";
 import Blocked from "../components/setting/Blocked";
 import PrivacyData from "../components/setting/PrivacyData";
 import InterestManagementPage from "../pages/InterestManagementPage";
@@ -78,6 +79,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <SettingPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/setting/edit-profile"
+        element={
+          <RequireAuth>
+            <EditProfileSettingPage />
           </RequireAuth>
         }
       />

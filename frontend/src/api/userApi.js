@@ -16,7 +16,9 @@ const userApi = {
     api.get(`/user/me/profile${buildQuery({ page, limit })}`),
 
   updateMyProfile: (body) => api.put(`/user/me/profile`, body),
+  getMyAccountSettings: () => api.get(`/user/me/account-settings`),
 
+  updateMyAccountSettings: (body) => api.put(`/user/me/account-settings`, body),
   getUserProfile: ({ userId, page = 1, limit = 10 } = {}) => {
     if (!userId)
       return Promise.reject(new Error("Missing userId for getUserProfile"));
