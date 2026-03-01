@@ -1,0 +1,344 @@
+/* Admin Analytics - Modern, Minimalist, Mobile-first */
+@import url("../../styles/design-tokens.css");
+
+.analytics {
+  padding: var(--space-lg);
+  background: var(--bg-page);
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2xl);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.analytics-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.range-filter {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.range-filter button {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
+}
+
+.range-filter button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.range-filter button.active {
+  background: var(--gradient-main);
+  color: white;
+  border-color: transparent;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-2xl);
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.kpi-card:hover::before {
+  transform: scaleY(1);
+}
+
+.kpi-card span {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-card strong {
+  display: block;
+  margin-top: var(--space-sm);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.kpi-card.users::before {
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.kpi-card.online::before {
+  background: linear-gradient(180deg, #22c55e, #10b981);
+}
+
+.kpi-card.new::before {
+  background: linear-gradient(180deg, #f97316, #fb923c);
+}
+
+.kpi-card.places::before {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+}
+
+.chart-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+}
+
+.chart-card h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.line-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 180px;
+  padding: var(--space-md) 0;
+}
+
+.line-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.line-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-xs);
+  box-shadow: 0 0 0 4px rgba(233, 64, 87, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.line-point:hover .line-dot {
+  transform: scale(1.5);
+}
+
+.line-point span {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.line-point small {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  height: 200px;
+  gap: var(--space-md);
+}
+
+.bar-item {
+  flex: 1;
+  text-align: center;
+}
+
+.bar {
+  width: 100%;
+  background: var(--gradient-main);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.bar-item:hover .bar {
+  opacity: 0.9;
+  transform: scaleY(1.05);
+}
+
+.bar-item span {
+  display: block;
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.table-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+}
+
+.table-card h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.table-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-card thead {
+  background: var(--bg-input);
+}
+
+.table-card th,
+.table-card td {
+  padding: var(--space-md) var(--space-sm);
+  font-size: 14px;
+  text-align: left;
+}
+
+.table-card th {
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.table-card tbody tr {
+  transition: background 0.2s ease;
+}
+
+.table-card tbody tr:hover {
+  background: var(--gradient-soft);
+}
+
+.table-card tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.analytics-loading {
+  padding: var(--space-3xl);
+  text-align: center;
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+  }
+}
+
+@media (min-width: 769px) {
+  .analytics {
+    padding: var(--space-2xl);
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .analytics-header {
+    margin-bottom: var(--space-3xl);
+  }
+
+  .analytics-header h1 {
+    font-size: 32px;
+  }
+
+  .range-filter button {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 14px;
+  }
+
+  .kpi-card {
+    padding: var(--space-2xl);
+  }
+
+  .kpi-card strong {
+    font-size: 32px;
+  }
+
+  .chart-card {
+    padding: var(--space-2xl);
+  }
+
+  .chart-card h3 {
+    font-size: 20px;
+  }
+
+  .bar-chart {
+    height: 220px;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .bar-chart {
+    height: 160px;
+    gap: var(--space-sm);
+  }
+}

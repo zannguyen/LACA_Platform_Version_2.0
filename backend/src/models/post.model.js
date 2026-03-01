@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const schema = new mongoose.Schema(
   {
-    userId: mongoose.Schema.Types.ObjectId,
-    placeId: mongoose.Schema.Types.ObjectId,
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    placeId: { type: mongoose.Schema.Types.ObjectId, ref: "Place" },
     content: String,
     type: String,
     status: String,
@@ -12,6 +12,8 @@ const schema = new mongoose.Schema(
 
     reportCount: { type: Number, default: 0 },
     expireAt: Date,
+    analysisId: { type: mongoose.Schema.Types.ObjectId, ref: "PostAnalysis" },
+    tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }], // Tags selected by user when posting
   },
   { timestamps: true },
 );

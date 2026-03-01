@@ -1,0 +1,319 @@
+.admin-interest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+/* Card */
+.admin-interest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.admin-interest-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 8px 24px rgba(0, 123, 255, 0.15);
+  transform: translateY(-4px);
+}
+
+/* Icon */
+.admin-interest-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e7f3ff 100%);
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+}
+
+.admin-interest-card:hover .admin-interest-card-icon {
+  border-color: #007bff;
+  background: linear-gradient(135deg, #e7f3ff 0%, #d4e9ff 100%);
+  transform: scale(1.05);
+}
+
+.admin-interest-card-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.admin-interest-card-image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+/* Content */
+.admin-interest-card-content {
+  text-align: center;
+  flex: 1;
+}
+
+.admin-interest-card-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  word-break: break-word;
+}
+
+.admin-interest-card-description {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Status Badge */
+.admin-interest-card-status {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  align-self: center;
+}
+
+.admin-interest-card-status.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.admin-interest-card-status.active:hover {
+  background: #c3e6cb;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(21, 87, 36, 0.2);
+}
+
+.admin-interest-card-status.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.admin-interest-card-status.inactive:hover {
+  background: #f5c6cb;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(114, 28, 36, 0.2);
+}
+
+/* Actions */
+.admin-interest-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.admin-interest-card-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.admin-interest-card-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admin-interest-card-btn-edit {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.admin-interest-card-btn-edit:hover {
+  background: #e7f3ff;
+  border-color: #0056b3;
+}
+
+.admin-interest-card-btn-delete {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.admin-interest-card-btn-delete:hover {
+  background: #fee;
+  border-color: #c82333;
+}
+
+/* Loading State */
+.admin-interest-grid-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  color: #666;
+}
+
+.admin-interest-grid-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-interest-grid-loading p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Empty State */
+.admin-interest-grid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+  color: #999;
+}
+
+.admin-interest-grid-empty-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.admin-interest-grid-empty p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+}
+
+.admin-interest-grid-empty span {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .admin-interest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-interest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .admin-interest-card {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .admin-interest-card-icon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .admin-interest-card-emoji {
+    font-size: 32px;
+  }
+
+  .admin-interest-card-name {
+    font-size: 14px;
+  }
+
+  .admin-interest-card-description {
+    font-size: 12px;
+  }
+
+  .admin-interest-card-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-interest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .admin-interest-card {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .admin-interest-card-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .admin-interest-card-emoji {
+    font-size: 28px;
+  }
+
+  .admin-interest-card-name {
+    font-size: 13px;
+  }
+
+  .admin-interest-card-description {
+    font-size: 11px;
+    -webkit-line-clamp: 1;
+  }
+
+  .admin-interest-card-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-interest-card-btn {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+}

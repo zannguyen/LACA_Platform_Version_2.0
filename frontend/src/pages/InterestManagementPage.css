@@ -1,0 +1,339 @@
+.interest-management-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8f9fc;
+}
+
+/* Header */
+.interest-management-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px 20px;
+  position: relative;
+}
+
+.interest-management-back {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.interest-management-back:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-2px);
+}
+
+.interest-management-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.interest-management-subtitle {
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Messages */
+.interest-management-error {
+  background: #fee;
+  border-left: 4px solid #e94057;
+  color: #c62845;
+  padding: 12px 16px;
+  margin: 16px 20px 0;
+  border-radius: 8px;
+  font-size: 13px;
+  animation: slideDown 0.3s ease;
+}
+
+.interest-management-success {
+  background: #efe;
+  border-left: 4px solid #00b4a0;
+  color: #0a7f6f;
+  padding: 12px 16px;
+  margin: 16px 20px 0;
+  border-radius: 8px;
+  font-size: 13px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Content */
+.interest-management-content {
+  flex: 1;
+  padding: 24px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Footer */
+.interest-management-footer {
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  bottom: 0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.interest-management-info {
+  font-size: 13px;
+  color: #8e95a0;
+}
+
+.interest-management-info strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.interest-management-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Buttons */
+.interest-management-btn-cancel,
+.interest-management-btn-save {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.interest-management-btn-cancel {
+  background: #f1f3f5;
+  color: #1a1d26;
+  border: 1px solid #e0e0e0;
+}
+
+.interest-management-btn-cancel:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.interest-management-btn-save {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  min-width: 120px;
+}
+
+.interest-management-btn-save:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.interest-management-btn-cancel:disabled,
+.interest-management-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .interest-management-page {
+    min-height: auto;
+  }
+
+  .interest-management-header {
+    padding: 20px 16px;
+  }
+
+  .interest-management-header h1 {
+    font-size: 24px;
+  }
+
+  .interest-management-content {
+    padding: 20px 16px;
+  }
+
+  .interest-management-footer {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .interest-management-actions {
+    width: 100%;
+  }
+
+  .interest-management-btn-cancel,
+  .interest-management-btn-save {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .interest-management-header {
+    padding: 16px 12px;
+  }
+
+  .interest-management-header h1 {
+    font-size: 20px;
+  }
+
+  .interest-management-subtitle {
+    font-size: 12px;
+  }
+
+  .interest-management-content {
+    padding: 16px 12px;
+  }
+
+  .interest-management-footer {
+    padding: 10px 12px;
+  }
+
+  .interest-management-info {
+    font-size: 12px;
+  }
+
+  .interest-management-btn-cancel,
+  .interest-management-btn-save {
+    padding: 9px 16px;
+    font-size: 12px;
+  }
+}
+
+/* Loading */
+.interest-management-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  color: #999;
+}
+
+.interest-management-loading .spinner {
+  width: 52px;
+  height: 52px;
+  border: 3px solid rgba(102, 126, 234, 0.08);
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.interest-management-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 15px;
+}
+
+/* Tags Categories */
+.tags-categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tag-category-block {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tag-category-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tag-category-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tag-select-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid #e0e0e0;
+  background: #f8f9fc;
+}
+
+.tag-select-item:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.tag-select-item.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.tag-select-name {
+  font-weight: 500;
+}
+
+.tag-select-check {
+  margin-left: 6px;
+  font-weight: 700;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .tag-category-block {
+    padding: 16px;
+  }
+
+  .tag-category-name {
+    font-size: 15px;
+  }
+
+  .tag-category-items {
+    gap: 8px;
+  }
+
+  .tag-select-item {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

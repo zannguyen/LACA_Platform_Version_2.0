@@ -1,261 +1,484 @@
-// src/pages/stranger_profile/stranger_profile.jsx
-import React, { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+// frontend/src/components/stranger_profile/stranger_profile.jsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import userApi from "../../api/userApi";
+import TagDisplay from "../profile/TagDisplay";
+import TagSelectionModal from "../profile/TagSelectionModal";
 import "./stranger_profile.css";
 
-const StrangerProfile = () => {
-  // --- 1. KHAI BÁO TẤT CẢ HOOKS Ở ĐẦU ---
-  const { id } = useParams();
+/** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
+const IconMoreVertical = ({ size = 22 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path
+      d="M12 6h.01M12 12h.01M12 18h.01"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
-  // Database giả
-  const usersDatabase = [
-    {
-      userId: "user_a",
-      name: "User A",
-      bio: "1m79 | Gymer VN",
-      posts: [
-        {
-          id: 1,
-          type: "image",
-          image:
-            "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=600",
-          caption: "I'm always happy by your side.",
-        },
-        {
-          id: 2,
-          type: "image",
-          image:
-            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600",
-          caption: "Supermarket vibes 🛒",
-        },
-      ],
-    },
-    {
-      userId: "hong_hanh",
-      name: "Hồng Hạnh",
-      bio: "Freelancer | Travel Lover ✈️",
-      posts: [
-        {
-          id: 1,
-          type: "image",
-          image:
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600",
-          caption: "Ngày mới tốt lành!",
-        },
-        {
-          id: 2,
-          type: "image",
-          image:
-            "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600",
-          caption: "Chụp chơi mà đẹp thiệt :)",
-        },
-        {
-          id: 3,
-          type: "video",
-          image:
-            "https://cdn.pixabay.com/video/2023/10/22/186115-877653483_tiny.mp4",
-          caption: "My vibe today",
-        },
-      ],
-    },
-    {
-      userId: "tuan_anh",
-      name: "Tuấn Anh",
-      bio: "Photographer 📸 | Da Nang",
-      posts: [
-        {
-          id: 1,
-          type: "video",
-          image: "https://cdn.pixabay.com/video/2024/03/31/206294_tiny.mp4",
-          caption: "Sea vibes 🌊",
-        },
-        {
-          id: 2,
-          type: "image",
-          image:
-            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600",
-          caption: "Sunset...",
-        },
-      ],
-    },
-  ];
+const IconBlock = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+    <path
+      d="M7.5 16.5L16.5 7.5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 
-  const [userData, setUserData] = useState(null);
+const IconFlag = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path
+      d="M5 21V4"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M5 4h11l-1.5 4L16 12H5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const isVideoUrl = (url = "") => {
+  const u = url.toLowerCase();
+  return (
+    u.endsWith(".mp4") ||
+    u.endsWith(".webm") ||
+    u.endsWith(".mov") ||
+    u.includes("/video/upload/") ||
+    u.includes("video")
+  );
+};
+
+const formatDateOfBirth = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("vi-VN");
+};
+
+export default function StrangerProfile() {
+  const params = useParams();
+  const navigate = useNavigate();
+
+  // hỗ trợ cả 2 route param:
+  // - /profile/:userId  -> params.userId
+  // - /stranger_profile/:id -> params.id
+  const targetUserId = useMemo(
+    () => params.userId || params.id || null,
+    [params],
+  );
+
+  const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState({ posts: 0, followers: 0 });
+  const [posts, setPosts] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followPending, setFollowPending] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [canViewPosts, setCanViewPosts] = useState(true);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
-  const [activePostMenuId, setActivePostMenuId] = useState(null);
 
-  // useEffect 1: Tìm user
-  useEffect(() => {
-    const foundUser = usersDatabase.find((user) => user.userId === id);
-    if (foundUser) {
-      setUserData(foundUser);
-    } else {
-      setUserData({
-        name: "Unknown User",
-        bio: "User not found",
-        posts: [],
+  // Tags
+  const [userTags, setUserTags] = useState([]);
+  const [showTagModal, setShowTagModal] = useState(false);
+
+  const menuRef = useRef(null);
+
+  const fetchProfile = async (page = 1) => {
+    if (!targetUserId) {
+      setErr("Invalid userId");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErr("");
+
+      // API: { success, data: { user, stats, posts, pagination } }
+      const res = await userApi.getUserProfile({
+        userId: targetUserId,
+        page,
+        limit: 10,
       });
-    }
-  }, [id]);
+      const payload = res.data?.data;
 
-  // useEffect 2: Click outside (Cái này lúc nãy bị chặn bởi lệnh return nên gây lỗi)
+      setProfile(payload?.user || null);
+      setStats(payload?.stats || { posts: 0, followers: 0 });
+      setIsFollowing(Boolean(payload?.relationship?.isFollowing));
+      setIsOwner(Boolean(payload?.relationship?.isOwner));
+      setCanViewPosts(Boolean(payload?.relationship?.canViewPosts));
+      setPosts(payload?.posts || []);
+      setPagination(
+        payload?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 },
+      );
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message || e?.message || "Failed to load profile";
+      setErr(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTags = async () => {
+    if (!targetUserId) return;
+    try {
+      const res = await userApi.getUserPreferredTags(targetUserId);
+      const data = res?.data?.data || res?.data || [];
+      setUserTags(data);
+    } catch (e) {
+      // Silent fail - tags are optional
+      console.error("Failed to load user tags:", e);
+    }
+  };
+
   useEffect(() => {
-    const handleClickOutside = () => {
-      setShowHeaderMenu(false);
-      setActivePostMenuId(null);
+    fetchProfile(1);
+    fetchTags();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetUserId]);
+
+  // click outside để đóng menu header
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!showHeaderMenu) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowHeaderMenu(false);
+      }
     };
-    window.addEventListener("click", handleClickOutside);
-    return () => window.removeEventListener("click", handleClickOutside);
-  }, []);
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [showHeaderMenu]);
 
-  // --- 2. CÁC HÀM LOGIC ---
-  const handleFollow = () => setIsFollowing(!isFollowing);
+  const displayName = profile?.fullname || profile?.username || "User";
+  const displayBio = profile?.bio?.trim() ? profile.bio : "Chưa có bio";
+  const profileMetaRows = [
+    { label: "Email", value: profile?.email || "" },
+    { label: "SĐT", value: profile?.phoneNumber || "" },
+    { label: "Ngày sinh", value: formatDateOfBirth(profile?.dateOfBirth) },
+  ].filter((row) => row.value);
 
-  const toggleHeaderMenu = (e) => {
-    e.stopPropagation();
-    setShowHeaderMenu(!showHeaderMenu);
-    setActivePostMenuId(null);
-  };
+  const handleBlock = async () => {
+    setShowHeaderMenu(false);
+    if (!profile?._id || isOwner) return;
 
-  const togglePostMenu = (e, postId) => {
-    e.stopPropagation();
-    if (activePostMenuId === postId) setActivePostMenuId(null);
-    else {
-      setActivePostMenuId(postId);
-      setShowHeaderMenu(false);
+    const ok = window.confirm("Bạn có chắc muốn chặn người dùng này?");
+    if (!ok) return;
+
+    try {
+      await userApi.blockUser(profile._id);
+      alert("Đã chặn người dùng");
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message || e?.message || "Chặn người dùng thất bại";
+      alert(msg);
     }
   };
 
-  const handleAction = (action) => {
-    alert(`Đã thực hiện: ${action}`);
+  const handleReport = () => {
     setShowHeaderMenu(false);
-    setActivePostMenuId(null);
+    alert("Report: (tạm thời chưa có BE)");
   };
 
-  // --- 3. KIỂM TRA LOADING (ĐẶT Ở ĐÂY LÀ AN TOÀN) ---
-  // [QUAN TRỌNG] Phải đặt sau tất cả các hooks ở trên
-  if (!userData)
+  const handleShowAllTags = () => {
+    setShowTagModal(true);
+  };
+
+  const handleToggleFollow = async () => {
+    if (!profile?._id) return;
+
+    // Prevent double taps
+    if (followPending) return;
+
+    setFollowPending(true);
+    try {
+      if (isFollowing) {
+        const res = await userApi.unfollowUser(profile._id);
+        setIsFollowing(false);
+        setCanViewPosts(false); // After unfollow, may not see posts anymore
+        setPosts([]); // Clear posts
+        const newCount = res?.data?.data?.followers;
+        if (typeof newCount === "number") {
+          setStats((s) => ({ ...s, followers: newCount }));
+        } else {
+          setStats((s) => ({
+            ...s,
+            followers: Math.max(0, (s.followers || 0) - 1),
+          }));
+        }
+      } else {
+        const res = await userApi.followUser(profile._id);
+        setIsFollowing(true);
+        const newCount = res?.data?.data?.followers;
+        if (typeof newCount === "number") {
+          setStats((s) => ({ ...s, followers: newCount }));
+        } else {
+          setStats((s) => ({ ...s, followers: (s.followers || 0) + 1 }));
+        }
+        // Refresh profile to check if mutual follow - then can view posts
+        fetchProfile(1);
+      }
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || "Follow failed";
+      alert(msg);
+    } finally {
+      setFollowPending(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div style={{ color: "black", textAlign: "center", marginTop: 50 }}>
-        Loading...
+      <div className="mobile-wrapper stranger-profile">
+        <div style={{ color: "black", textAlign: "center", marginTop: 50 }}>
+          Loading...
+        </div>
       </div>
     );
+  }
 
-  // --- 4. RENDER GIAO DIỆN ---
+  if (err) {
+    return (
+      <div className="mobile-wrapper stranger-profile">
+        <header className="top-nav">
+          <Link to="/home" className="nav-btn" aria-label="Back">
+            <i className="fa-solid fa-arrow-left"></i>
+          </Link>
+        </header>
+
+        <div style={{ color: "black", textAlign: "center", marginTop: 80 }}>
+          <div style={{ marginBottom: 12 }}>{err}</div>
+          <button className="follow-btn" onClick={() => fetchProfile(1)}>
+            THỬ LẠI
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mobile-wrapper">
-      <header className="top-nav">
-        <Link to="/" className="nav-btn">
-          <i className="fa-solid fa-arrow-left"></i>
-        </Link>
-
-        <button className="nav-btn" onClick={toggleHeaderMenu}>
-          <i className="fa-solid fa-ellipsis-vertical"></i>
-        </button>
-
-        <div
-          className={`header-menu ${showHeaderMenu ? "show" : ""}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div
-            className="menu-item danger"
-            onClick={() => handleAction("Report User")}
+    <div className="mobile-wrapper stranger-profile">
+      {/* Header */}
+      <header className="profile-header">
+        <div className="profile-header-left">
+          <button
+            type="button"
+            className="profile-header-btn"
+            aria-label="Back"
+            onClick={() => navigate(-1)}
           >
-            <i className="fa-solid fa-flag"></i> Report User
-          </div>
-          <div
-            className="menu-item danger"
-            onClick={() => handleAction("Block User")}
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+        </div>
+        <span className="profile-header-title">{displayName}</span>
+        <div className="profile-header-right" ref={menuRef}>
+          <button
+            type="button"
+            className="profile-header-btn"
+            aria-label="More"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowHeaderMenu((v) => !v);
+            }}
           >
-            <i className="fa-solid fa-ban"></i> Block User
+            <IconMoreVertical />
+          </button>
+
+          <div className={`header-menu ${showHeaderMenu ? "show" : ""}`}>
+            <button type="button" className="menu-item" onClick={handleBlock}>
+              <IconBlock />
+              <span>Block</span>
+            </button>
+            <button
+              type="button"
+              className="menu-item danger"
+              onClick={handleReport}
+            >
+              <IconFlag />
+              <span>Report</span>
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="profile-container">
-        <div className="user-details-section">
-          <div className="avatar-large"></div>
-          <div className="user-text-info">
-            <div className="user-name">{userData.name}</div>
-            <p className="user-id">ID: {id}</p>
-            <p className="user-bio">{userData.bio}</p>
+      {/* Main Profile Section */}
+      <div className="profile-main">
+        {/* Profile Info - Instagram Style */}
+        <div className="profile-info-section">
+          {/* Avatar */}
+          <div className="profile-avatar-section">
+            <div className="profile-avatar">
+              {profile?.avatar ? (
+                <img src={profile.avatar} alt="avatar" />
+              ) : (
+                <div className="avatar-fallback">
+                  <span className="avatar-dot" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="profile-user-stats">
+            <div className="profile-stat">
+              <span className="profile-stat-num">
+                {stats?.posts ?? posts.length ?? 0}
+              </span>
+              <span className="profile-stat-label">posts</span>
+            </div>
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.followers ?? 0}</span>
+              <span className="profile-stat-label">followers</span>
+            </div>
+            <div className="profile-stat">
+              <span className="profile-stat-num">{stats?.following ?? 0}</span>
+              <span className="profile-stat-label">following</span>
+            </div>
           </div>
         </div>
 
-        <div className="stats-action-section">
-          <div className="stats-group">
-            <span className="stat-item">
-              <strong>{userData.posts.length}</strong> Posts
-            </span>
-            <span className="stat-item">
-              <strong>10k</strong> Followers
-            </span>
+        {/* Name and Bio */}
+        <div className="profile-name-section">
+          <div className="profile-name-row">
+            <span className="profile-username">{displayName}</span>
           </div>
-          <button
-            className={`follow-btn ${isFollowing ? "following" : ""}`}
-            onClick={handleFollow}
+          {displayBio && <p className="profile-bio">{displayBio}</p>}
+          {profileMetaRows.length > 0 && (
+            <div className="profile-meta-list">
+              {profileMetaRows.map((row) => (
+                <p key={row.label} className="profile-meta-item">
+                  <strong>{row.label}:</strong> {row.value}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="profile-actions">
+          {!isOwner && (
+            <button
+              className={`profile-action-btn ${isFollowing ? "" : "primary"}`}
+              onClick={handleToggleFollow}
+              disabled={followPending}
+            >
+              {followPending ? "..." : isFollowing ? "Following" : "Follow"}
+            </button>
+          )}
+        </div>
+
+        {/* Interests/Tags Section */}
+        {userTags && userTags.length > 0 && (
+          <div className="profile-interests">
+            <h4 className="profile-section-title">Sở thích</h4>
+            <div className="profile-tags-scroll">
+              {userTags.map((tag) => (
+                <span key={tag._id || tag.id} className="profile-tag">
+                  <i className="fa-solid fa-hashtag"></i>
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Posts Grid - Instagram Style */}
+        {!canViewPosts ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              color: "#8e8e8e",
+            }}
           >
-            {isFollowing ? "UNFOLLOW" : "FOLLOW"}
-          </button>
-        </div>
+            <i
+              className="fa-solid fa-lock"
+              style={{ fontSize: 32, marginBottom: 12 }}
+            ></i>
+            <p style={{ margin: 0, fontSize: 14 }}>
+              Chỉ có thể xem bài viết khi hai người follow nhau
+            </p>
+          </div>
+        ) : posts.length > 0 ? (
+          <div className="profile-posts">
+            {posts.map((p) => {
+              const id = String(p._id || p.id);
+              const media = Array.isArray(p.mediaUrl)
+                ? p.mediaUrl[0]
+                : p.mediaUrl;
+              const isVideo = p.type === "video" || isVideoUrl(media);
 
-        <div
-          className="section-label"
-          style={{ color: "#000", fontWeight: "bold", marginBottom: "15px" }}
-        >
-          POSTS
-        </div>
-
-        <div className="post-list">
-          {userData.posts.map((post) => (
-            <article className="mini-post" key={post.id}>
-              <div className="mini-post-header">
-                <div className="mini-user">
-                  <div className="mini-avatar"></div>
-                  <span className="mini-username">{userData.name}</span>
-                </div>
-
+              return (
                 <div
-                  className="report-post-btn"
-                  onClick={(e) => togglePostMenu(e, post.id)}
+                  className="profile-post-item"
+                  key={id}
+                  onClick={() => (window.location.href = `/posts/${id}`)}
                 >
-                  <i className="fa-solid fa-circle-exclamation"></i>
-                </div>
-
-                <div
-                  className={`post-menu ${activePostMenuId === post.id ? "show" : ""}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div
-                    className="menu-item danger"
-                    onClick={() => handleAction("Report Post")}
-                  >
-                    <i className="fa-solid fa-flag"></i> Report Post
+                  {media ? (
+                    isVideo ? (
+                      <video src={media} />
+                    ) : (
+                      <img src={media} alt="post" />
+                    )
+                  ) : (
+                    <div style={{ color: "#8e8e8e", fontSize: 12 }}>
+                      No media
+                    </div>
+                  )}
+                  <div className="profile-post-overlay">
+                    <span className="profile-post-stat">
+                      <i className="fa-solid fa-heart"></i>
+                    </span>
+                    <span className="profile-post-stat">
+                      <i className="fa-solid fa-comment"></i>
+                    </span>
                   </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", marginTop: 50, color: "#666" }}>
+            NO POST YET
+          </div>
+        )}
 
-              <div className="post-image-wrapper">
-                {post.type === "video" ? (
-                  <video
-                    src={post.image}
-                    muted
-                    loop
-                    autoPlay
-                    playsInline
-                  ></video>
-                ) : (
-                  <img src={post.image} alt="Post" />
-                )}
-                <div className="overlay-caption">{post.caption}</div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </main>
+        {canViewPosts && pagination.page < pagination.totalPages && (
+          <button
+            className="profile-action-btn"
+            style={{ width: "100%", marginTop: 12 }}
+            onClick={() => fetchProfile(pagination.page + 1)}
+          >
+            TẢI THÊM
+          </button>
+        )}
+      </div>
+
+      {/* Tag Modal - View only mode */}
+      <TagSelectionModal
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        currentTags={userTags}
+        onSave={null}
+      />
     </div>
   );
-};
-
-export default StrangerProfile;
+}

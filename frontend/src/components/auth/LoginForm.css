@@ -1,162 +1,145 @@
-/* src/components/auth/LoginForm.css */
-
-/* CSS Variables */
+/* LoginForm - design system, mobile-first */
 .login-form {
-  --primary-color: #4facfe;
-  --text-color: #333;
-  --text-light: #666;
-  --border-color: #333;
-  --border-radius: 25px;
-  --error-color: #ff4757;
-
   width: 100%;
+  font-family: var(--font-sans);
 }
 
-/* Font Family cho toàn bộ form */
-.login-form * {
-  font-family: "DynaPuff", "Dynapuff", cursive, sans-serif;
-}
-
-/* Error Message */
-.error-message {
-  color: var(--error-color);
-  background-color: #ffe5e9;
-  padding: 10px 16px;
-  border-radius: 16px;
-  margin-bottom: 16px;
-  font-size: 13px;
+.login-form .error-message {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.08);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  font-size: 14px;
   font-weight: 600;
   text-align: center;
 }
 
-/* Field Row Layout - Mobile First */
-.field-row {
+.login-form .field-row {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-lg);
   width: 100%;
 }
 
-/* Label */
-.field-label {
-  color: var(--text-color);
-  font-weight: 700;
+.login-form .field-label {
+  color: var(--text-primary);
+  font-weight: 600;
   font-size: 15px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
   text-align: left;
 }
 
-/* Input container */
-.field-control {
+.login-form .field-control {
   width: 100%;
 }
 
-/* Input styles */
 .login-form input[type="email"],
 .login-form input[type="password"],
 .login-form input[type="text"],
-.field-control input {
+.login-form .field-control input {
   width: 100%;
-  padding: 14px 18px;
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius);
+  padding: 14px var(--space-xl);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
   font-size: 16px;
+  color: var(--text-primary);
   outline: none;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
   -webkit-appearance: none;
 }
 
+.login-form input::placeholder {
+  color: var(--text-muted);
+}
+
 .login-form input:focus,
-.field-control input:focus {
-  border-color: var(--primary-color);
+.login-form .field-control input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(233, 64, 87, 0.12);
 }
 
-/* Error state */
-.field-control.error input {
-  border-color: var(--error-color);
+.login-form .field-control.error input {
+  border-color: var(--error);
 }
 
-/* Login Options */
-.login-options {
+.login-form .login-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
-  margin-bottom: 20px;
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-xl);
   font-size: 14px;
   width: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
-/* Checkbox */
-.checkbox-container {
+.login-form .checkbox-container {
   display: flex;
   align-items: center;
   cursor: pointer;
-  color: var(--text-color);
-  font-weight: 600;
+  color: var(--text-primary);
+  font-weight: 500;
   user-select: none;
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
+  min-height: var(--touch-min);
+  align-items: center;
 }
 
-.checkbox-container input[type="checkbox"] {
-  margin-right: 10px;
+.login-form .checkbox-container input[type="checkbox"] {
+  margin-right: var(--space-md);
   width: 20px;
   height: 20px;
-  cursor: pointer;
-  accent-color: var(--primary-color);
+  accent-color: var(--primary);
 }
 
-/* Forgot Password Link */
-.forgot-link {
-  color: var(--primary-color);
+.login-form .forgot-link {
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
-  transition: opacity 0.3s ease;
-  padding: 8px 0;
-}
-
-.forgot-link:hover,
-.forgot-link:active {
-  opacity: 0.85;
-  text-decoration: underline;
-}
-
-/* Login Actions */
-.login-actions {
-  width: 100%;
-  margin-bottom: 16px;
-}
-
-/* Footer Text */
-.footer-text {
-  margin-top: 16px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-light);
-  line-height: 1.6;
-}
-
-.link-bold {
-  color: var(--primary-color);
-  font-weight: 700;
-  text-decoration: none;
-  transition: opacity 0.3s ease;
-  padding: 4px 0;
-}
-
-.link-bold:hover,
-.link-bold:active {
-  text-decoration: underline;
-  opacity: 0.85;
-}
-
-/* Touch device optimization */
-.checkbox-container,
-.forgot-link,
-.link-bold {
-  min-height: 44px;
+  transition: opacity 0.2s;
+  padding: var(--space-sm) 0;
+  min-height: var(--touch-min);
   display: inline-flex;
   align-items: center;
+}
+
+.login-form .forgot-link:hover,
+.login-form .forgot-link:active {
+  opacity: 0.85;
+  text-decoration: underline;
+}
+
+.login-form .login-actions {
+  width: 100%;
+  margin-bottom: var(--space-lg);
+}
+
+.login-form .footer-text {
+  margin-top: var(--space-lg);
+  text-align: center;
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.login-form .link-bold {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  padding: 4px 0;
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+}
+
+.login-form .link-bold:hover,
+.login-form .link-bold:active {
+  text-decoration: underline;
+  opacity: 0.9;
 }

@@ -1,0 +1,111 @@
+.interest-grid-inline-container {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.interest-grid-inline-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.interest-grid-inline-loading {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+.interest-grid-inline-error {
+  padding: 12px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.interest-grid-inline-empty {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.interest-grid-inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.interest-grid-inline::-webkit-scrollbar {
+  width: 6px;
+}
+
+.interest-grid-inline::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.interest-grid-inline::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.interest-grid-inline::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.interest-grid-inline-save-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.interest-grid-inline-save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.interest-grid-inline-save-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .interest-grid-inline {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+  }
+
+  .interest-grid-inline-container {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .interest-grid-inline {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+  }
+
+  .interest-grid-inline-container {
+    padding: 10px;
+    margin-top: 12px;
+  }
+}

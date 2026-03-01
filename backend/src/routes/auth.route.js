@@ -7,6 +7,8 @@ const controller = require("../controllers/auth.controller");
 router.post("/register", controller.register);
 router.post("/verify-otp", controller.verifyOtp);
 router.post("/login", controller.login);
+router.post("/refresh-token", controller.refreshToken);
+router.post("/logout", controller.logout);
 
 // forgot password
 router.post("/forgot-password", controller.forgotPassword);

@@ -9,12 +9,40 @@ import Camera from "../pages/CameraPage";
 import CameraPost from "../pages/CameraPostPage";
 import StrangerProfile from "../pages/StrangerProfilePage";
 import Notification from "../pages/NotificationPage";
-
+import AdminLayout from "../components/admin/AdminLayout";
+import AdminDashboard from "../components/admin/AdminDashboard";
+import UserManagement from "../components/admin/UserManagement";
+import ContentModeration from "../components/admin/ContentModeration";
+import MapManagement from "../components/admin/MapManagement";
+import AdminAnalytics from "../components/admin/AdminAnalytics";
+import TagManagement from "../components/admin/TagManagement";
+import AdminBroadcastPage from "../pages/AdminBroadcastPage";
+import FeedbackPage from "../pages/FeedbackPage";
+import ReportPage from "../pages/ReportPage";
+import ChatListPage from "../pages/ChatListPage";
+import ChatDetailPage from "../pages/ChatDetailPage";
+import PublicChatPage from "../pages/PublicChatPage";
+import DeleteAccountConfirmPage from "../pages/DeleteAccountConfirmPage";
+import SettingPage from "../pages/SettingPage";
+import EditProfileSettingPage from "../pages/EditProfileSettingPage";
+import Blocked from "../components/setting/Blocked";
+import PrivacyData from "../components/setting/PrivacyData";
+import InterestManagementPage from "../pages/InterestManagementPage";
+import TagPreferencePage from "../pages/TagPreferencePage";
+import PostDetailPage from "../pages/PostDetailPage";
+import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Redirect root -> login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Redirect root -> home when authenticated */}
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <Navigate to="/home" replace />
+          </RequireAuth>
+        }
+      />
 
       {/* Auth pages */}
       <Route path="/login" element={<LoginPage />} />
@@ -22,13 +50,102 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
       {/* App pages */}
-      <Route path="/home" element={<Home />} />
-      <Route path="/map" element={<Map />} />
-      <Route path="/profile" element={<UserProfile />} />
+      <Route
+        path="/home"
+        element={
+          <RequireAuth>
+            <Home />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/map"
+        element={
+          <RequireAuth>
+            <Map />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth>
+            <UserProfile />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/setting"
+        element={
+          <RequireAuth>
+            <SettingPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/setting/edit-profile"
+        element={
+          <RequireAuth>
+            <EditProfileSettingPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/interests"
+        element={
+          <RequireAuth>
+            <InterestManagementPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/posts/:postId"
+        element={
+          <RequireAuth>
+            <PostDetailPage />
+          </RequireAuth>
+        }
+      />
+      <Route path="/profile/:userId" element={<StrangerProfile />} />
       <Route path="/camera" element={<Camera />} />
       <Route path="/camera-post" element={<CameraPost />} />
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />
       <Route path="/notification" element={<Notification />} />
+      <Route path="/feedback" element={<FeedbackPage />} />
+      <Route path="/report" element={<ReportPage />} />
+      <Route path="/chat" element={<ChatListPage />} />
+      <Route path="/chat/detail" element={<ChatDetailPage />} />
+      <Route path="/chat/public/:postId" element={<PublicChatPage />} />
+      <Route
+        path="/delete-account-confirm"
+        element={<DeleteAccountConfirmPage />}
+      />
+      <Route
+        path="/blocked"
+        element={
+          <RequireAuth>
+            <Blocked />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/privacy"
+        element={
+          <RequireAuth>
+            <PrivacyData />
+          </RequireAuth>
+        }
+      />
+      {/* Admin */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="content" element={<ContentModeration />} />
+        <Route path="map" element={<MapManagement />} />
+        <Route path="tags" element={<TagManagement />} />
+        <Route path="broadcast" element={<AdminBroadcastPage />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+      </Route>
 
       {/* Optional: route không tồn tại */}
       <Route path="*" element={<Navigate to="/login" replace />} />

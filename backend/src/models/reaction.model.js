@@ -1,12 +1,24 @@
 const mongoose = require("mongoose");
 
-const schema = new mongoose.Schema(
-  {
-    postId: mongoose.Schema.Types.ObjectId,
-    userId: mongoose.Schema.Types.ObjectId,
-    type: String,
+// Define schema - use simple ObjectId without refs to avoid validation issues
+const reactionSchema = new mongoose.Schema({
+  postId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Post",
+    required: true
   },
-  { timestamps: true },
-);
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+  type: {
+    type: String,
+    default: "like"
+  }
+}, { timestamps: true });
 
-module.exports = mongoose.model("Reaction", schema);
+// Create compound unique index
+reactionSchema.index({ postId: 1, userId: 1 }, { unique: true });
+
+module.exports = mongoose.model("Reaction", reactionSchema);

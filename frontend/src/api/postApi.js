@@ -17,28 +17,48 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Upload media -> /api/upload
+// Upload media -> POST /api/upload
 export const uploadMedia = async (fileBlob) => {
   const formData = new FormData();
-
-  // multer của bạn đang dùng upload.single("file") => field name phải là "file"
-  // Nếu bạn đang gửi blob, nên đặt filename cho chắc
   formData.append("file", fileBlob, fileBlob?.name || "upload");
 
   const res = await api.post("/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-
   return res.data;
 };
 
-// Create post -> /api/posts (cần auth)
-export const createPost = async ({ content, type, mediaUrl }) => {
-  const res = await api.post("/posts", {
-    content,
-    type,
-    mediaUrl,
+// Create post -> POST /api/posts
+export const createPost = async (payload) => {
+  // payload: { content, type, mediaUrl, placeId }
+  const res = await api.post("/posts", payload);
+  return res.data;
+};
+
+// Delete post -> DELETE /api/posts/:postId
+export const deletePost = async (postId) => {
+  const res = await api.delete(`/posts/${postId}`);
+  return res.data;
+};
+
+// Nearby posts
+export const getNearbyPosts = async ({ lat, lng }) => {
+  const res = await api.get("/map/posts/nearby", { params: { lat, lng } });
+  return res.data;
+};
+
+// Get recommended topics for post creation
+export const getRecommendedTopics = async (days = 7, limit = 5) => {
+  const res = await api.get("/analysis/recommendations", {
+    params: { days, limit },
   });
+  return res.data.data || [];
+};
 
+// Get single post detail
+export const getPostDetail = async (postId) => {
+  const res = await api.get(`/posts/${postId}`);
   return res.data;
 };
+
+export default api;

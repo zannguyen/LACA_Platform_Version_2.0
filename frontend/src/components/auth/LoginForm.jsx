@@ -20,34 +20,41 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // gọi backend
-      const data = await authApi.login({ email, password });
+      // ✅ clear sạch để khỏi dính cache cũ
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
 
-      // nếu backend trả success false (dù status 200)
+      const data = await authApi.login({ email, password });
+      console.log("LOGIN RESPONSE:", data);
+
       if (data?.success === false) {
         throw new Error(data?.message || "Đăng nhập thất bại");
       }
 
-      // tuỳ backend: token có thể nằm ở data.token / data.accessToken / data.data.token
-      const token =
-        data?.token ||
-        data?.accessToken ||
-        data?.data?.token ||
-        data?.data?.accessToken;
+      const token = data?.accessToken || data?.token;
+      if (!token) throw new Error("Không nhận được accessToken từ server");
 
-      if (token) {
-        localStorage.setItem("authToken", token);
+      localStorage.setItem("token", token);
+      localStorage.setItem("authToken", token);
+
+      const user = data?.user;
+      if (user) localStorage.setItem("user", JSON.stringify(user));
+
+      const role = user?.role;
+      console.log("ROLE FROM LOGIN:", role);
+
+      // ✅ nếu backend chưa trả role -> báo lỗi rõ luôn
+      if (!role) {
+        throw new Error(
+          "Backend login chưa trả field user.role. Hãy sửa auth.control.js để trả role.",
+        );
       }
 
-      // có thể lưu user nếu backend trả về
-      const user = data?.user || data?.data?.user || data?.data;
-      if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
-      }
-
-      // ✅ đăng nhập thành công -> chuyển trang
-      navigate("/home");
+      if (role === "admin") navigate("/admin");
+      else navigate("/home");
     } catch (err) {
+      console.error("LOGIN ERROR:", err);
       setError(err?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);

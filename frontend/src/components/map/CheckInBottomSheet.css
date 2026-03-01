@@ -1,17 +1,11 @@
-/* Backdrop */
-
+/* CheckInBottomSheet - design system */
 .bottomsheet-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: var(--bg-overlay);
   z-index: 9998;
   transition: opacity 0.3s ease;
 }
-
-/* Bottom Sheet Container */
 
 .bottomsheet-container {
   position: fixed;
@@ -19,18 +13,17 @@
   left: 0;
   right: 0;
   max-height: 85vh;
-  background: white;
-  border-radius: 24px 24px 0 0;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  background: var(--bg-card);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
   z-index: 9999;
   overflow: hidden;
   will-change: transform;
+  font-family: var(--font-sans);
 }
 
-/* Drag Handle */
-
 .bottomsheet-handle {
-  padding: 12px 0 8px 0;
+  padding: var(--space-md) 0 var(--space-sm);
   display: flex;
   justify-content: center;
   cursor: grab;
@@ -44,27 +37,25 @@
 .handle-bar {
   width: 40px;
   height: 4px;
-  background: #ddd;
+  background: var(--border);
   border-radius: 2px;
 }
 
 /* Content */
 
 .bottomsheet-content {
-  padding: 0 20px 20px 20px;
+  padding: 0 var(--space-xl) calc(var(--space-xl) + var(--safe-bottom));
   overflow-y: auto;
   max-height: calc(85vh - 32px);
 }
-
-/* Header */
 
 .bottomsheet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
 }
 
 .header-user {
@@ -90,31 +81,32 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .checkin-time {
   margin: 2px 0 0 0;
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .close-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: none;
-  background: #f5f5f5;
-  border-radius: 50%;
+  background: var(--bg-input);
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .close-btn:hover {
-  background: #e5e5e5;
+  background: var(--border);
+  color: var(--primary);
   transform: scale(1.05);
 }
 
@@ -127,22 +119,22 @@
 .bottomsheet-location {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--gradient-soft);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
 }
 
 .bottomsheet-location svg {
-  color: #667eea;
+  color: var(--primary);
   flex-shrink: 0;
 }
 
 .location-name {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Description */

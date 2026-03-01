@@ -1,0 +1,64 @@
+/* ============================================
+   LACA Design System - Mobile-first
+   Font: Plus Jakarta Sans (modern, readable)
+   Palette: Coral + Teal (ấm, dễ nhìn)
+============================================ */
+
+:root {
+  /* ----- Font ----- */
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* ----- Colors - Primary ----- */
+  --primary: #e94057;
+  --primary-light: #ff6b7a;
+  --primary-dark: #c62845;
+  --accent: #00b4a0;
+  --accent-light: #2dd4bf;
+  --gradient-main: linear-gradient(135deg, #e94057 0%, #00b4a0 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(233, 64, 87, 0.08) 0%, rgba(0, 180, 160, 0.08) 100%);
+
+  /* ----- Colors - Neutral ----- */
+  --bg-page: #f8f9fc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f3f5;
+  --bg-overlay: rgba(17, 24, 39, 0.5);
+  --text-primary: #1a1d26;
+  --text-secondary: #5c6370;
+  --text-muted: #8e95a0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+
+  /* ----- Semantic ----- */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --notif-badge: #e94057;
+
+  /* ----- Radius ----- */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* ----- Spacing ----- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  /* ----- Shadows ----- */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 4px 20px rgba(233, 64, 87, 0.06);
+
+  /* ----- Touch / Mobile ----- */
+  --touch-min: 44px;
+  --header-height: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+}

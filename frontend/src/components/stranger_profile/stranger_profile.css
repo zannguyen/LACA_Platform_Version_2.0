@@ -1,261 +1,667 @@
-/* src/pages/stranger_profile/stranger_profile.css */
+/* Instagram Profile Style */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
-/* --- CẤU HÌNH CƠ BẢN --- */
-* {
+.stranger-profile * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", sans-serif;
-}
-body {
-  background-color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.mobile-wrapper {
-  width: 375px;
-  height: 800px;
-  background-color: #fff;
+.stranger-profile i::before {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif !important;
+}
+
+.stranger-profile.mobile-wrapper {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #fff;
   position: relative;
-  border-radius: 30px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0 auto;
 }
 
-/* --- HEADER (Nút Back & 3 Chấm) --- */
-.top-nav {
-  padding: 15px 20px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  z-index: 50;
+@media (min-width: 768px) {
+  .stranger-profile.mobile-wrapper {
+    min-height: 92vh;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    margin: 20px auto;
+  }
 }
-.nav-btn {
-  font-size: 24px;
-  color: #333;
+
+/* Header - Simple and Clean */
+.stranger-profile .profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #efefef;
+  position: relative;
+}
+
+.stranger-profile .profile-header-left {
+  position: absolute;
+  left: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.stranger-profile .profile-header-right {
+  position: absolute;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stranger-profile .profile-header-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  background: none;
+  color: #262626;
+  font-size: 18px;
+}
+
+.stranger-profile .profile-header-btn:hover {
+  background: #f5f5f5;
+}
+
+.stranger-profile .profile-header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.stranger-profile .profile-header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #262626;
+  font-size: 20px;
+  text-decoration: none;
+}
+
+.stranger-profile .profile-header-icon:hover {
+  background: #f5f5f5;
+}
+
+/* Main Profile Content */
+.stranger-profile .profile-main {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  padding-bottom: 60px;
+}
+
+/* Profile Info Section - Instagram Style */
+.stranger-profile .profile-info-section {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+@media (max-width: 380px) {
+  .stranger-profile .profile-info-section {
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+/* Avatar */
+.stranger-profile .profile-avatar-section {
+  flex-shrink: 0;
+}
+
+.stranger-profile .profile-avatar {
+  width: 77px;
+  height: 77px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid #dbdbdb;
+  position: relative;
+  cursor: pointer;
+}
+
+@media (max-width: 380px) {
+  .stranger-profile .profile-avatar {
+    width: 65px;
+    height: 65px;
+  }
+}
+
+.stranger-profile .profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stranger-profile .avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stranger-profile .avatar-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #dbdbdb;
+}
+
+.stranger-profile .profile-avatar-edit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+}
+
+.stranger-profile .profile-avatar:hover .profile-avatar-edit {
+  display: flex;
+}
+
+/* User Stats - Horizontal */
+.stranger-profile .profile-user-stats {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.stranger-profile .profile-stat {
+  text-align: center;
+}
+
+.stranger-profile .profile-stat-num {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  display: block;
+}
+
+.stranger-profile .profile-stat-label {
+  font-size: 12px;
+  color: #8e8e8e;
+}
+
+/* Name and Bio Section */
+.stranger-profile .profile-name-section {
+  padding: 0 16px 16px;
+  text-align: left;
+}
+
+.stranger-profile .profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.stranger-profile .profile-username {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.stranger-profile .profile-bio {
+  font-size: 14px;
+  color: #262626;
+  line-height: 1.4;
+}
+
+.stranger-profile .profile-meta-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stranger-profile .profile-meta-item {
+  font-size: 13px;
+  color: #5f6368;
+  line-height: 1.3;
+}
+
+/* Bio Input for Editing */
+.stranger-profile .profile-bio-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #262626;
+  background: #fff;
+  resize: none;
+  line-height: 1.4;
+}
+
+.stranger-profile .profile-bio-input:focus {
+  outline: none;
+  border-color: #a8a8a8;
+}
+
+.stranger-profile .profile-bio-input::placeholder {
+  color: #a8a8a8;
+}
+
+/* Action Buttons */
+.stranger-profile .profile-actions {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 16px;
+  gap: 8px;
+}
+
+.stranger-profile .profile-action-btn {
+  flex: 1;
+  max-width: 250px;
+  padding: 7px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #dbdbdb;
+  background: transparent;
+  color: #262626;
+  transition: background 0.2s;
+}
+
+.stranger-profile .profile-action-btn:hover {
+  background: #f5f5f5;
+}
+
+.stranger-profile .profile-action-btn.primary {
+  background: #0095f6;
+  border-color: #0095f6;
+  color: #fff;
+}
+
+.stranger-profile .profile-action-btn.primary:hover {
+  background: #0086e0;
+}
+
+/* Alternative Layout - Full Width Info */
+.stranger-profile .profile-info-full {
+  padding: 12px 16px;
+}
+
+.stranger-profile .profile-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.stranger-profile .profile-avatar-large {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid #dbdbdb;
+}
+
+.stranger-profile .profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stranger-profile .profile-stats-row {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.stranger-profile .profile-stats-row .profile-stat-num {
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.stranger-profile .profile-stats-row .profile-stat-label {
+  font-size: 12px;
+  color: #8e8e8e;
+}
+
+.stranger-profile .profile-name-bio {
+  padding: 0 4px;
+}
+
+.stranger-profile .profile-fullname {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 2px;
+}
+
+.stranger-profile .profile-bio-text {
+  font-size: 14px;
+  color: #262626;
+  line-height: 1.4;
+}
+
+/* Highlights / Tags Section - Instagram Style */
+.stranger-profile .profile-highlights {
+  padding: 16px;
+  border-top: 1px solid #efefef;
+  border-bottom: 1px solid #efefef;
+}
+
+.stranger-profile .profile-highlights-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.stranger-profile .profile-highlights-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.stranger-profile .profile-highlight-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 60px;
+  cursor: pointer;
+}
+
+.stranger-profile .profile-highlight-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #dbdbdb;
+  padding: 2px;
+}
+
+.stranger-profile .profile-highlight-circle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.stranger-profile .profile-highlight-name {
+  font-size: 11px;
+  color: #262626;
+  text-align: center;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Interests / Tags Section - Horizontal Scroll */
+.stranger-profile .profile-interests {
+  padding: 12px 16px;
+  border-bottom: 1px solid #efefef;
+}
+
+.stranger-profile .profile-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 12px;
+}
+
+.stranger-profile .profile-tags-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.stranger-profile .profile-tags-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.stranger-profile .profile-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #f8f8f8;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #262626;
+  white-space: nowrap;
   border: none;
 }
 
-/* Menu Dropdown góc phải (Report User) */
-.header-menu {
-  display: none;
-  position: absolute;
-  top: 50px;
-  right: 20px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+.stranger-profile .profile-tag i {
+  color: #8e8e8e;
+}
+
+/* Style 3x Posts Grid - Instagram3 */
+.stranger-profile .profile-posts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  min-height: 300px;
+}
+
+.stranger-profile .profile-post-item {
+  aspect-ratio: 1;
+  position: relative;
   overflow: hidden;
-  border: 1px solid #eee;
-  width: 160px;
-}
-.header-menu.show {
-  display: block;
-  animation: fadeIn 0.2s;
-}
-
-/* --- USER INFO --- */
-.profile-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px 20px 20px;
-}
-.profile-container::-webkit-scrollbar {
-  display: none;
-}
-
-.user-details-section {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.avatar-large {
-  width: 80px;
-  height: 80px;
-  background-color: #d9d9d9;
-  border-radius: 50%;
-  margin-right: 20px;
-  border: 1px solid #ccc;
-  flex-shrink: 0;
-  overflow: hidden; /* Thêm cái này để ảnh avatar không bị tràn ra ngoài hình tròn */
-}
-.user-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #000;
-  margin-bottom: 4px;
-}
-.user-id {
-  font-size: 14px;
-  color: #000;
-  margin-bottom: 4px;
-}
-.user-bio {
-  font-size: 14px;
-  color: #000;
-}
-
-/* --- STATS & FOLLOW BUTTON --- */
-.stats-action-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-}
-.stat-item {
-  font-size: 13px;
-  margin-right: 15px;
-  color: #000;
-}
-
-/* Nút FOLLOW */
-.follow-btn {
-  background: #fff;
-  color: #000;
-  border: 1px solid #000;
-  padding: 8px 25px;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: 700;
+  background: #f5f5f5;
   cursor: pointer;
-  text-transform: uppercase;
-  transition: 0.2s;
-  letter-spacing: 0.5px;
-}
-.follow-btn.following {
-  background: #000;
-  color: #fff;
-}
-.follow-btn:active {
-  transform: scale(0.95);
 }
 
-/* --- POSTS --- */
-.mini-post {
-  margin-bottom: 30px;
-  position: relative;
+.stranger-profile .profile-post-item img,
+.stranger-profile .profile-post-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.mini-post-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  position: relative;
-}
-.mini-user {
+
+.stranger-profile .profile-post-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 20px;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
-.mini-avatar {
-  width: 30px;
-  height: 30px;
-  background: #d9d9d9;
-  border-radius: 50%;
-  margin-right: 10px;
-  border: 1px solid #ccc;
-  overflow: hidden;
+
+.stranger-profile .profile-post-item:hover .profile-post-overlay {
+  opacity: 1;
 }
-.mini-username {
+
+.stranger-profile .profile-post-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
   font-size: 14px;
   font-weight: 600;
-  color: #000;
 }
 
-/* Nút Report Post (!) */
-.report-post-btn {
-  font-size: 18px;
-  color: #333;
-  cursor: pointer;
-  padding: 5px;
+.stranger-profile .profile-post-stat i {
+  font-size: 16px;
 }
 
-/* Menu Dropdown của Post */
-.post-menu {
+/* Empty State */
+.stranger-profile .profile-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8e8e8e;
+  grid-column: 1 / -1;
+}
+
+.stranger-profile .profile-empty i {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Loading */
+.stranger-profile .profile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #8e8e8e;
+}
+
+/* Header Menu */
+.stranger-profile .header-menu {
   display: none;
   position: absolute;
+  top: 100%;
   right: 0;
-  top: 30px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  margin-top: 4px;
+  background: #fff;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   border-radius: 8px;
-  z-index: 10;
-  border: 1px solid #eee;
-  width: 140px;
-}
-.post-menu.show {
-  display: block;
-  animation: fadeIn 0.2s;
+  overflow: hidden;
+  min-width: 180px;
+  z-index: 80;
 }
 
-.menu-item {
-  padding: 12px 15px;
-  font-size: 13px;
-  color: #333;
+.stranger-profile .header-menu.show {
+  display: block;
+}
+
+.stranger-profile .menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #262626;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #f9f9f9;
-}
-.menu-item:hover {
-  background-color: #f5f5f5;
-}
-.menu-item.danger {
-  color: #dc3545;
-  font-weight: 600;
+  background: #fff;
+  border: none;
+  text-align: left;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.stranger-profile .menu-item:hover {
+  background: #f5f5f5;
 }
 
-/* --- [QUAN TRỌNG] SỬA PHẦN HIỂN THỊ ẢNH & VIDEO --- */
-.post-image-wrapper {
-  position: relative;
-  width: 100%;
-  height: 350px;
-  background-color: #000;
-  display: flex;
-  justify-content: center;
+.stranger-profile .menu-item.danger {
+  color: #ed4956;
+}
+
+/* Modal */
+.stranger-profile .modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
   align-items: center;
-  overflow: hidden;
+  justify-content: center;
+  z-index: 1000;
 }
 
-/* Áp dụng cho cả thẻ IMG và thẻ VIDEO để nó full khung hình */
-.post-image-wrapper img,
-.post-image-wrapper video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.9;
-  display: block;
+.stranger-profile .modal-overlay.show {
+  display: flex;
 }
 
-.overlay-caption {
-  position: absolute;
-  bottom: 15px;
-  left: 0;
-  width: 100%;
+.stranger-profile .modal-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 300px;
+  width: 90%;
   text-align: center;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 13px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-  z-index: 5;
+}
+
+.stranger-profile .modal-text {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #262626;
+}
+
+.stranger-profile .modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.stranger-profile .btn-modal {
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.stranger-profile .btn-modal.btn-no {
+  background: #efefef;
+  color: #262626;
+}
+
+.stranger-profile .btn-modal.btn-yes {
+  background: #ed4956;
+  color: #fff;
+}
+
+.stranger-profile .btn-modal:hover {
+  opacity: 0.8;
+}
+
+.stranger-profile .btn-modal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.stranger-profile .spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #dbdbdb;
+  border-top-color: #0095f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

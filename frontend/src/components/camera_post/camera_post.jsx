@@ -1,10 +1,105 @@
 // src/pages/CameraPost/CameraPost.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./camera_post.css";
-import { uploadMedia, createPost } from "../../api/postApi";
 
-const CameraPost = () => {
+import { uploadMedia, createPost } from "../../api/postApi";
+import { suggestPlaces, resolvePlace } from "../../api/place.api";
+import { getCategoriesWithTags } from "../../api/tagApi";
+
+// ✅ unwrap mọi kiểu response để lấy PLACE DOC chuẩn: {_id, name, address, ...}
+function unwrapPlace(res) {
+  const root = res?.data ?? res;
+  if (!root) return null;
+
+  if (root?.success === true && root?.data && root?.data?._id) return root.data;
+  if (root?.data?.success === true && root?.data?.data?._id)
+    return root.data.data;
+  if (root?._id) return root;
+
+  return null;
+}
+
+// ✅ unwrap list suggestion (tùy shape)
+function unwrapSuggestions(res) {
+  const root = res?.data ?? res;
+  if (!root) return [];
+  if (root?.success === true && Array.isArray(root?.data)) return root.data;
+  if (root?.data?.success === true && Array.isArray(root?.data?.data))
+    return root.data.data;
+  if (Array.isArray(root)) return root;
+  return [];
+}
+
+/**
+ * ✅ Best GPS (high accuracy) trong một khoảng thời gian.
+ * - Dùng watchPosition để lấy nhiều mẫu
+ * - Chọn mẫu accuracy nhỏ nhất
+ * - Nếu đạt desiredAccuracy thì trả về sớm
+ *
+ * Lưu ý: 5-10m trong nhà thường KHÓ đạt. Mình để mặc định desiredAccuracy=20,
+ * bạn có thể chỉnh 10 nếu muốn "gắt" hơn (nhưng sẽ hay fail trong nhà).
+ */
+function getBestPosition({
+  timeoutMs = 18000,
+  desiredAccuracy = 15,
+  maxAgeMs = 0,
+} = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation)
+      return reject(new Error("Geolocation not supported"));
+
+    let best = null;
+    let done = false;
+    let watchId = null;
+
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      clearTimeout(timer);
+      if (ok && best) resolve(best);
+      else reject(new Error("Cannot get accurate location"));
+    };
+
+    const onSuccess = (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords || {};
+      const candidate = {
+        lat: Number(latitude),
+        lng: Number(longitude),
+        accuracy: Math.round(Number(accuracy || 0)),
+        ts: Date.now(),
+      };
+
+      if (!Number.isFinite(candidate.lat) || !Number.isFinite(candidate.lng))
+        return;
+
+      if (!best || (candidate.accuracy && candidate.accuracy < best.accuracy)) {
+        best = candidate;
+      }
+
+      if (best?.accuracy && best.accuracy <= desiredAccuracy) finish(true);
+    };
+
+    const onError = () => finish(false);
+
+    watchId = navigator.geolocation.watchPosition(onSuccess, onError, {
+      enableHighAccuracy: true,
+      maximumAge: maxAgeMs,
+      timeout: 15000,
+    });
+
+    // hard timeout
+    const timer = setTimeout(() => {
+      // nếu có best thì trả về best (dù chưa đạt desiredAccuracy)
+      // nhưng: mình vẫn trả best để user biết accuracy hiện tại
+      if (best) finish(true);
+      else finish(false);
+    }, timeoutMs);
+  });
+}
+
+export default function CameraPost() {
   const navigate = useNavigate();
   const { state } = useLocation();
 
@@ -17,6 +112,74 @@ const CameraPost = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ====== LOCATION SHEET (NEW UI) ======
+  const [locOpen, setLocOpen] = useState(false);
+
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState("");
+  const [coords, setCoords] = useState(null); // {lat,lng,accuracy}
+
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+
+  const [pickedPlace, setPickedPlace] = useState(null); // placeDoc
+
+  // create place section
+  const [createOpen, setCreateOpen] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customAddress, setCustomAddress] = useState("");
+  const [customCategory, setCustomCategory] = useState("other");
+  const [createLoading, setCreateLoading] = useState(false);
+
+  // ====== TAGS SECTION ======
+  const [tagOpen, setTagOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+
+  // Load categories with tags
+  useEffect(() => {
+    if (tagOpen && categories.length === 0) {
+      setTagsLoading(true);
+      getCategoriesWithTags()
+        .then((res) => {
+          const data = res?.data?.data || res?.data || [];
+          setCategories(data);
+        })
+        .catch((err) => console.error("Load tags error:", err))
+        .finally(() => setTagsLoading(false));
+    }
+  }, [tagOpen, categories.length]);
+
+  const toggleTag = (tag) => {
+    setSelectedTags((prev) => {
+      const exists = prev.find((t) => t._id === tag._id);
+      if (exists) {
+        return prev.filter((t) => t._id !== tag._id);
+      }
+      // Max 5 tags
+      if (prev.length >= 5) {
+        alert("Tối đa 5 tags!");
+        return prev;
+      }
+      return [...prev, tag];
+    });
+  };
+
+  const removeTag = (tagId) => {
+    setSelectedTags((prev) => prev.filter((t) => t._id !== tagId));
+  };
+
+  // ✅ radius gợi ý (m) — bạn muốn gần => để nhỏ
+  const SUGGEST_RADIUS_METERS = 30; // 20-40m là hợp lý
+  const SUGGEST_LIMIT = 12;
+
+  // ✅ desired accuracy mục tiêu (m)
+  const DESIRED_ACCURACY = 15; // nếu muốn “gắt” hơn: 10 (nhưng dễ fail trong nhà)
+
+  // để tránh spam refresh liên tục
+  const lastScanAtRef = useRef(0);
 
   // preview url từ blob/file
   const previewUrl = useMemo(() => {
@@ -50,29 +213,189 @@ const CameraPost = () => {
     document.body.removeChild(link);
   };
 
+  // ====== LOCATION actions ======
+  const openLocationSheet = async () => {
+    setLocOpen(true);
+    setCreateOpen(false);
+
+    // mở sheet: nếu chưa có GPS thì scan luôn
+    if (!coords && !gpsLoading) {
+      await scanGpsAndSuggest();
+    }
+  };
+
+  /**
+   * ✅ Scan GPS + Suggest
+   * - KHÔNG set fallback coords khi fail (để tránh “Gia Lai”)
+   * - nếu accuracy xấu thì vẫn show coords + accuracy, user bấm scan lại
+   */
+  const scanGpsAndSuggest = async () => {
+    const now = Date.now();
+    if (now - lastScanAtRef.current < 800) return; // debounce nhẹ
+    lastScanAtRef.current = now;
+
+    setGpsLoading(true);
+    setGpsError("");
+    setSuggestLoading(true);
+    setSuggestions([]);
+
+    try {
+      const pos = await getBestPosition({
+        timeoutMs: 18000,
+        desiredAccuracy: DESIRED_ACCURACY,
+        maxAgeMs: 0, // Không dùng cache — luôn lấy vị trí mới
+      });
+
+      setCoords(pos);
+
+      // gọi suggest gần (radius nhỏ)
+      const sRes = await suggestPlaces(
+        pos.lat,
+        pos.lng,
+        SUGGEST_RADIUS_METERS,
+        SUGGEST_LIMIT,
+      );
+      const list = unwrapSuggestions(sRes);
+      setSuggestions(list);
+    } catch (e) {
+      // ✅ quan trọng: không set fallback coords
+      setCoords(null);
+      setSuggestions([]);
+      setGpsError(
+        "Không lấy được GPS chính xác. Hãy bật quyền vị trí, ra nơi thoáng hơn và bấm quét lại.",
+      );
+    } finally {
+      setGpsLoading(false);
+      setSuggestLoading(false);
+    }
+  };
+
+  const onPickSuggestion = async (item) => {
+    try {
+      const lat = Number(item.lat);
+      const lng = Number(item.lng);
+
+      const payload = {
+        lat,
+        lng,
+        name: item.name,
+        address: item.address,
+        category: item.category || "other",
+        providerId: item.providerId || null,
+      };
+
+      const r = await resolvePlace(payload);
+      const placeDoc = unwrapPlace(r);
+
+      if (!placeDoc?._id) {
+        alert(
+          r?.message ||
+            r?.error?.message ||
+            "Không thể chọn địa điểm (resolve failed)",
+        );
+        return;
+      }
+
+      setPickedPlace(placeDoc);
+      setLocOpen(false);
+      setCreateOpen(false);
+    } catch (e) {
+      alert(e?.message || "Không thể chọn địa điểm");
+    }
+  };
+
+  const toggleCreate = async () => {
+    const next = !createOpen;
+    setCreateOpen(next);
+
+    // mở create: tự scan GPS nếu chưa có
+    if (next && !coords && !gpsLoading) {
+      await scanGpsAndSuggest();
+    }
+  };
+
+  const onCreateCustomPlace = async () => {
+    // ✅ BẮT BUỘC có GPS thật — không fallback
+    if (!coords) {
+      setGpsError("Bạn cần quét GPS trước khi tạo vị trí.");
+      await scanGpsAndSuggest();
+      return;
+    }
+
+    // nếu accuracy quá tệ thì cảnh báo
+    if (coords?.accuracy && coords.accuracy > 50) {
+      const ok = window.confirm(
+        `GPS đang yếu (±${coords.accuracy}m). Tạo vị trí có thể sai lệch. Bạn có muốn quét lại không?`,
+      );
+      if (ok) {
+        await scanGpsAndSuggest();
+        return;
+      }
+    }
+
+    if (!customName.trim() || !customAddress.trim()) {
+      alert("Vui lòng nhập tên & địa chỉ");
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const r = await resolvePlace({
+        lat: coords.lat,
+        lng: coords.lng,
+        name: customName.trim(),
+        address: customAddress.trim(),
+        category: customCategory,
+        forceCreate: true, // User chủ động tạo vị trí mới → luôn tạo mới, không dùng địa điểm cũ gần đó
+      });
+
+      const placeDoc = unwrapPlace(r);
+
+      if (!placeDoc?._id) {
+        alert(r?.message || r?.error?.message || "Không thể tạo địa điểm");
+        return;
+      }
+
+      setPickedPlace(placeDoc);
+      setLocOpen(false);
+      setCreateOpen(false);
+    } catch (e) {
+      alert(e?.message || "Không thể tạo địa điểm");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  // ====== POST ======
   const handlePost = async () => {
     if (!fileBlob) return;
+
+    if (!pickedPlace?._id) {
+      setError("Bạn cần chọn vị trí trước khi đăng bài.");
+      setLocOpen(true);
+      setCreateOpen(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      // 1) upload cloudinary (backend /api/upload)
       const up = await uploadMedia(fileBlob);
-      const url = up.secure_url || up.url;
-
+      const url = up?.secure_url || up?.url;
       if (!url) throw new Error("Upload thành công nhưng không nhận được URL");
 
-      // 2) create post (backend /api/posts)
       await createPost({
         content: caption,
-        type: mediaType, // "image" | "video"
-        mediaUrl: [url], // ✅ đúng mediaUrl trong Post schema
-        // timerValue bạn có thể gửi thêm nếu backend hỗ trợ field expireAt
+        type: mediaType,
+        mediaUrl: [url],
+        placeId: pickedPlace._id,
+        tags: selectedTags.map((t) => t._id),
       });
 
-      navigate("/"); // về home xem bài mới
+      navigate("/home");
     } catch (e) {
-      setError(e?.response?.data?.message || e.message || "Đăng bài thất bại");
+      setError(e?.response?.data?.message || e?.message || "Đăng bài thất bại");
     } finally {
       setLoading(false);
     }
@@ -101,36 +424,105 @@ const CameraPost = () => {
           <i className="fa-solid fa-xmark"></i>
         </Link>
 
-        <div className="timer-wrapper">
-          <div
-            className="timer-btn"
-            onClick={() => setShowTimer(!showTimer)}
-            style={{ color: timerValue === "24h" ? "#2bd0d0" : "white" }}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {/* LOCATION */}
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={openLocationSheet}
+            disabled={loading}
+            title="Chọn vị trí"
+            style={{ color: pickedPlace ? "#2bd0d0" : "white" }}
           >
-            <i className="fa-regular fa-clock"></i>
-          </div>
+            <i className="fa-solid fa-location-dot"></i>
+          </button>
 
-          <div className={`timer-dropdown ${showTimer ? "show" : ""}`}>
+          {/* TAGS */}
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={() => setTagOpen(true)}
+            disabled={loading}
+            title="Chọn tag"
+            style={{ color: selectedTags.length > 0 ? "#2bd0d0" : "white" }}
+          >
+            <i className="fa-solid fa-tag"></i>
+            {selectedTags.length > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  background: "#2bd0d0",
+                  color: "black",
+                  borderRadius: "50%",
+                  width: 16,
+                  height: 16,
+                  fontSize: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {selectedTags.length}
+              </span>
+            )}
+          </button>
+
+          {/* TIMER */}
+          <div className="timer-wrapper">
             <div
-              className={`timer-option ${timerValue === "unlimited" ? "active" : ""}`}
-              onClick={() => {
-                setTimerValue("unlimited");
-                setShowTimer(false);
-              }}
+              className="timer-btn"
+              onClick={() => setShowTimer(!showTimer)}
+              style={{ color: timerValue === "24h" ? "#2bd0d0" : "white" }}
             >
-              <i className="fa-solid fa-infinity"></i> Unlimited
+              <i className="fa-regular fa-clock"></i>
             </div>
-            <div
-              className={`timer-option ${timerValue === "24h" ? "active" : ""}`}
-              onClick={() => {
-                setTimerValue("24h");
-                setShowTimer(false);
-              }}
-            >
-              <i className="fa-solid fa-hourglass-half"></i> 24 Hours
+
+            <div className={`timer-dropdown ${showTimer ? "show" : ""}`}>
+              <div
+                className={`timer-option ${timerValue === "unlimited" ? "active" : ""}`}
+                onClick={() => {
+                  setTimerValue("unlimited");
+                  setShowTimer(false);
+                }}
+              >
+                <i className="fa-solid fa-infinity"></i> Unlimited
+              </div>
+              <div
+                className={`timer-option ${timerValue === "24h" ? "active" : ""}`}
+                onClick={() => {
+                  setTimerValue("24h");
+                  setShowTimer(false);
+                }}
+              >
+                <i className="fa-solid fa-hourglass-half"></i> 24 Hours
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* HIỂN THỊ PLACE & TAGS */}
+      <div
+        style={{
+          padding: "8px 12px",
+          color: "white",
+          fontSize: 13,
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        {pickedPlace ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ color: "#2bd0d0" }}>
+              <i className="fa-solid fa-location-dot"></i> {pickedPlace.name}
+            </span>
+            <span style={{ opacity: 0.8 }}>{pickedPlace.address}</span>
+          </div>
+        ) : (
+          <span style={{ opacity: 0.7 }} />
+        )}
       </div>
 
       <div className="caption-wrapper">
@@ -167,8 +559,313 @@ const CameraPost = () => {
           <i className="fa-solid fa-paper-plane"></i>
         </button>
       </div>
+
+      {/* ✅ LOCATION SHEET (MOBILE WIDTH) */}
+      {locOpen && (
+        <div className="loc-overlay" onClick={() => setLocOpen(false)}>
+          <div className="loc-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="loc-sheet-header">
+              <div className="loc-title">Chọn vị trí đăng</div>
+              <button
+                className="loc-close"
+                type="button"
+                onClick={() => setLocOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* ✅ Suggestions on top */}
+            <div className="loc-section">
+              <div className="loc-section-title">Gợi ý gần bạn</div>
+
+              {/* ✅ radar row (không show full text dài) */}
+              <div className="loc-radar-row">
+                <div className="loc-radar-info">
+                  {gpsLoading ? (
+                    <span className="loc-muted">Đang quét vị trí...</span>
+                  ) : coords ? (
+                    <span className="loc-muted">
+                      Đã quét • độ chính xác{" "}
+                      {coords.accuracy ? `±${coords.accuracy}m` : "không rõ"}
+                      {" • "}bán kính gợi ý ~{SUGGEST_RADIUS_METERS}m
+                    </span>
+                  ) : (
+                    <span className="loc-muted">
+                      Chưa có GPS • bấm quét để tìm gợi ý
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className={`loc-radar-btn ${gpsLoading ? "is-loading" : ""}`}
+                  onClick={scanGpsAndSuggest}
+                  disabled={gpsLoading || suggestLoading}
+                  title="Quét GPS"
+                  aria-label="Scan GPS"
+                >
+                  <span className="loc-radar-dot" />
+                  <i className="fa-solid fa-satellite-dish" />
+                </button>
+              </div>
+
+              {gpsError && <div className="loc-error">{gpsError}</div>}
+
+              {suggestLoading ? (
+                <div className="loc-muted" style={{ padding: "10px 0" }}>
+                  Đang tải gợi ý...
+                </div>
+              ) : suggestions.length ? (
+                <div className="loc-suggest-list">
+                  {suggestions.map((p, idx) => (
+                    <button
+                      key={`${p.providerId || "db"}-${idx}`}
+                      type="button"
+                      className="loc-suggest-card"
+                      onClick={() => onPickSuggestion(p)}
+                    >
+                      <div className="loc-suggest-top">
+                        <div className="loc-suggest-name">
+                          <i className="fa-solid fa-location-dot" /> {p.name}
+                        </div>
+                        {p.distanceMeters !== undefined && (
+                          <div className="loc-suggest-dist">
+                            {p.distanceMeters}m
+                          </div>
+                        )}
+                      </div>
+                      <div className="loc-suggest-addr">{p.address}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="loc-muted" style={{ padding: "10px 0" }}>
+                  Chưa có gợi ý. Hãy bấm quét lại hoặc tạo vị trí mới.
+                </div>
+              )}
+            </div>
+
+            {/* ✅ Create location */}
+            <div className="loc-section">
+              <div className="loc-section-title">Tạo vị trí</div>
+
+              <button
+                type="button"
+                className="loc-create-toggle"
+                onClick={toggleCreate}
+              >
+                <span className="loc-plus">+</span>
+              </button>
+
+              {createOpen && (
+                <div className="loc-create-panel">
+                  <div className="loc-create-actions">
+                    <button
+                      type="button"
+                      className="loc-btn loc-btn-primary"
+                      onClick={scanGpsAndSuggest}
+                      disabled={gpsLoading || suggestLoading}
+                      title="Quét GPS cho vị trí mới"
+                    >
+                      <i className="fa-solid fa-crosshairs" />{" "}
+                      {gpsLoading ? "Đang quét..." : "Quét GPS"}
+                    </button>
+
+                    {coords?.accuracy ? (
+                      <div className="loc-accuracy-pill">
+                        ±{coords.accuracy}m
+                      </div>
+                    ) : (
+                      <div className="loc-accuracy-pill is-warn">
+                        Chưa có GPS
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="loc-form">
+                    <input
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder="Tên địa điểm (vd: Quán cà phê A)"
+                      className="loc-input"
+                    />
+                    <input
+                      value={customAddress}
+                      onChange={(e) => setCustomAddress(e.target.value)}
+                      placeholder="Địa chỉ (vd: 12 Nguyễn Trãi, Q1)"
+                      className="loc-input"
+                    />
+
+                    <select
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="loc-select"
+                    >
+                      <option value="cafe">☕ Cafe</option>
+                      <option value="restaurant">🍽 Restaurant</option>
+                      <option value="bar">💃 Bar</option>
+                      <option value="shop">🛍️ Shop</option>
+                      <option value="park">🏞 Park</option>
+                      <option value="museum">🏛 Museum</option>
+                      <option value="hotel">🏩 Hotel</option>
+                      <option value="other">Other</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      className="loc-btn loc-btn-success"
+                      onClick={onCreateCustomPlace}
+                      disabled={createLoading}
+                    >
+                      {createLoading ? "Đang tạo..." : "Tạo & chọn vị trí này"}
+                    </button>
+
+                    <div className="loc-hint">
+                      * Vị trí tạo sẽ dùng GPS vừa quét. Nếu GPS yếu, hãy quét
+                      lại để chính xác hơn.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ height: 8 }} />
+          </div>
+        </div>
+      )}
+
+      {/* ✅ TAG SELECTION SHEET */}
+      {tagOpen && (
+        <div className="loc-overlay" onClick={() => setTagOpen(false)}>
+          <div className="loc-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="loc-sheet-header">
+              <div className="loc-title">Chọn tags</div>
+              <button
+                className="loc-close"
+                type="button"
+                onClick={() => setTagOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Selected tags */}
+            {selectedTags.length > 0 && (
+              <div
+                style={{
+                  padding: "0 12px 12px",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                {selectedTags.map((tag) => (
+                  <span
+                    key={tag._id}
+                    style={{
+                      background: "#e94057",
+                      color: "white",
+                      padding: "4px 10px",
+                      borderRadius: 12,
+                      fontSize: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {tag.icon} {tag.name}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag._id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "white",
+                        cursor: "pointer",
+                        padding: 0,
+                        marginLeft: 4,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="loc-section">
+              {tagsLoading ? (
+                <div className="loc-muted" style={{ padding: "20px 0" }}>
+                  Đang tải tags...
+                </div>
+              ) : (
+                categories.map((cat) => (
+                  <div key={cat._id} style={{ marginBottom: 16 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 8,
+                        padding: "8px 0",
+                        borderBottom: "1px solid #333",
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>{cat.icon}</span>
+                      <span style={{ fontWeight: 600, color: cat.color }}>
+                        {cat.name}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {cat.tags?.map((tag) => {
+                        const isSelected = selectedTags.some(
+                          (t) => t._id === tag._id,
+                        );
+                        return (
+                          <button
+                            key={tag._id}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            style={{
+                              background: isSelected ? "#e94057" : "#222",
+                              color: isSelected ? "white" : "#aaa",
+                              border: `1px solid ${isSelected ? "#e94057" : "#444"}`,
+                              padding: "6px 12px",
+                              borderRadius: 16,
+                              fontSize: 12,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            {tag.icon} {tag.name}
+                            {isSelected && <span>✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div style={{ padding: 12 }}>
+              <button
+                type="button"
+                className="loc-btn loc-btn-success"
+                onClick={() => setTagOpen(false)}
+                style={{ width: "100%" }}
+              >
+                Xác nhận ({selectedTags.length} tags)
+              </button>
+            </div>
+
+            <div style={{ height: 8 }} />
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default CameraPost;
+}

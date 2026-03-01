@@ -1,0 +1,69 @@
+const express = require("express");
+const router = express.Router();
+
+const auth = require("../middlewares/auth.middleware");
+const { requireAdmin } = require("../middlewares/requireAdmin");
+const ctrl = require("../controllers/notification.controller");
+
+// ── User routes (phải đăng nhập) ──────────────────────────────────────────
+
+/** Lấy danh sách thông báo của tôi (phân trang) */
+router.get("/", auth, ctrl.getMyNotifications);
+
+/** Số thông báo chưa đọc (dùng cho badge) */
+router.get("/unread-count", auth, ctrl.getUnreadCount);
+
+/** Đánh dấu TẤT CẢ là đã đọc */
+router.patch("/read-all", auth, ctrl.markAllRead);
+
+/** Xoá tất cả thông báo đã đọc */
+router.delete("/read-all", auth, ctrl.clearReadNotifications);
+
+/** Đánh dấu một thông báo là đã đọc */
+router.patch("/:id/read", auth, ctrl.markOneRead);
+
+/** Xoá một thông báo */
+router.delete("/:id", auth, ctrl.deleteNotification);
+
+// ── Admin routes ───────────────────────────────────────────────────────────
+
+/**
+ * Gửi thông báo system từ admin.
+ * Body: { recipientIds?: [ObjectId,...], title: string, body?: string, link?: string }
+ * Nếu recipientIds rỗng => emit global (không lưu DB).
+ */
+router.post("/system/broadcast", auth, requireAdmin, ctrl.systemBroadcast);
+
+/**
+ * Gửi broadcast cho tất cả người dùng đang hoạt động
+ * Body: { title: string, body?: string, link?: string }
+ */
+router.post(
+  "/admin/broadcast-all",
+  auth,
+  requireAdmin,
+  ctrl.sendBroadcastToAll,
+);
+
+/**
+ * Lấy lịch sử broadcast của admin
+ * Query: page, limit, status (all|pending|sending|completed|failed)
+ */
+router.get(
+  "/admin/broadcast-history",
+  auth,
+  requireAdmin,
+  ctrl.getBroadcastHistory,
+);
+
+/**
+ * Lấy chi tiết một broadcast
+ */
+router.get(
+  "/admin/broadcast-history/:id",
+  auth,
+  requireAdmin,
+  ctrl.getBroadcastDetails,
+);
+
+module.exports = router;

@@ -2,11 +2,18 @@
 const service = require("../services/post.service");
 const Post = require("../models/post.model");
 
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/appError");
+const mongoose = require("mongoose");
+
+const UserService = require("../services/user.service");
+const notifService = require("../services/notification.service");
+
 const create = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-    // ✅ accept string hoặc array
+    // accept string hoặc array
     const rawMediaUrl = req.body.mediaUrl;
     const mediaUrl = Array.isArray(rawMediaUrl)
       ? rawMediaUrl
@@ -23,7 +30,37 @@ const create = async (req, res) => {
       mediaUrl,
       reportCount: 0,
       expireAt: req.body.expireAt || null,
+      tags: req.body.tags || [],
     });
+
+    // Notify all followers (fire & forget)
+    try {
+      const io = req.app.get("io");
+      const author = await require("../models/user.model")
+        .findById(req.user.id)
+        .select("fullname username");
+      const mutualUserIds = await UserService.getMutualFollowUserIds(
+        req.user.id,
+      );
+
+      const notifyName = author?.fullname || author?.username || "Ai đó";
+      await Promise.all(
+        mutualUserIds.map((userId) =>
+          notifService.createAndEmit(io, {
+            recipientId: userId,
+            senderId: req.user.id,
+            type: "new_post",
+            title: `${notifyName} vừa đăng bài viết mới`,
+            body: post.content ? post.content.substring(0, 100) : "Xem ngay!",
+            link: `/posts/${post._id}`,
+            refId: post._id,
+            refModel: "Post",
+          }),
+        ),
+      );
+    } catch (notifErr) {
+      console.error("[Notification] new_post error:", notifErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -36,7 +73,7 @@ const create = async (req, res) => {
   }
 };
 
-// ✅ create post + upload cloudinary
+// create post + upload cloudinary
 const createWithMedia = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -61,7 +98,37 @@ const createWithMedia = async (req, res) => {
       mediaUrl,
       reportCount: 0,
       expireAt: null,
+      tags: req.body.tags || [],
     });
+
+    // Notify all followers (fire & forget)
+    try {
+      const io = req.app.get("io");
+      const author = await require("../models/user.model")
+        .findById(req.user.id)
+        .select("fullname username");
+      const mutualUserIds = await UserService.getMutualFollowUserIds(
+        req.user.id,
+      );
+
+      const notifyName = author?.fullname || author?.username || "Ai đó";
+      await Promise.all(
+        mutualUserIds.map((userId) =>
+          notifService.createAndEmit(io, {
+            recipientId: userId,
+            senderId: req.user.id,
+            type: "new_post",
+            title: `${notifyName} vừa đăng bài viết mới`,
+            body: post.content ? post.content.substring(0, 100) : "Xem ngay!",
+            link: `/posts/${post._id}`,
+            refId: post._id,
+            refModel: "Post",
+          }),
+        ),
+      );
+    } catch (notifErr) {
+      console.error("[Notification] new_post (media) error:", notifErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -79,17 +146,155 @@ const createWithMedia = async (req, res) => {
 
 const getHomePosts = async (req, res) => {
   try {
-    const posts = await Post.find({ status: "active" })
-      .populate("userId", "name avatar")
-      .populate("placeId", "name")
-      .sort({ createdAt: -1 })
-      .limit(20);
+    let blockedUserIds = [];
+    let userPreferredTagIds = [];
+    let userInterestNames = [];
 
-    return res.json(posts);
+    if (req.user?.id) {
+      blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+
+      // Get user's preferred tags and interests for recommendations
+      const User = require("../models/user.model");
+      const user = await User.findById(req.user.id)
+        .populate("preferredTags")
+        .populate("interests");
+
+      if (user) {
+        // Get preferredTags IDs
+        if (user.preferredTags && user.preferredTags.length > 0) {
+          userPreferredTagIds = user.preferredTags.map((tag) => tag._id.toString());
+        }
+
+        // Get interest names for broader matching
+        if (user.interests && user.interests.length > 0) {
+          userInterestNames = user.interests
+            .map((interest) => {
+              if (typeof interest === "object" && interest.name) {
+                return interest.name.toLowerCase();
+              }
+              return String(interest).toLowerCase();
+            })
+            .filter(Boolean);
+        }
+      }
+    }
+
+    const query = { status: "active" };
+    if (blockedUserIds.length) query.userId = { $nin: blockedUserIds };
+
+    // Fetch posts with tags populated
+    const posts = await Post.find(query)
+      .populate("userId", "fullname username avatar")
+      .populate("placeId", "name")
+      .populate("tags", "name")
+      .sort({ createdAt: -1 })
+      .limit(50) // Get more posts for sorting
+      .lean();
+
+    // Separate posts into matching and non-matching based on user's preferred tags
+    const matchingPosts = [];
+    const nonMatchingPosts = [];
+
+    posts.forEach((post) => {
+      // Check if post has tags that match user's preferred tags (by ID)
+      const postTagIds = post.tags ? post.tags.map((tag) => tag._id.toString()) : [];
+      const postTagNames = post.tags
+        ? post.tags.map((tag) => tag.name?.toLowerCase()).filter(Boolean)
+        : [];
+
+      // Check for tag ID match
+      const hasMatchingTagId = postTagIds.some((tagId) =>
+        userPreferredTagIds.includes(tagId)
+      );
+
+      // Check for interest name match (if user has interests)
+      const hasMatchingInterest =
+        userInterestNames.length > 0 &&
+        userInterestNames.some((interestName) =>
+          postTagNames.some((tagName) => tagName?.includes(interestName))
+        );
+
+      const hasMatchingTag = hasMatchingTagId || hasMatchingInterest;
+
+      if (hasMatchingTag) {
+        matchingPosts.push({ ...post, isRecommended: true });
+      } else {
+        nonMatchingPosts.push({ ...post, isRecommended: false });
+      }
+    });
+
+    // Sort each group by newest first
+    matchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    nonMatchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Combine: matching posts first, then non-matching
+    const sortedPosts = [...matchingPosts, ...nonMatchingPosts].slice(0, 20);
+
+    return res.json(sortedPosts);
   } catch (error) {
     console.error("Get home posts error:", error);
     return res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { create, createWithMedia, getHomePosts };
+// DELETE /api/posts/:postId (Auth required)
+// Hard delete: remove the post document from DB.
+// Only the owner of the post can delete.
+const deletePost = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) throw new AppError("Unauthorized", 401);
+  if (!mongoose.Types.ObjectId.isValid(postId))
+    throw new AppError("Invalid postId", 400);
+
+  const result = await service.deletePost({ postId, userId });
+  return res
+    .status(200)
+    .json({ success: true, message: "Post deleted", ...result });
+});
+
+// Get single post detail
+const getPostDetail = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user?.id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
+
+    const post = await Post.findById(postId)
+      .populate("userId", "fullname username avatar")
+      .populate("placeId", "name")
+      .populate("tags", "name color")
+      .lean();
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Get reactions for this post
+    const Reaction = require("../models/reaction.model");
+    const reactions = await Reaction.find({ postId })
+      .populate("userId", "fullname username avatar")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: {
+        ...post,
+        reactions,
+        commentCount: 0, // Comment feature not implemented yet
+        isLiked: reactions.some(r => r.userId?._id?.toString() === userId),
+        likeCount: reactions.length,
+      },
+    });
+  } catch (error) {
+    console.error("Get post detail error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { create, createWithMedia, getHomePosts, getPostDetail, deletePost };
