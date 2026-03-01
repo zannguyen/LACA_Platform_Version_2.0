@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
+<<<<<<< HEAD
 const bcrypt = require("bcryptjs");
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 const AppError = require("../utils/appError");
 
 const User = require("../models/user.model");
@@ -7,6 +10,7 @@ const Post = require("../models/post.model");
 const BlockUser = require("../models/blockUser.model");
 const Follow = require("../models/follow.model");
 
+<<<<<<< HEAD
 const PASSWORD_LENGTH_MIN = Number(process.env.PASSWORD_LENGTH_MIN || 6);
 const PASSWORD_LENGTH_MAX = Number(process.env.PASSWORD_LENGTH_MAX || 50);
 const SALT_ROUNDS = Number(process.env.SALT_ROUNDS || 10);
@@ -20,6 +24,8 @@ const DEFAULT_VISIBILITY = {
   dateOfBirth: false,
 };
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 // ===== Helpers =====
 function parsePagination(query) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -35,6 +41,7 @@ function safeObjectId(id) {
   return new mongoose.Types.ObjectId(id);
 }
 
+<<<<<<< HEAD
 function normalizeVisibility(raw = {}) {
   const src = raw && typeof raw === "object" ? raw : {};
   return {
@@ -85,6 +92,8 @@ function toPublicUser(user, isOwner = false) {
   return profileUser;
 }
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 // ===== Profile =====
 async function getProfile({ targetUserId, viewerUserId, query }) {
   const targetId = safeObjectId(targetUserId);
@@ -156,7 +165,24 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
     };
   }
 
+<<<<<<< HEAD
   const profileUser = toPublicUser(user, Boolean(isOwner));
+=======
+  const profileUser = {
+    _id: user._id,
+    fullname: user.fullname,
+    username: user.username,
+    avatar: user.avatar || "",
+    bio: user.bio || "",
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  if (isOwner) {
+    profileUser.email = user.email;
+    profileUser.isEmailVerified = user.isEmailVerified;
+  }
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 
   return {
     user: profileUser,
@@ -312,6 +338,7 @@ async function updateMyProfile({ userId, body }) {
   };
 }
 
+<<<<<<< HEAD
 async function getMyAccountSettings(userId) {
   const id = safeObjectId(userId);
   const user = await User.findById(id).lean();
@@ -463,6 +490,8 @@ async function updateMyAccountSettings({ userId, body }) {
   return getMyAccountSettings(userId);
 }
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 async function getBlockedUsers(userId) {
   const rows = await BlockUser.find({ blockerUserId: userId })
     .populate({ path: "blockedUserId", select: "fullname username avatar" })
@@ -535,8 +564,11 @@ module.exports = {
   // profile
   getProfile,
   updateMyProfile,
+<<<<<<< HEAD
   getMyAccountSettings,
   updateMyAccountSettings,
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 
   // follow
   getFollowingUserIds,

@@ -17,10 +17,13 @@ const userApi = {
 
   updateMyProfile: (body) => api.put(`/user/me/profile`, body),
 
+<<<<<<< HEAD
   getMyAccountSettings: () => api.get(`/user/me/account-settings`),
 
   updateMyAccountSettings: (body) => api.put(`/user/me/account-settings`, body),
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
   getUserProfile: ({ userId, page = 1, limit = 10 } = {}) => {
     if (!userId)
       return Promise.reject(new Error("Missing userId for getUserProfile"));

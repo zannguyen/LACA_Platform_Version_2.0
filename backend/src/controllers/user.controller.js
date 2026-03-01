@@ -43,6 +43,7 @@ exports.updateMyProfile = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Profile updated", data: user });
 });
 
+<<<<<<< HEAD
 /**
  * GET /api/user/me/account-settings
  * (Auth required)
@@ -66,6 +67,8 @@ exports.updateMyAccountSettings = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Account settings updated", data });
 });
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 exports.blockUser = asyncHandler(async (req, res) => {
   const blockedId = req.params.id;
   const blockerId = req.user.id;

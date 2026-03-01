@@ -60,6 +60,7 @@ const userSchema = new mongoose.Schema({
     default: "",
     maxlength: 200,
   },
+<<<<<<< HEAD
   phoneNumber: {
     type: String,
     default: "",
@@ -83,6 +84,8 @@ const userSchema = new mongoose.Schema({
       default: defaultProfileVisibility.dateOfBirth,
     },
   },
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
   interests: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -99,4 +102,33 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
+<<<<<<< HEAD
 module.exports = User;
+=======
+userSchema.statics.findByIdAndUpdate = async function (
+  userId,
+  updateData,
+  options = {},
+) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+
+  const user = await this.findById(userId);
+  if (!user) {
+    return null;
+  }
+
+  Object.keys(updateData).forEach((key) => {
+    user[key] = updateData[key];
+  });
+
+  user.updatedAt = new Date();
+
+  await user.save();
+
+  return options.new ? user : null;
+};
+
+module.exports = mongoose.model("User", userSchema);
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9

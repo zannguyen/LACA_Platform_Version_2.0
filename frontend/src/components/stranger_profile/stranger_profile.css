@@ -239,6 +239,7 @@
   line-height: 1.4;
 }
 
+<<<<<<< HEAD
 .stranger-profile .profile-meta-list {
   margin-top: 8px;
   display: flex;
@@ -252,6 +253,8 @@
   line-height: 1.3;
 }
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 /* Bio Input for Editing */
 .stranger-profile .profile-bio-input {
   width: 100%;

@@ -185,6 +185,7 @@ const IconTrash = () => (
   </svg>
 );
 
+<<<<<<< HEAD
 const IconUser = () => (
   <svg
     width="18"
@@ -203,6 +204,8 @@ const IconUser = () => (
   </svg>
 );
 
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
 // ✅ RowButton giờ nhận onClick để bấm được
 const RowButton = ({ icon, label, onClick, danger = false }) => (
   <button
@@ -398,11 +401,14 @@ export default function Setting() {
         <div className="st-section">
           <div className="st-section-title">Account</div>
           <RowButton
+<<<<<<< HEAD
             icon={<IconUser />}
             label="Edit Profile"
             onClick={() => navigate("/setting/edit-profile")}
           />
           <RowButton
+=======
+>>>>>>> 35abd7ff928f681dd73c98791f17bcc19dce34f9
             icon={<IconLogout />}
             label="Log out"
             onClick={handleLogout}
