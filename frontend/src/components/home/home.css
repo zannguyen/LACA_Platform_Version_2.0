@@ -417,12 +417,9 @@
   font-size: 16px;
 }
 
-/* ----- Filter panel ----- */
+/* ----- Filter panel - Hidden, using floating modal instead ----- */
 .mobile-wrapper .home-filter-panel {
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  padding: var(--space-lg);
-  flex-shrink: 0;
+  display: none;
 }
 
 .mobile-wrapper .home-filter-title {
@@ -1361,6 +1358,16 @@
   background: #fff;
   color: #4a90d9;
   border: 2px solid #4a90d9;
+}
+
+.mobile-wrapper .swipe-card-actions .swipe-action-btn.ranking {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #fff;
+  border: none;
+}
+
+.mobile-wrapper .swipe-card-actions .swipe-action-btn.ranking:hover {
+  transform: scale(1.1);
 }
 
 .mobile-wrapper .swipe-card-actions .swipe-action-btn i {
