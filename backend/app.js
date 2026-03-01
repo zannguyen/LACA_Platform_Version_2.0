@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-require("dotenv").config();
+require("dotenv").config({ path: __dirname + "/../.env" });
 
 const app = express();
 
@@ -53,6 +53,8 @@ app.use("/api/analysis", require("./src/routes/analysis.route"));
 app.use("/api/recommendations", require("./src/routes/recommendation.route"));
 app.use("/api/tags", require("./src/routes/tag.route"));
 app.use("/api/admin", require("./src/routes/queue.route")); // Queue admin endpoints
+app.use("/api/ranking", require("./src/routes/ranking.route")); // Featured ranking
+app.use("/api/chatbot", require("./src/routes/chatbot.route")); // AI Chatbot
 
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);
