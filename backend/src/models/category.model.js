@@ -24,6 +24,18 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/**
+ * Normalize category name before saving
+ * - trim whitespace
+ * - lowercase
+ * - remove multiple spaces (replace with single space)
+ */
+categorySchema.pre("save", async function () {
+  if (this.name) {
+    this.name = this.name.trim().toLowerCase().replace(/\s+/g, " ");
+  }
+});
+
 // Index for faster queries
 categorySchema.index({ isActive: 1 });
 categorySchema.index({ name: "text" });

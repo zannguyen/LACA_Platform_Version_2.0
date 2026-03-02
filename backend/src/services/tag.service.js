@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Category = require("../models/category.model");
 const Tag = require("../models/tag.model");
 const AppError = require("../utils/appError");
@@ -119,21 +120,35 @@ const deleteCategory = async (categoryId) => {
  */
 const createTag = async (categoryId, data) => {
   try {
+    // Validate categoryId is a valid ObjectId
+    if (!categoryId) {
+      throw new AppError("Category ID is required", 400);
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      throw new AppError("Invalid Category ID format", 400);
+    }
+
     // Verify category exists
     const category = await Category.findById(categoryId);
     if (!category) {
       throw new AppError("Category not found", 404);
     }
 
+    console.log("✅ Creating tag:", { categoryId, data });
+    
     const tag = await Tag.create({
       ...data,
       categoryId,
     });
 
+    console.log("✅ Tag created successfully:", tag._id);
     return tag;
   } catch (error) {
+    console.error("❌ Error creating tag:", error.message, error.code);
+    
     if (error.code === 11000) {
-      throw new AppError("Tag name already exists", 400);
+      throw new AppError("Tag name already exists in this category", 400);
     }
     throw error;
   }

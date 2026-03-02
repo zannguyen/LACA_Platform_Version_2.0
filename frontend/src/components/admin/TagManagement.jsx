@@ -41,7 +41,15 @@ const TagManagement = () => {
       setLoading(true);
       setError(null);
       const res = await tagApi.getCategoriesWithTags();
-      console.log("Loaded categories:", res.data?.data);
+      console.log("✅ Loaded categories:", res.data?.data);
+      
+      // Debug: Check if IDs exist
+      res.data?.data?.forEach(cat => {
+        if (!cat._id) {
+          console.warn("⚠️ Category missing _id:", cat.name);
+        }
+      });
+      
       setCategories(res.data?.data || []);
     } catch (err) {
       console.error("Error loading categories:", err);
@@ -127,6 +135,14 @@ const TagManagement = () => {
 
   // Tag handlers
   const openTagModal = (categoryId, tag = null) => {
+    console.log("🔍 Opening tag modal - Category ID:", categoryId, "Tag:", tag?.name);
+    
+    if (!categoryId) {
+      console.error("❌ Category ID is missing!");
+      setError("Lỗi: Danh mục không tìm thấy!");
+      return;
+    }
+    
     setError(null);
     setSelectedCategoryId(categoryId);
     setEditingTag(tag);
@@ -156,7 +172,17 @@ const TagManagement = () => {
         icon: tagForm.icon,
         color: tagForm.color
       };
-      console.log("Saving tag - ID:", editingTag?._id, "Payload:", payload);
+      
+      // Debug log - show both IDs
+      console.log("Saving tag - Category ID:", selectedCategoryId, "Tag ID:", editingTag?._id, "Payload:", payload);
+      
+      // Validate categoryId exists
+      if (!selectedCategoryId) {
+        console.error("❌ Category ID is undefined or null!");
+        setError("Lỗi: Category ID không xác định. Vui lòng thử lại.");
+        setSaving(false);
+        return;
+      }
 
       if (editingTag) {
         const response = await tagApi.updateTag(editingTag._id, payload);
@@ -241,7 +267,10 @@ const TagManagement = () => {
             <div className="tags-section">
               <div className="tags-header">
                 <span>Tags ({category.tags?.length || 0})</span>
-                <button onClick={() => openTagModal(category._id)}>
+                <button onClick={() => {
+                  console.log("📌 Button clicked - Category:", category._id, category.name);
+                  openTagModal(category._id);
+                }}>
                   + Thêm tag
                 </button>
               </div>
@@ -316,7 +345,7 @@ const TagManagement = () => {
               <label>Icon</label>
               <IconLibrarySelector
                 value={categoryForm.icon}
-                onChange={(icon) => setCategoryForm({ ...categoryForm, icon })}
+                onSelect={(icon) => setCategoryForm({ ...categoryForm, icon })}
               />
             </div>
 
@@ -378,7 +407,7 @@ const TagManagement = () => {
               <label>Icon</label>
               <IconLibrarySelector
                 value={tagForm.icon}
-                onChange={(icon) => setTagForm({ ...tagForm, icon })}
+                onSelect={(icon) => setTagForm({ ...tagForm, icon })}
               />
             </div>
 
