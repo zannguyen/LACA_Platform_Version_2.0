@@ -223,7 +223,7 @@ exports.login = async (req, res) => {
 
     // ✅ lấy thêm các field status để check
     const user = await User.findOne({ email }).select(
-      "fullname username email password role isActive isEmailVerified deletedAt suspendUntil",
+      "fullname username email avatar password role isActive isEmailVerified deletedAt suspendUntil",
     );
 
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
@@ -269,6 +269,7 @@ exports.login = async (req, res) => {
         fullname: user.fullname,
         username: user.username,
         email: user.email,
+        avatar: user.avatar || "",
         role: user.role,
       },
     });

@@ -44,6 +44,53 @@ exports.updateMyProfile = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/user/me/password
+ * (Auth required)
+ */
+exports.changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide all required fields",
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "New password and confirm password do not match",
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 6 characters",
+    });
+  }
+
+  const result = await UserService.changePassword({
+    userId: req.user.id,
+    currentPassword,
+    newPassword,
+  });
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result.message,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+  });
+});
+
+/**
  * GET /api/user/me/account-settings
  * (Auth required)
  */

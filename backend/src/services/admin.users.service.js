@@ -33,6 +33,7 @@ const pickUser = (u) => ({
 exports.listUsers = async (query) => {
   const q = (query.query || "").trim();
   const status = (query.status || "all").toLowerCase();
+  const role = (query.role || "").toLowerCase();
   const page = Math.max(parseInt(query.page || "1", 10), 1);
   const limit = Math.min(Math.max(parseInt(query.limit || "10", 10), 1), 50);
   const skip = (page - 1) * limit;
@@ -47,6 +48,11 @@ exports.listUsers = async (query) => {
       { username: { $regex: q, $options: "i" } },
       { email: { $regex: q, $options: "i" } },
     ];
+  }
+
+  // Filter theo role (admin/user)
+  if (role && ["user", "admin"].includes(role)) {
+    filter.role = role;
   }
 
   // Filter theo status chuẩn 5 trạng thái

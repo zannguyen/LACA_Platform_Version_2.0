@@ -1,3 +1,4 @@
+// Admin Account Management Page for Admin Panel
 import React, { useEffect, useMemo, useState } from "react";
 import {
   getAllUsers,
@@ -11,12 +12,11 @@ const STATUS_LABEL = {
   all: "All",
   active: "Active",
   blocked: "Blocked",
-  unverified: "Unverified",
   suspended: "Suspended",
   deleted: "Deleted",
 };
 
-const canBlock = (status) => status === "active" || status === "unverified";
+const canBlock = (status) => status === "active";
 const canUnblock = (status) => status === "blocked";
 const canSuspend = (status) => status !== "deleted";
 const canDelete = (status) => status !== "deleted";
@@ -25,7 +25,7 @@ const canUnsuspend = (status, suspendUntil) =>
   status === "suspended" ||
   (suspendUntil && new Date(suspendUntil).getTime() > Date.now());
 
-const UserManagement = () => {
+const AdminManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +39,7 @@ const UserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmMode, setConfirmMode] = useState(null); // "delete" | "restore"
+  const [confirmMode, setConfirmMode] = useState(null);
   const [targetUser, setTargetUser] = useState(null);
 
   const totalPages = useMemo(
@@ -54,7 +54,7 @@ const UserManagement = () => {
     const res = await getAllUsers({
       query: searchQuery,
       status: statusFilter,
-      role: "user",
+      role: "admin",
       page: nextPage,
       limit,
     });
@@ -64,11 +64,11 @@ const UserManagement = () => {
       setUsers(list);
       setTotal(res.data?.total ?? list.length);
       if (resetPage) setPage(1);
-      setSelectedUsers([]); // reset selected on refresh
+      setSelectedUsers([]);
     } else {
       setUsers([]);
       setTotal(0);
-      console.error("Load users failed:", res.error);
+      console.error("Load admins failed:", res.error);
     }
 
     setLoading(false);
@@ -76,8 +76,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers({ resetPage: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // load first
+  }, []);
 
   const handleSearch = (e) => setSearchQuery(e.target.value);
 
@@ -85,7 +84,6 @@ const UserManagement = () => {
 
   const handleFilterChange = (e) => {
     setStatusFilter(e.target.value);
-    // đổi filter thì reload
     setTimeout(() => fetchUsers({ resetPage: true }), 0);
   };
 
@@ -102,25 +100,20 @@ const UserManagement = () => {
     else setSelectedUsers(users.map((u) => u.id));
   };
 
-  // ✅ Block/Unblock: backend nhận boolean isActive
   const handleBlockToggle = async (user) => {
-    // block => isActive=false, unblock => isActive=true
     const isActive = user.status === "blocked";
     const res = await updateUserStatus(user.id, isActive);
 
     if (res.success) {
-      // refresh list để status tính lại chuẩn (blocked/unverified/suspended/deleted)
       fetchUsers();
     } else {
       console.error(res.error);
     }
   };
 
-  // ✅ Suspend: set tới 7 ngày mặc định (bạn có thể thay UI chọn ngày sau)
   const handleSuspendToggle = async (user) => {
     if (!canSuspend(user.status)) return;
 
-    // nếu đang suspended -> unsuspend (null)
     const shouldUnsuspend = canUnsuspend(user.status, user.suspendUntil);
     const nextSuspendUntil = shouldUnsuspend
       ? null
@@ -161,7 +154,6 @@ const UserManagement = () => {
     closeConfirm();
   };
 
-  // Paging (tối giản)
   const goPrev = () => {
     if (page <= 1) return;
     setPage((p) => p - 1);
@@ -179,7 +171,7 @@ const UserManagement = () => {
       <div className="user-management">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading users...</p>
+          <p>Loading admins...</p>
         </div>
       </div>
     );
@@ -188,10 +180,9 @@ const UserManagement = () => {
   return (
     <div className="user-management">
       <div className="page-header">
-        <h1>Account Management</h1>
+        <h1>Admin Management</h1>
       </div>
 
-      {/* Search + Filter */}
       <div className="search-section">
         <div className="search-bar">
           <svg
@@ -216,7 +207,7 @@ const UserManagement = () => {
 
           <input
             type="text"
-            placeholder="Search users by name or email..."
+            placeholder="Search admins by name or email..."
             value={searchQuery}
             onChange={handleSearch}
             onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
@@ -240,10 +231,9 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* User Count + Paging */}
       <div className="user-count">
         <span>
-          {users.length} users (total {total})
+          {users.length} admins (total {total})
         </span>
         {selectedUsers.length > 0 && (
           <span className="selected-count">
@@ -268,7 +258,6 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* User Table */}
       <div className="user-table-container">
         <table className="user-table">
           <thead>
@@ -282,7 +271,7 @@ const UserManagement = () => {
                   onChange={toggleSelectAll}
                 />
               </th>
-              <th>User</th>
+              <th>Admin</th>
               <th className="hide-mobile">Email</th>
               <th>Status</th>
               <th>Actions</th>
@@ -292,8 +281,8 @@ const UserManagement = () => {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="6" className="empty-cell">
-                  No users found
+                <td colSpan="5" className="empty-cell">
+                  No admins found
                 </td>
               </tr>
             ) : (
@@ -320,7 +309,7 @@ const UserManagement = () => {
                             <img src={user.avatar} alt={user.name} />
                           ) : (
                             <div className="avatar-placeholder">
-                              {(user.name || "U").charAt(0).toUpperCase()}
+                              {(user.name || "A").charAt(0).toUpperCase()}
                             </div>
                           )}
                         </div>
@@ -348,7 +337,6 @@ const UserManagement = () => {
 
                     <td>
                       <div className="action-buttons">
-                        {/* Block/Unblock */}
                         {(canBlock(user.status) || canUnblock(user.status)) && (
                           <button
                             className="btn-action btn-toggle"
@@ -358,7 +346,6 @@ const UserManagement = () => {
                           </button>
                         )}
 
-                        {/* Suspend/Unsuspend */}
                         {canSuspend(user.status) && (
                           <button
                             className="btn-action btn-toggle"
@@ -369,7 +356,6 @@ const UserManagement = () => {
                           </button>
                         )}
 
-                        {/* Delete/Restore */}
                         {canDelete(user.status) && (
                           <button
                             className="btn-action btn-delete"
@@ -396,11 +382,10 @@ const UserManagement = () => {
         </table>
       </div>
 
-      {/* Confirm Modal */}
       {showConfirm && (
         <div className="modal-overlay" onClick={closeConfirm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>{confirmMode === "delete" ? "Delete User" : "Restore User"}</h3>
+            <h3>{confirmMode === "delete" ? "Delete Admin" : "Restore Admin"}</h3>
 
             <p>
               {confirmMode === "delete" ? (
@@ -419,7 +404,7 @@ const UserManagement = () => {
             <p className="warning-text">
               {confirmMode === "delete"
                 ? "This will be a soft delete (you can restore later)."
-                : "This will restore the user account."}
+                : "This will restore the admin account."}
             </p>
 
             <div className="modal-actions">
@@ -437,4 +422,4 @@ const UserManagement = () => {
   );
 };
 
-export default UserManagement;
+export default AdminManagement;

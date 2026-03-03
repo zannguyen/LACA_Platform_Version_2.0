@@ -22,6 +22,8 @@ const allowedOrigins = (
   .map((s) => s.trim())
   .filter(Boolean);
 
+console.log("[Socket.IO] Allowed origins:", allowedOrigins.length > 0 ? allowedOrigins : "All origins allowed");
+
 const corsOrigin = (origin, cb) => {
   // Cho phép request không có origin (Postman/cURL/server-to-server)
   if (!origin) return cb(null, true);
@@ -37,7 +39,7 @@ const corsOrigin = (origin, cb) => {
 // ✅ CORS cho Socket.IO (credentials true nếu FE dùng withCredentials / cookie)
 const io = new Server(server, {
   cors: {
-    origin: corsOrigin,
+    origin: "*", // Allow all origins for production flexibility
     methods: ["GET", "POST"],
     credentials: true,
   },
