@@ -430,7 +430,7 @@ export default function Setting() {
           <div className="st-section-title">Tài khoản</div>
           <RowButton
             icon={<IconUser />}
-            label="Chỉnh sửa hồ sơ"
+            label="Đổi email và mật khẩu"
             onClick={() => navigate("/setting/edit-profile")}
           />
           <RowButton

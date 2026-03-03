@@ -18,6 +18,9 @@ const userApi = {
   updateMyProfile: (body) => api.put(`/user/me/profile`, body),
   getMyAccountSettings: () => api.get(`/user/me/account-settings`),
 
+  sendEmailChangeOtp: (body) =>
+    api.post(`/user/me/account-settings/email-otp/send`, body),
+
   updateMyAccountSettings: (body) => api.put(`/user/me/account-settings`, body),
 
   getMyPrivacyData: () => api.get(`/user/me/privacy-data`),
