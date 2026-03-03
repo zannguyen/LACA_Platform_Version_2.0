@@ -693,26 +693,30 @@ export default function UserProfile() {
         </div>
 
         {/* Interests/Tags Section */}
-        {userTags && userTags.length > 0 && (
-          <div className="profile-interests">
-            <h4 className="profile-section-title">Sở thích</h4>
-            <div className="profile-tags-scroll">
-              {userTags.map((tag) => (
+        <div className="profile-interests">
+          <h4 className="profile-section-title">Sở thích</h4>
+          <div className="profile-tags-scroll">
+            {userTags && userTags.length > 0 ? (
+              userTags.map((tag) => (
                 <span key={tag._id || tag.id} className="profile-tag">
                   <i className="fa-solid fa-hashtag"></i>
                   {tag.name}
                 </span>
-              ))}
-              <button
-                className="profile-tag"
-                onClick={() => setShowTagModal(true)}
-                style={{ cursor: "pointer", border: "none" }}
-              >
-                <i className="fa-solid fa-plus"></i> Thêm
-              </button>
-            </div>
+              ))
+            ) : (
+              <span className="profile-tag" style={{ opacity: 0.75 }}>
+                Chưa có sở thích
+              </span>
+            )}
+            <button
+              className="profile-tag"
+              onClick={() => setShowTagModal(true)}
+              style={{ cursor: "pointer", border: "none" }}
+            >
+              <i className="fa-solid fa-plus"></i> Thêm
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Posts Grid - Instagram Style */}
         <div className="profile-posts">
