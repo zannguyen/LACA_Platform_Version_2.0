@@ -66,6 +66,8 @@ cd frontend && npm run lint
 - **Middlewares** (`src/middlewares/`): Auth, error handling, file upload, validation
 - **Config** (`src/config/`): Database and Cloudinary setup
 - **Utils** (`src/utils/`): JWT, email, error handling, async wrappers
+- **Seeds** (`src/seeds/`): Database seeding scripts
+- **Scripts** (`src/scripts/`): Utility scripts (e.g., promote to admin)
 
 ### Frontend Structure (React/Vite)
 
@@ -75,8 +77,10 @@ cd frontend && npm run lint
 - **API** (`src/api/`): Axios client functions for backend communication
 - **Context** (`src/context/`): React Context providers (SocketContext, LocationAccessContext)
 - **Routes** (`src/routes/`): Route configuration
-- **Services** (`src/services/`): Frontend utilities (Socket.IO, storage, etc.)
+- **Services** (`src/services/`): Frontend utilities (geolocation, etc.)
 - **Utils** (`src/utils/`): Helper functions
+- **Config** (`src/config/`): Configuration (socket)
+- **Data** (`src/data/`): Static data (icons)
 
 ### Key Technologies
 
@@ -221,6 +225,14 @@ VITE_GEMINI_API_KEY=AIzaSy...
 | PUT    | `/:tagId` | Update tag (admin)      |
 | DELETE | `/:tagId` | Delete tag (admin)      |
 
+### Category Routes (`/api/tags/categories`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/categories` | Get all categories |
+| POST | `/categories` | Create category (admin) |
+| PUT | `/categories/:categoryId` | Update category (admin) |
+| DELETE | `/categories/:categoryId` | Delete category (admin) |
+
 ### Interest Routes (`/api/interests`)
 
 | Method | Endpoint       | Description             |
@@ -274,6 +286,16 @@ VITE_GEMINI_API_KEY=AIzaSy...
 | Method | Endpoint   | Description                               |
 | ------ | ---------- | ----------------------------------------- |
 | POST   | `/message` | AI chatbot message (Groq/OpenAI with RAG) |
+
+### Ranking Routes (`/api/ranking`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/featured` | Get featured locations and users |
+
+### Chatbot Routes (`/api/chatbot`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/message` | AI chatbot message |
 
 ### Admin Routes (`/api/admin`)
 
@@ -359,7 +381,11 @@ VITE_GEMINI_API_KEY=AIzaSy...
 
 - `name`, `description`, `icon`, `color`
 - `order`, `isActive`
-- `categoryId` (for tags)
+
+### Tag (`tag.model.js`)
+- `name`, `description`, `icon`, `color`
+- `order`, `isActive`
+- `categoryId` -> Category
 
 ### Interest (`interest.model.js`)
 
@@ -381,13 +407,21 @@ VITE_GEMINI_API_KEY=AIzaSy...
 - `note`, `isPublic`, `duration`
 - `photos[]`
 
+### BroadcastHistory (`broadcastHistory.model.js`)
+- `title`, `content`, `targetType`
+- `sentBy` -> User
+- `recipientCount`, `sentAt`
+
+### PostAnalysis (`postAnalysis.model.js`)
+- `sentiment`, `categories[]`
+- `keywords[]`, `toxicity`
+- `analysisComplete`
+
 ### Other Models
 
 - `emailOTP` - OTP verification
 - `refreshToken` - Token management
 - `feedback` - User feedback
-- `broadcastHistory` - Admin broadcasts
-- `postAnalysis` - AI analysis results
 
 ## Key Architectural Patterns
 
@@ -455,6 +489,15 @@ Content-based filtering with scoring:
 - Multer handles file uploads (`src/middlewares/upload.middleware.js`)
 - Cloudinary stores images (`src/config/cloudinary.js`)
 - Upload route: `POST /api/upload`
+
+### AI/Chatbot Features
+- `src/services/rag.service.js` - RAG (Retrieval-Augmented Generation) service
+- `src/services/claude.service.js` - Claude AI integration
+- Chatbot endpoint: `POST /api/chatbot/message`
+
+### Queue System
+- `src/services/queue.service.js` - Queue management for notifications/broadcasts
+- Admin endpoints: `GET /api/admin/queue`, `POST /api/admin/queue/clear`
 
 ## Middlewares
 
@@ -525,6 +568,9 @@ Content-based filtering with scoring:
 - `src/models/user.model.js` - User schema
 - `src/services/auth.service.js` - Auth logic
 - `src/services/recommendation.service.js` - Feed algorithm
+- `src/services/queue.service.js` - Notification queue
+- `src/services/rag.service.js` - RAG for chatbot
+- `src/services/claude.service.js` - Claude AI integration
 - `src/middlewares/auth.middleware.js` - JWT validation
 - `src/middlewares/requireAdmin.js` - Admin role check
 - `src/controllers/chatbot.controller.js` - AI chatbot logic (Groq/OpenAI)
@@ -539,6 +585,7 @@ Content-based filtering with scoring:
 - `frontend/src/routes/RequireAuth.jsx` - Auth guard
 - `frontend/src/components/map/` - Leaflet map components
 - `frontend/src/components/Chat/` - Real-time chat UI
+- `frontend/src/components/admin/` - Admin components
 - `frontend/src/components/chatbot/Chatbot.jsx` - AI chatbot UI
 
 ## Common Tasks
@@ -614,6 +661,9 @@ Follow (M-to-M through document)
 BlockUser (M-to-M)
   ├── blockerUserId -> User
   └── blockedUserId -> User
+
+Category
+  └── tags[] -> Tag
 ```
 
 ## Deployment Notes

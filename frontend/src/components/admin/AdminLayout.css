@@ -230,23 +230,12 @@
 }
 
 .logout-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  width: 100%;
-  padding: var(--space-md) var(--space-lg);
+  margin-top: auto;
   border: 2px solid var(--error);
   background: transparent;
-  border-radius: var(--radius-md);
   color: var(--error);
   font-size: 14px;
   font-weight: 700;
-  font-family: var(--font-sans);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .logout-btn:hover {
@@ -259,6 +248,11 @@
 .logout-btn:active {
   transform: translateY(0);
   box-shadow: none;
+}
+
+.logout-btn .nav-icon,
+.logout-btn .nav-label {
+  color: inherit;
 }
 
 /* ==================== MAIN CONTENT ==================== */
