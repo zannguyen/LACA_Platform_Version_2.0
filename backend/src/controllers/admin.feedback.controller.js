@@ -4,13 +4,12 @@ const User = require("../models/user.model");
 const sendEmail = require("../utils/mailer");
 const asyncHandler = require("../utils/asyncHandler");
 
-// Get all feedbacks with filters (type, status, pagination)
+// Get all feedbacks with filters (status, pagination)
 const getAllFeedbacks = asyncHandler(async (req, res) => {
-  const { type, status, page = 1, limit = 20 } = req.query;
+  const { status, page = 1, limit = 20 } = req.query;
 
   // Build filter
   const filter = {};
-  if (type) filter.type = type;
   if (status) filter.status = status;
 
   // Count total
@@ -109,11 +108,11 @@ const replyFeedback = asyncHandler(async (req, res) => {
     const userEmail = feedback.userId.email;
     const userName = feedback.userId.fullname || "User";
 
-    const emailSubject = `[LACA] Phản hồi về ${feedback.type === "feedback" ? "góp ý" : "báo lỗi"} của bạn`;
+    const emailSubject = `[LACA] Phản hồi về góp ý của bạn`;
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #333;">Xin chào ${userName},</h2>
-        <p>Cảm ơn bạn đã gửi ${feedback.type === "feedback" ? "góp ý" : "báo lỗi"} cho LACA.</p>
+        <p>Cảm ơn bạn đã gửi góp ý cho LACA.</p>
 
         <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="margin: 0 0 10px 0;"><strong>Nội dung bạn đã gửi:</strong></p>

@@ -3,7 +3,6 @@ import { adminFeedbackApi } from "../../api/adminFeedbackApi";
 import "./FeedbackManagement.css";
 
 const FeedbackManagement = () => {
-  const [activeTab, setActiveTab] = useState("feedback");
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
@@ -13,13 +12,12 @@ const FeedbackManagement = () => {
 
   useEffect(() => {
     fetchFeedbacks();
-  }, [activeTab, statusFilter]);
+  }, [statusFilter]);
 
   const fetchFeedbacks = async () => {
     setLoading(true);
     try {
       const res = await adminFeedbackApi.getAll({
-        type: activeTab,
         status: statusFilter || undefined,
       });
       setFeedbacks(res.data);
@@ -91,22 +89,13 @@ const FeedbackManagement = () => {
   return (
     <div className="feedback-management">
       <div className="page-header">
-        <h1>Quản lý Feedback & Report</h1>
-      </div>
-
-      {/* Tabs */}
-      <div className="tabs">
+        <h1>Quản lý Feedback</h1>
         <button
-          className={`tab ${activeTab === "feedback" ? "active" : ""}`}
-          onClick={() => setActiveTab("feedback")}
+          className="btn-refresh"
+          onClick={fetchFeedbacks}
+          disabled={loading}
         >
-          Góp ý
-        </button>
-        <button
-          className={`tab ${activeTab === "report" ? "active" : ""}`}
-          onClick={() => setActiveTab("report")}
-        >
-          Báo lỗi
+          {loading ? "..." : "↻"}
         </button>
       </div>
 
@@ -177,7 +166,7 @@ const FeedbackManagement = () => {
         <div className="modal-overlay" onClick={handleCloseReply}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Phản hồi {activeTab === "feedback" ? "góp ý" : "báo lỗi"}</h2>
+              <h2>Phản hồi góp ý</h2>
               <button className="close-btn" onClick={handleCloseReply}>
                 ×
               </button>
