@@ -65,6 +65,8 @@ exports.listReports = async ({
   if (category && !VALID_CATEGORY.includes(category))
     throw new AppError("Invalid category", 400);
 
+  console.log("[DEBUG listReports] params:", { status, targetType, category, q, page, limit });
+
   const filter = {};
   if (status) filter.status = status;
   if (targetType) filter.targetType = targetType;
@@ -91,12 +93,18 @@ exports.listReports = async ({
     Report.countDocuments(filter),
   ]);
 
+  console.log("[DEBUG listReports] Reports count:", reports.length);
+  console.log("[DEBUG listReports] Sample report:", JSON.stringify(reports[0], null, 2));
+
   const postIds = reports
     .filter((r) => r.targetType === "post")
     .map((r) => r.targetId)
     .filter(Boolean);
 
+  console.log("[DEBUG listReports] postIds:", postIds);
+
   const placePath = getPlacePathFromPostModel();
+  console.log("[DEBUG listReports] placePath:", placePath);
 
   const postQuery = Post.find({ _id: { $in: postIds } })
     .select("_id userId mediaUrl content type status reportCount createdAt")
@@ -108,6 +116,11 @@ exports.listReports = async ({
   }
 
   const posts = postIds.length ? await postQuery.lean() : [];
+  console.log("[DEBUG listReports] Posts found:", posts.length);
+  if (posts.length > 0) {
+    console.log("[DEBUG listReports] Sample post:", JSON.stringify(posts[0], null, 2));
+  }
+
   const postMap = new Map(
     posts.map((p) => [String(p._id), normalizePostPlace(p)]),
   );
@@ -132,9 +145,13 @@ exports.listReports = async ({
 exports.getReport = async (reportId) => {
   if (!isValidId(reportId)) throw new AppError("Invalid reportId", 400);
 
+  console.log("[DEBUG getReport] reportId:", reportId);
+
   const r = await Report.findById(reportId)
     .populate("reporterId", "username fullname email avatar")
     .lean();
+
+  console.log("[DEBUG getReport] Report:", JSON.stringify(r, null, 2));
 
   if (!r) throw new AppError("Report not found", 404);
 
@@ -143,6 +160,17 @@ exports.getReport = async (reportId) => {
 
   if (r.targetType === "post") {
     const placePath = getPlacePathFromPostModel();
+    console.log("[DEBUG getReport] placePath:", placePath);
+    console.log("[DEBUG getReport] targetId:", r.targetId, typeof r.targetId);
+
+    // Check if targetId is valid ObjectId
+    if (!isValidId(r.targetId)) {
+      console.error("[DEBUG getReport] Invalid targetId:", r.targetId);
+      out.post = null;
+      out.owner = null;
+      return out;
+    }
+
     const postQuery = Post.findById(r.targetId)
       .select("_id userId mediaUrl content type status reportCount createdAt")
       .populate("userId", "username fullname email avatar");
@@ -153,8 +181,16 @@ exports.getReport = async (reportId) => {
     }
 
     const p = await postQuery.lean();
-    out.post = normalizePostPlace(p);
-    out.owner = out.post?.userId || null;
+    console.log("[DEBUG getReport] Post:", JSON.stringify(p, null, 2));
+
+    if (!p) {
+      console.warn("[DEBUG getReport] Post not found for targetId:", r.targetId);
+      out.post = null;
+      out.owner = null;
+    } else {
+      out.post = normalizePostPlace(p);
+      out.owner = out.post?.userId || null;
+    }
   }
 
   return out;

@@ -18,8 +18,21 @@ Nguyên tắc:
 - Nếu không có đủ thông tin, hãy thừa nhận và gợi ý liên hệ hỗ trợ
 - Sử dụng emoji để tin nhắn sinh động hơn`;
 
+// Calculate distance between two coordinates (in km)
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  if (!lat1 || !lng1 || !lat2 || !lng2) return null;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // Format database context for AI
-const formatDbContext = (dbContext) => {
+const formatDbContext = (dbContext, userLocation = null) => {
   let context = "";
 
   // Stats - always useful
@@ -33,7 +46,7 @@ const formatDbContext = (dbContext) => {
 
   // Places - most important for location-based queries
   if (dbContext.places && dbContext.places.length > 0) {
-    context += "📍 ĐỊA ĐIỂM:\n";
+    context += "📍 ĐỊA ĐIỂM GẦN BẠN (trong bán kính 5km):\n";
     dbContext.places.forEach((place, index) => {
       context += `${index + 1}. ${place.name}\n`;
       context += `   • Loại: ${place.category || "Địa điểm"}\n`;
@@ -41,6 +54,14 @@ const formatDbContext = (dbContext) => {
       // Show post count if available (for popular places query)
       if (place.postCount !== undefined) {
         context += `   • Số bài đăng: ${place.postCount} bài 📝\n`;
+      }
+      // Show distance if location available
+      if (userLocation && place.location && place.location.coordinates) {
+        const [lng, lat] = place.location.coordinates;
+        const dist = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+        if (dist !== null) {
+          context += `   • Khoảng cách: ${dist.toFixed(1)}km\n`;
+        }
       }
     });
     context += "\n";
@@ -55,16 +76,25 @@ const formatDbContext = (dbContext) => {
     context += "\n";
   }
 
-  // Posts
+  // Posts - with tags and location info
   if (dbContext.posts && dbContext.posts.length > 0) {
-    context += "📝 BÀI ĐĂNG GẦN ĐÂY:\n";
+    context += "📝 BÀI ĐĂNG GẦN ĐÂY TRONG KHU VỰC:\n";
     dbContext.posts.slice(0, 5).forEach((post, index) => {
       const userName = post.userId?.fullname || post.userId?.username || "Unknown";
       const placeName = post.placeId?.name || "Không rõ địa điểm";
-      context += `${index + 1}. ${userName} tại ${placeName}\n`;
+      const placeCategory = post.placeId?.category || "";
+
+      context += `${index + 1}. ${userName} đăng tại [${placeCategory}] ${placeName}\n`;
+
+      // Show tags if available
+      if (post.tags && post.tags.length > 0) {
+        const tagNames = post.tags.map(t => t.name).join(", ");
+        context += `   🏷️ Tags: ${tagNames}\n`;
+      }
+
       if (post.content) {
         const shortContent = post.content.length > 80 ? post.content.substring(0, 80) + "..." : post.content;
-        context += `   Nội dung: ${shortContent}\n`;
+        context += `   💬 Nội dung: "${shortContent}"\n`;
       }
     });
   }
@@ -73,14 +103,21 @@ const formatDbContext = (dbContext) => {
 };
 
 // Call AI with RAG context using Groq
-const callAI = async (message, dbContext) => {
-  const context = formatDbContext(dbContext);
+const callAI = async (message, dbContext, userLocation = null) => {
+  const context = formatDbContext(dbContext, userLocation);
 
-  // If no meaningful context, use simple response
-  if (!context || (dbContext.places?.length === 0 && dbContext.users?.length === 0 && dbContext.posts?.length === 0 && !dbContext.stats)) {
-    console.log("No context available, using fallback response");
-    return null;
-  }
+  // Log for debugging
+  console.log("=== DEBUG CALL AI ===");
+  console.log("GROQ_API_KEY exists:", !!process.env.GROQ_API_KEY);
+  console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
+  console.log("Context length:", context?.length);
+  console.log("Places:", dbContext.places?.length);
+  console.log("Users:", dbContext.users?.length);
+  console.log("Posts:", dbContext.posts?.length);
+  console.log("Stats:", dbContext.stats);
+
+  // Always try to call AI, even without context
+  // (AI can still answer general questions about the app)
 
   const systemMessage = `Bạn là trợ lý ảo thông minh của LACA - Mạng xã hội theo vị trí.
 
@@ -103,19 +140,24 @@ Ví dụ trả lời SAI (không làm thế này):
 
 Dưới đây là dữ liệu từ database:`;
 
-  const userMessage = `${context}
+  // Even if context is empty, we still send the message to AI
+  // AI can answer general questions about the app
+  const contextSection = context && context.trim().length > 0
+    ? context
+    : "Hiện tại chưa có dữ liệu địa điểm trong khu vực của bạn.";
+
+  const userMessage = `${contextSection}
 
 ---
 
 CÂU HỎI CỦA NGƯỜI DÙNG: "${message}"
 
-Hãy trả lời CỤ THỂ dựa trên dữ liệu database ở trên. Đặc biệt chú ý:
-- Nếu hỏi về địa điểm "nổi bật nhất" hay "nhiều người đăng bài nhất" -> sắp xếp theo số bài đăng giảm dần
-- Hiển thị rõ số bài đăng của mỗi địa điểm`;
+Hãy trả lời CỤ THỂ dựa trên dữ liệu database ở trên. Nếu chưa có dữ liệu, hãy trả lời dựa trên kiến thức chung về ứng dụng và gợi ý người dùng đăng bài để tạo dữ liệu.`;
 
   // Try Groq first
   if (process.env.GROQ_API_KEY) {
     try {
+      console.log("Calling Groq API...");
       const response = await axios.post(
         "https://api.groq.com/openai/v1/chat/completions",
         {
@@ -135,6 +177,7 @@ Hãy trả lời CỤ THỂ dựa trên dữ liệu database ở trên. Đặc b
         }
       );
 
+      console.log("Groq Response Status:", response.status);
       const content = response.data.choices[0].message.content;
       console.log("AI Response content:", content);
       return content.trim();
@@ -142,11 +185,14 @@ Hãy trả lời CỤ THỂ dựa trên dữ liệu database ở trên. Đặc b
       console.error("Groq API Error:", error.response?.status || error.message);
       console.error("Groq Error Details:", error.response?.data);
     }
+  } else {
+    console.log("GROQ_API_KEY not found in env!");
   }
 
   // Fallback to OpenAI if Groq fails
   if (process.env.OPENAI_API_KEY) {
     try {
+      console.log("Calling OpenAI API...");
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -184,10 +230,11 @@ const generateSmartResponse = (message, dbContext, location) => {
   if (lowerMessage.includes("xin chào") || lowerMessage.includes("chào") ||
       lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hey")) {
     let response = "Xin chào! 👋\n\nTôi là trợ lý của LACA. Tôi có thể giúp bạn:\n\n";
-    response += "📍 Tìm địa điểm gần bạn\n";
+    response += "📍 Tìm địa điểm gần bạn (trong 5km)\n";
+    response += "☕ Tìm quán cafe, nhà hàng...\n";
+    response += "📝 Tìm bài đăng về địa điểm cụ thể\n";
     response += "❓ Hướng dẫn sử dụng app\n";
-    response += "📊 Xem thống kê\n";
-    response += "📝 Đăng bài viết\n\n";
+    response += "📊 Xem thống kê\n\n";
     response += "Bạn cần gì hôm nay?";
     return response;
   }
@@ -199,23 +246,33 @@ const generateSmartResponse = (message, dbContext, location) => {
       lowerMessage.includes("restaurant") || lowerMessage.includes("coffee")) {
 
     if (dbContext.places && dbContext.places.length > 0) {
-      let response = "📍 Tôi tìm được các địa điểm cho bạn:\n\n";
+      let response = "📍 Tôi tìm được các địa điểm cho bạn (trong bán kính 5km):\n\n";
 
       dbContext.places.forEach((place, index) => {
         response += `${index + 1}. ${place.name}\n`;
         response += `   📌 ${place.category || "Địa điểm"}\n`;
         if (place.address) response += `   📍 ${place.address}\n`;
+        if (place.postCount) response += `   📝 ${place.postCount} bài đăng\n`;
+
+        // Show distance if location available
+        if (location && place.location && place.location.coordinates) {
+          const [lng, lat] = place.location.coordinates;
+          const dist = calculateDistance(location.lat, location.lng, lat, lng);
+          if (dist !== null) {
+            response += `   📏 Cách ${dist.toFixed(1)}km\n`;
+          }
+        }
         response += "\n";
       });
 
       if (location) {
-        response += "💡 Vị trí của bạn đang được sử dụng để tìm địa điểm gần nhất!\n";
+        response += "💡 Vị trí của bạn đang được sử dụng để tìm địa điểm trong bán kính 5km!\n";
       }
 
       response += "Bạn muốn tìm thêm địa điểm khác không?";
       return response;
     } else {
-      let response = "😕 Xin lỗi, hiện tại chưa có địa điểm nào trong khu vực của bạn.\n\n";
+      let response = "😕 Xin lỗi, hiện tại chưa có địa điểm nào trong khu vực 5km của bạn.\n\n";
       response += "💡 Bạn có thể:\n";
       response += "- Thử di chuyển đến khu vực khác\n";
       response += "- Đăng bài check-in tại địa điểm mới\n";
@@ -244,29 +301,43 @@ const generateSmartResponse = (message, dbContext, location) => {
     }
   }
 
-  // === POST/POSTS QUERY ===
+  // === POST/POSTS QUERY with TAGS ===
   if (intents.includes("post_query") || lowerMessage.includes("bài đăng") ||
       lowerMessage.includes("post") || lowerMessage.includes("bài viết") ||
-      lowerMessage.includes("mới nhất") || lowerMessage.includes("xem gì")) {
+      lowerMessage.includes("mới nhất") || lowerMessage.includes("xem gì") ||
+      lowerMessage.includes("rủ") || lowerMessage.includes("đi")) {
 
     if (dbContext.posts && dbContext.posts.length > 0) {
-      let response = "📝 Bài đăng gần đây:\n\n";
+      let response = "📝 Bài đăng gần đây trong khu vực của bạn:\n\n";
 
-      dbContext.posts.slice(0, 3).forEach((post, index) => {
+      dbContext.posts.slice(0, 5).forEach((post, index) => {
         const userName = post.userId?.fullname || post.userId?.username || "Unknown";
         const placeName = post.placeId?.name || "Không rõ địa điểm";
-        response += `${index + 1}. ${userName} - ${placeName}\n`;
+        const placeCategory = post.placeId?.category || "";
+
+        response += `${index + 1}. ${userName} tại [${placeCategory}] ${placeName}\n`;
+
+        // Show tags if available
+        if (post.tags && post.tags.length > 0) {
+          const tagNames = post.tags.map(t => t.name).join(", ");
+          response += `   🏷️ Tags: ${tagNames}\n`;
+        }
+
         if (post.content) {
           const shortContent = post.content.length > 50 ? post.content.substring(0, 50) + "..." : post.content;
-          response += `   📄 ${shortContent}\n`;
+          response += `   📄 "${shortContent}"\n`;
         }
         response += "\n";
       });
 
+      if (location) {
+        response += "💡 Đây là các bài đăng trong bán kính 5km từ vị trí của bạn!\n";
+      }
+
       response += "Bạn muốn xem thêm bài đăng khác không?";
       return response;
     } else {
-      return "😕 Hiện chưa có bài đăng nào.\n\nHãy là người đầu tiên đăng bài nhé! ✨";
+      return "😕 Hiện chưa có bài đăng nào trong khu vực của bạn.\n\nHãy là người đầu tiên đăng bài nhé! ✨";
     }
   }
 
@@ -293,7 +364,7 @@ const generateSmartResponse = (message, dbContext, location) => {
 
     let response = "📖 Hướng dẫn sử dụng LACA:\n\n";
     response += "1️⃣ Cho phép truy cập vị trí\n";
-    response += "2️⃣ Khám phá bài đăng xung quanh bạn\n";
+    response += "2️⃣ Khám phá bài đăng xung quanh bạn (5km)\n";
     response += "3️⃣ Thả tim ❤️ và bình luận 💬\n";
     response += "4️⃣ Kết bạn và chat với người mới\n";
     response += "5️⃣ Check-in tại địa điểm yêu thích\n";
@@ -309,10 +380,11 @@ const generateSmartResponse = (message, dbContext, location) => {
       lowerMessage.includes("không được") || lowerMessage.includes("confused")) {
 
     let response = "🆘 Tôi có thể giúp bạn:\n\n";
-    response += "• Tìm địa điểm gần bạn\n";
-    response += "• Hướng dẫn sử dụng app\n";
-    response += "• Giải đáp thắc mắc\n";
-    response += "• Xem thống kê\n\n";
+    response += "📍 Tìm địa điểm trong 5km\n";
+    response += "☕ Tìm quán cafe, nhà hàng...\n";
+    response += "🏷️ Tìm bài đăng theo tags\n";
+    response += "❓ Hướng dẫn sử dụng app\n";
+    response += "📊 Xem thống kê\n\n";
     response += "Bạn đang gặp vấn đề gì?";
     return response;
   }
@@ -336,7 +408,8 @@ const generateSmartResponse = (message, dbContext, location) => {
   // === DEFAULT / FALLBACK ===
   let response = "😊 Cảm ơn tin nhắn của bạn!\n\n";
   response += "Tôi có thể giúp bạn:\n\n";
-  response += "📍 Tìm địa điểm (quán cafe, nhà hàng...)\n";
+  response += "📍 Tìm địa điểm (quán cafe, nhà hàng... trong 5km)\n";
+  response += "🏷️ Tìm bài đăng theo tags\n";
   response += "❓ Hướng dẫn sử dụng\n";
   response += "📊 Xem thống kê\n";
   response += "📝 Cách đăng bài\n\n";
@@ -349,6 +422,11 @@ const generateSmartResponse = (message, dbContext, location) => {
 const handleMessage = async (req, res) => {
   try {
     const { message, userId, location, preferences } = req.body;
+
+    console.log("=== CHATBOT REQUEST ===");
+    console.log("Message:", message);
+    console.log("Location:", location);
+    console.log("GROQ_API_KEY exists:", !!process.env.GROQ_API_KEY);
 
     if (!message) {
       return res.status(400).json({
@@ -378,7 +456,7 @@ const handleMessage = async (req, res) => {
     let response = null;
     let aiFailed = false;
     try {
-      response = await callAI(message, dbContext);
+      response = await callAI(message, dbContext, location);
       console.log("Final AI response:", response);
     } catch (aiError) {
       console.error("AI call failed:", aiError.message);

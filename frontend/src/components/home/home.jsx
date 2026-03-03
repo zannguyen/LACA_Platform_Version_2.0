@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import RankingModal from "../ranking/RankingModal";
+import ReportModal from "./ReportModal";
 import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
 import rankingApi from "../../api/rankingApi";
@@ -1321,6 +1322,16 @@ const Home = () => {
         onClose={() => setRankingOpen(false)}
         data={rankingData}
         loading={rankingLoading}
+      />
+
+      <ReportModal
+        isOpen={reportOpen}
+        onClose={() => {
+          setReportOpen(false);
+          setReportTarget(null);
+        }}
+        target={reportTarget}
+        targetType="post"
       />
 
       {/* Floating Filter Button - Top left */}

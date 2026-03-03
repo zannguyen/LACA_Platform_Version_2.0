@@ -2,7 +2,50 @@ const Place = require("../models/place.model");
 const Post = require("../models/post.model");
 const User = require("../models/user.model");
 const Tag = require("../models/tag.model");
+const Category = require("../models/category.model");
 const Interest = require("../models/interest.model");
+
+// Radius constants (in meters)
+const DEFAULT_RADIUS = 5000; // 5km
+const MAX_RADIUS = 10000; // 10km
+
+// Map common search terms to tag names (normalized)
+const TAG_KEYWORDS = {
+  "cafe": ["cafe", "cà phê", "coffee", "café"],
+  "nhà hàng": ["nhà hàng", "restaurant", "food", "ăn uống", "đồ ăn"],
+  "bar": ["bar", "quán bar", "rượu", "beer", "bia", "pub"],
+  "shop": ["shop", "cửa hàng", "mua sắm", "store"],
+  "park": ["công viên", "park", "dạo", "walking"],
+  "tiệc": ["tiệc", "party", "sinh nhật", "birthday"],
+  "gym": ["gym", "fitness", "thể hình", "tập gym"],
+  "spa": ["spa", "massage", "masage", "xả stress"],
+  "khách sạn": ["khách sạn", "hotel", "住宿"],
+  "bãi biển": ["bãi biển", "beach", "biển", "sea"],
+  "núi": ["núi", "mountain", "leo núi", "hiking"],
+  "view đẹp": ["view", "panorama", "phong cảnh", "cảnh đẹp"],
+  "món ngon": ["món ngon", "đặc sản", "signature", "ngon"],
+  "rẻ": ["rẻ", "cheap", "budget", "giá rẻ"],
+  "free": ["free", "miễn phí", "free wifi", "wifi miễn phí"],
+  "wifi": ["wifi", "internet"],
+  "parking": ["parking", "đỗ xe", "gửi xe"],
+  "live music": ["live music", "nhạc sống", "acoustic"],
+  "pet": ["pet", "thú cưng", "dog friendly", "cat friendly"],
+  "couple": ["couple", "cặp đôi", "tình nhân", "lãng mạn"],
+  "family": ["family", "gia đình", "trẻ em", "kid friendly"],
+  "work": ["work", "làm việc", "laptop", "remote", "coworking"]
+};
+
+// Map search terms to category
+const CATEGORY_KEYWORDS = {
+  "cafe": ["cafe", "cà phê", "coffee", "café"],
+  "restaurant": ["nhà hàng", "restaurant", "food", "ăn uống"],
+  "bar": ["bar", "quán bar", "rượu", "beer", "bia", "pub"],
+  "shop": ["shop", "cửa hàng", "mua sắm", "store"],
+  "park": ["công viên", "park", "dạo"],
+  "hotel": ["khách sạn", "hotel"],
+  "beach": ["bãi biển", "beach", "biển"],
+  "mountain": ["núi", "mountain", "leo núi"]
+};
 
 // Intent detection keywords
 const INTENT_KEYWORDS = {
@@ -63,28 +106,53 @@ const getPlaceStats = async (limit = 10) => {
   return placeStats;
 };
 
-// Query places from database
+// Extract tag names from user message
+const extractTagsFromMessage = (message) => {
+  const lower = message.toLowerCase();
+  const matchedTags = [];
+
+  for (const [tagName, keywords] of Object.entries(TAG_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lower.includes(keyword)) {
+        matchedTags.push(tagName);
+        break;
+      }
+    }
+  }
+
+  return matchedTags;
+};
+
+// Extract category from user message
+const extractCategoryFromMessage = (message) => {
+  const lower = message.toLowerCase();
+
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lower.includes(keyword)) {
+        return category;
+      }
+    }
+  }
+
+  return null;
+};
+
+// Query places from database with location-based search
 const queryPlaces = async (message, location, limit = 10) => {
   const lower = message.toLowerCase();
 
   // Check if asking about popular/trending places
   const isPopularQuery = lower.includes("nổi bật") || lower.includes("nhiều") ||
                         lower.includes("hot") || lower.includes("trending") ||
-                        lower.includes("popular") || lower.includes("best");
+                        lower.includes("popular") || lower.includes("best") ||
+                        lower.includes("hay nhất") || lower.includes("đáng ghé");
 
   // Extract category from message
-  let category = null;
-  if (lower.includes("cafe") || lower.includes("cà phê") || lower.includes("coffee")) {
-    category = "cafe";
-  } else if (lower.includes("nhà hàng") || lower.includes("ăn") || lower.includes("food")) {
-    category = "restaurant";
-  } else if (lower.includes("bar") || lower.includes("rượu") || lower.includes("beer")) {
-    category = "bar";
-  } else if (lower.includes("shop") || lower.includes("mua") || lower.includes("cửa hàng")) {
-    category = "shop";
-  } else if (lower.includes("park") || lower.includes("công viên") || lower.includes("dạo")) {
-    category = "park";
-  }
+  const category = extractCategoryFromMessage(message);
+
+  // Extract tags from message
+  const requestedTags = extractTagsFromMessage(message);
 
   let query = { isActive: true };
 
@@ -100,12 +168,17 @@ const queryPlaces = async (message, location, limit = 10) => {
       { $match: { placeId: { $ne: null } } },
       { $group: { _id: "$placeId", postCount: { $sum: 1 } } },
       { $sort: { postCount: -1 } },
-      { $limit: limit }
+      { $limit: limit * 2 }
     ]);
 
     if (placeStats.length > 0) {
       const placeIds = placeStats.map(p => p._id);
-      places = await Place.find({ _id: { $in: placeIds }, isActive: true });
+      let placeQuery = { _id: { $in: placeIds }, isActive: true };
+      if (category) {
+        placeQuery.category = category;
+      }
+
+      places = await Place.find(placeQuery).limit(limit);
 
       // Add postCount to each place
       const placesWithCount = places.map(place => {
@@ -116,20 +189,82 @@ const queryPlaces = async (message, location, limit = 10) => {
         };
       });
 
+      // Sort by post count
+      placesWithCount.sort((a, b) => b.postCount - a.postCount);
       return placesWithCount;
     }
   }
 
+  // Use location if available - search within 5km
   if (location && location.lat && location.lng) {
-    places = await Place.find({
-      ...query,
+    const radius = DEFAULT_RADIUS; // 5km
+
+    // Build location query
+    const locationQuery = {
       location: {
         $near: {
           $geometry: { type: "Point", coordinates: [location.lng, location.lat] },
-          $maxDistance: 10000, // 10km
+          $maxDistance: radius
         }
       }
+    };
+
+    // If we have tags, find places that have posts with those tags
+    if (requestedTags.length > 0) {
+      // Find tags in database
+      const dbTags = await Tag.find({
+        name: { $in: requestedTags },
+        isActive: true
+      }).limit(10);
+
+      if (dbTags.length > 0) {
+        const tagIds = dbTags.map(t => t._id);
+
+        // Find posts with those tags that have a place
+        const postsWithTags = await Post.find({
+          tags: { $in: tagIds },
+          placeId: { $ne: null },
+          status: "active"
+        }).populate("placeId").limit(50);
+
+        // Get unique place IDs from posts
+        const placeIdsFromPosts = [...new Set(
+          postsWithTags
+            .filter(p => p.placeId)
+            .map(p => p.placeId._id)
+        )];
+
+        if (placeIdsFromPosts.length > 0) {
+          // Get places within radius that have posts with requested tags
+          places = await Place.find({
+            _id: { $in: placeIdsFromPosts },
+            ...locationQuery,
+            isActive: true
+          }).limit(limit);
+
+          // Add tag info and post count
+          const placesWithInfo = places.map(place => {
+            const relatedPosts = postsWithTags.filter(
+              p => p.placeId && p.placeId._id.toString() === place._id.toString()
+            );
+            return {
+              ...place.toObject(),
+              postCount: relatedPosts.length,
+              relatedTags: requestedTags
+            };
+          });
+
+          return placesWithInfo;
+        }
+      }
+    }
+
+    // Default: just find places within radius
+    places = await Place.find({
+      ...query,
+      ...locationQuery
     }).limit(limit);
+
   } else {
     // If no location, get popular places by post count OR just get recent places
     const placeStats = await Post.aggregate([
@@ -191,23 +326,136 @@ const queryUsers = async (message, limit = 5) => {
   return { type: "none", users: [] };
 };
 
-// Query posts from database
+// Query posts from database with location and tag filtering
 const queryPosts = async (message, location, limit = 5) => {
   const lower = message.toLowerCase();
 
-  let query = { status: "active" };
+  // Extract tags and category from message
+  const requestedTags = extractTagsFromMessage(message);
+  const category = extractCategoryFromMessage(message);
 
+  let query = { status: "active" };
   let posts;
+
+  // If we have location, search within 5km
   if (location && location.lat && location.lng) {
-    posts = await Post.find(query)
-      .populate("userId", "username fullname avatar")
-      .populate("placeId", "name address")
-      .sort({ createdAt: -1 })
-      .limit(limit);
+    const radius = DEFAULT_RADIUS; // 5km
+
+    // First, find places within radius
+    const nearbyPlaceIds = await Place.distinct("_id", {
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [location.lng, location.lat] },
+          $maxDistance: radius
+        }
+      },
+      isActive: true
+    });
+
+    // If we have tags, filter posts by those tags
+    if (requestedTags.length > 0 || category) {
+      let tagQuery = {};
+
+      if (requestedTags.length > 0) {
+        const dbTags = await Tag.find({
+          name: { $in: requestedTags },
+          isActive: true
+        }).limit(10);
+
+        if (dbTags.length > 0) {
+          tagQuery.tags = { $in: dbTags.map(t => t._id) };
+        }
+      }
+
+      // Build post query with location and tags
+      let postQuery = {
+        ...tagQuery,
+        status: "active"
+      };
+
+      // Filter by nearby places OR posts with tags at nearby places
+      if (nearbyPlaceIds.length > 0) {
+        postQuery.$or = [
+          { placeId: { $in: nearbyPlaceIds } },
+          { placeId: { $in: nearbyPlaceIds } } // Same but for clarity
+        ];
+      }
+
+      // If there's a category filter, we need to match place category
+      if (category && nearbyPlaceIds.length > 0) {
+        const categoryPlaces = await Place.find({
+          _id: { $in: nearbyPlaceIds },
+          category: category,
+          isActive: true
+        }).select("_id");
+
+        postQuery.placeId = { $in: categoryPlaces.map(p => p._id) };
+      }
+
+      posts = await Post.find(postQuery)
+        .populate("userId", "username fullname avatar")
+        .populate({
+          path: "placeId",
+          select: "name address category",
+          match: { isActive: true }
+        })
+        .populate({
+          path: "tags",
+          select: "name categoryId",
+          populate: { path: "categoryId", select: "name" }
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit);
+
+      // Filter out posts where placeId didn't match (due to populate match)
+      posts = posts.filter(p => p.placeId);
+
+    } else {
+      // No tags, just get posts from nearby places
+      if (nearbyPlaceIds.length > 0) {
+        query.placeId = { $in: nearbyPlaceIds };
+      }
+
+      posts = await Post.find(query)
+        .populate("userId", "username fullname avatar")
+        .populate({
+          path: "placeId",
+          select: "name address category",
+          match: { isActive: true }
+        })
+        .populate({
+          path: "tags",
+          select: "name categoryId",
+          populate: { path: "categoryId", select: "name" }
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit);
+    }
   } else {
+    // No location - get recent posts, optionally filtered by tags
+    if (requestedTags.length > 0) {
+      const dbTags = await Tag.find({
+        name: { $in: requestedTags },
+        isActive: true
+      }).limit(10);
+
+      if (dbTags.length > 0) {
+        query.tags = { $in: dbTags.map(t => t._id) };
+      }
+    }
+
     posts = await Post.find(query)
       .populate("userId", "username fullname avatar")
-      .populate("placeId", "name address")
+      .populate({
+        path: "placeId",
+        select: "name address category",
+        match: { isActive: true }
+      })
+      .populate({
+        path: "tags",
+        select: "name categoryId",
+        populate: { path: "categoryId", select: "name" }
+      })
       .sort({ createdAt: -1 })
       .limit(limit);
   }
@@ -299,8 +547,21 @@ const queryDatabase = async (message, location) => {
   return context;
 };
 
+// Calculate distance between two coordinates (in km)
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // Format database context for AI
-const formatContextForAI = (context) => {
+const formatContextForAI = (context, userLocation = null) => {
   let formatted = "";
 
   if (context.stats) {
@@ -311,27 +572,46 @@ const formatContextForAI = (context) => {
   }
 
   if (context.places.length > 0) {
-    formatted += `\n📍 Địa điểm liên quan:\n`;
+    formatted += `\n📍 Địa điểm gần bạn (trong bán kính 5km):\n`;
     context.places.forEach((place, index) => {
-      formatted += `${index + 1}. ${place.name} (${place.category}) - ${place.address}\n`;
+      let distanceInfo = "";
+      if (userLocation && place.location && place.location.coordinates) {
+        const [lng, lat] = place.location.coordinates;
+        const dist = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+        distanceInfo = ` - Cách ${dist.toFixed(1)}km`;
+      }
+
+      let postCountInfo = place.postCount ? ` (${place.postCount} bài đăng)` : "";
+      let categoryInfo = place.category ? `[${place.category}] ` : "";
+
+      formatted += `${index + 1}. ${categoryInfo}${place.name}${postCountInfo}${distanceInfo}\n`;
+      formatted += `   📌 ${place.address || "Không có địa chỉ"}\n`;
     });
   }
 
   if (context.users.length > 0) {
-    formatted += `\n👥 Người dùng liên quan:\n`;
+    formatted += `\n👥 Người dùng nổi bật:\n`;
     context.users.forEach((user, index) => {
       formatted += `${index + 1}. ${user.fullname || user.username} (@${user.username})\n`;
     });
   }
 
   if (context.posts.length > 0) {
-    formatted += `\n📝 Bài đăng gần đây:\n`;
-    context.posts.slice(0, 3).forEach((post, index) => {
+    formatted += `\n📝 Bài đăng gần đây trong khu vực:\n`;
+    context.posts.slice(0, 5).forEach((post, index) => {
       const userName = post.userId?.fullname || post.userId?.username || "Unknown";
       const placeName = post.placeId?.name || "Không rõ địa điểm";
-      formatted += `${index + 1}. ${userName} - ${placeName}\n`;
+      const placeCategory = post.placeId?.category || "";
+
+      formatted += `${index + 1}. ${userName} đăng tại [${placeCategory}] ${placeName}\n`;
       if (post.content) {
-        formatted += `   Nội dung: ${post.content.substring(0, 50)}...\n`;
+        formatted += `   💬 "${post.content.substring(0, 80)}${post.content.length > 80 ? '...' : ''}"\n`;
+      }
+
+      // Show tags if available
+      if (post.tags && post.tags.length > 0) {
+        const tagNames = post.tags.map(t => t.name).join(", ");
+        formatted += `   🏷️ Tags: ${tagNames}\n`;
       }
     });
   }

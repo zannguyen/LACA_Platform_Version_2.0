@@ -73,7 +73,7 @@ const sendToBackend = (message, location) => {
   });
 };
 
-export default function Chatbot({ isOpen, onClose, userLocation, userPreferences = [] }) {
+export default function Chatbot({ isOpen, onClose, userLocation, userPreferences = [], showLocationWarning = false }) {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -214,6 +214,14 @@ export default function Chatbot({ isOpen, onClose, userLocation, userPreferences
                 {reply.label}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Location Warning */}
+        {showLocationWarning && (
+          <div className="chatbot-location-warning">
+            <i className="fa-solid fa-location-crosshairs"></i>
+            <span>Đang lấy vị trí của bạn...</span>
           </div>
         )}
 

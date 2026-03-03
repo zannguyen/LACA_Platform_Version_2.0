@@ -66,6 +66,7 @@ app.use("/api/tags", require("./src/routes/tag.route"));
 app.use("/api/admin", require("./src/routes/queue.route")); // Queue admin endpoints
 app.use("/api/ranking", require("./src/routes/ranking.route")); // Featured ranking
 app.use("/api/chatbot", require("./src/routes/chatbot.route")); // AI Chatbot
+app.use("/api/reports", require("./src/routes/report.routes")); // User reports
 
 const errorHandler = require("./src/middlewares/error.middleware");
 app.use(errorHandler);
