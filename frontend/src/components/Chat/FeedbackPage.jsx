@@ -41,7 +41,7 @@ const FeedbackPage = () => {
       navigate("/");
     } catch (error) {
       // 4. Thất bại
-      console.error("Lỗi gửi feedback:", error);
+      console.error("Lỗi gửi góp ý:", error);
       alert("Có lỗi xảy ra, vui lòng thử lại sau!");
     } finally {
       // Dù thành công hay thất bại cũng tắt loading
@@ -55,11 +55,11 @@ const FeedbackPage = () => {
         <button className="back-btn" onClick={() => navigate(-1)}>
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <h2 className="page-title">Feedback</h2>
+        <h2 className="page-title">Góp ý</h2>
       </div>
 
       <TextArea
-        placeholder="Hi LACA team, I want LACA has a function that..."
+        placeholder="Hãy chia sẻ góp ý của bạn để LACA cải thiện tốt hơn..."
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={15}
@@ -68,9 +68,9 @@ const FeedbackPage = () => {
       />
 
       <div style={{ marginTop: "20px" }}>
-        {/* Nếu đang loading thì hiện chữ sending..., ngược lại hiện SUBMIT */}
+        {/* Nếu đang loading thì hiện chữ đang gửi..., ngược lại hiện GỬI */}
         <GradientButton
-          text={isLoading ? "SENDING..." : "SUBMIT"}
+          text={isLoading ? "ĐANG GỬI..." : "GỬI"}
           onClick={handleSubmit}
           disabled={isLoading}
         />

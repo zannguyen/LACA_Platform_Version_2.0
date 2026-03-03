@@ -13,8 +13,11 @@ const ChatListPage = () => {
   const [currentUserId, setCurrentUserId] = useState("");
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [toast, setToast] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
   const [activeTab, setActiveTab] = useState("private"); // "private" or "public"
   const conversationsRef = useRef([]);
+  const pendingDeleteTimeoutRef = useRef(null);
+  const pendingDeleteIntervalRef = useRef(null);
 
   const getCurrentUserId = () => {
     const rawUser = localStorage.getItem("user");
@@ -186,6 +189,17 @@ const ChatListPage = () => {
     return () => s.close();
   }, [currentUserId]);
 
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteTimeoutRef.current) {
+        clearTimeout(pendingDeleteTimeoutRef.current);
+      }
+      if (pendingDeleteIntervalRef.current) {
+        clearInterval(pendingDeleteIntervalRef.current);
+      }
+    };
+  }, []);
+
   const handleChatClick = (conversation) => {
     const other = getOtherParticipant(conversation.participants);
     if (!other?._id) return;
@@ -194,6 +208,153 @@ const ChatListPage = () => {
     localStorage.setItem("chatReceiverName", getUserLabel(other));
 
     navigate("/chat/detail");
+  };
+
+  const removeConversationFromState = (conversationId) => {
+    setConversations((prev) => {
+      const next = prev.filter(
+        (conv) => String(conv._id) !== String(conversationId),
+      );
+      conversationsRef.current = next;
+      return next;
+    });
+  };
+
+  const markConversationReadInState = (conversationId) => {
+    setConversations((prev) => {
+      const next = prev.map((conv) =>
+        String(conv._id) === String(conversationId)
+          ? {
+              ...conv,
+              lastMessage: {
+                ...conv.lastMessage,
+                isRead: true,
+              },
+            }
+          : conv,
+      );
+      conversationsRef.current = next;
+      return next;
+    });
+  };
+
+  const syncConversationRead = async (conversationId) => {
+    try {
+      await chatApi.markConversationRead(conversationId);
+    } catch (err) {
+      console.error("Lỗi đánh dấu đã đọc conversation:", err);
+    }
+  };
+
+  const restoreConversationToState = (conversation, originalIndex) => {
+    setConversations((prev) => {
+      const exists = prev.some(
+        (conv) => String(conv._id) === String(conversation._id),
+      );
+      if (exists) return prev;
+
+      const next = [...prev];
+      const insertIndex = Math.max(0, Math.min(originalIndex, next.length));
+      next.splice(insertIndex, 0, conversation);
+      conversationsRef.current = next;
+      return next;
+    });
+  };
+
+  const clearPendingDeleteTimers = () => {
+    if (pendingDeleteTimeoutRef.current) {
+      clearTimeout(pendingDeleteTimeoutRef.current);
+      pendingDeleteTimeoutRef.current = null;
+    }
+    if (pendingDeleteIntervalRef.current) {
+      clearInterval(pendingDeleteIntervalRef.current);
+      pendingDeleteIntervalRef.current = null;
+    }
+  };
+
+  const commitDeleteConversation = async (pending) => {
+    try {
+      await chatApi.deleteConversation(pending.conversation._id);
+      showToast(
+        pending.isPublic ? "Đã rời cuộc trò chuyện" : "Đã xóa đoạn chat",
+      );
+    } catch (err) {
+      console.error("Lỗi xóa cuộc trò chuyện:", err);
+      restoreConversationToState(pending.conversation, pending.originalIndex);
+      showToast("Không thể xóa đoạn chat");
+    }
+  };
+
+  const handleUndoDelete = () => {
+    if (!pendingDelete) return;
+
+    clearPendingDeleteTimers();
+    restoreConversationToState(
+      pendingDelete.conversation,
+      pendingDelete.originalIndex,
+    );
+    setPendingDelete(null);
+    showToast("Đã hoàn tác xóa đoạn chat");
+  };
+
+  const handleDeleteConversation = async (conversation, event) => {
+    event.stopPropagation();
+
+    if (pendingDelete) {
+      showToast("Hoàn tác hoặc chờ xóa đoạn chat trước đó");
+      return;
+    }
+
+    const isPublic = conversation?.type === "public";
+    const actionLabel = isPublic ? "rời khỏi" : "xóa";
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn ${actionLabel} đoạn chat này không?`,
+    );
+    if (!confirmed) return;
+
+    const originalIndex = conversationsRef.current.findIndex(
+      (conv) => String(conv._id) === String(conversation._id),
+    );
+
+    removeConversationFromState(conversation._id);
+
+    const pending = {
+      conversation,
+      isPublic,
+      originalIndex,
+      secondsLeft: 5,
+    };
+
+    setPendingDelete(pending);
+
+    pendingDeleteIntervalRef.current = setInterval(() => {
+      setPendingDelete((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          secondsLeft: Math.max(prev.secondsLeft - 1, 0),
+        };
+      });
+    }, 1000);
+
+    pendingDeleteTimeoutRef.current = setTimeout(async () => {
+      clearPendingDeleteTimers();
+      setPendingDelete(null);
+      await commitDeleteConversation(pending);
+    }, 5000);
+  };
+
+  const handleOpenPrivateConversation = (conversation) => {
+    markConversationReadInState(conversation._id);
+    syncConversationRead(conversation._id);
+    handleChatClick(conversation);
+  };
+
+  const handleOpenPublicConversation = (conversation, postIdStr) => {
+    if (!postIdStr) return;
+    markConversationReadInState(conversation._id);
+    syncConversationRead(conversation._id);
+    navigate(`/chat/public/${postIdStr}`);
   };
 
   return (
@@ -289,7 +450,7 @@ const ChatListPage = () => {
                 <div
                   key={conv._id}
                   className={`chat-item ${isUnread ? "is-unread" : ""}`}
-                  onClick={() => handleChatClick(conv)}
+                  onClick={() => handleOpenPrivateConversation(conv)}
                 >
                   <div className="avatar-wrap">
                     <div className="avatar-circle" style={avatarStyle}>
@@ -308,6 +469,15 @@ const ChatListPage = () => {
                   </div>
 
                   <div className="chat-meta">
+                    <button
+                      type="button"
+                      className="chat-delete-btn"
+                      onClick={(event) => handleDeleteConversation(conv, event)}
+                      aria-label="Xóa đoạn chat"
+                      title="Xóa đoạn chat"
+                    >
+                      <i className="fa-regular fa-trash-can"></i>
+                    </button>
                     <span className="chat-time">
                       {lastMessageTime
                         ? new Date(lastMessageTime).toLocaleTimeString(
@@ -358,9 +528,7 @@ const ChatListPage = () => {
                 <div
                   key={conv._id}
                   className={`chat-item ${isUnread ? "is-unread" : ""}`}
-                  onClick={() =>
-                    postIdStr && navigate(`/chat/public/${postIdStr}`)
-                  }
+                  onClick={() => handleOpenPublicConversation(conv, postIdStr)}
                 >
                   <div className="avatar-wrap">
                     <div
@@ -379,6 +547,15 @@ const ChatListPage = () => {
                   </div>
 
                   <div className="chat-meta">
+                    <button
+                      type="button"
+                      className="chat-delete-btn"
+                      onClick={(event) => handleDeleteConversation(conv, event)}
+                      aria-label="Xóa đoạn chat"
+                      title="Rời khỏi đoạn chat"
+                    >
+                      <i className="fa-regular fa-trash-can"></i>
+                    </button>
                     <span className="chat-time">
                       {lastMessageTime
                         ? new Date(lastMessageTime).toLocaleTimeString(
@@ -398,6 +575,17 @@ const ChatListPage = () => {
           })
         )}
       </div>
+
+      {pendingDelete && (
+        <div className="chat-undo-toast" role="status" aria-live="polite">
+          <span>
+            Đã {pendingDelete.isPublic ? "rời tạm" : "xóa tạm"} đoạn chat
+          </span>
+          <button type="button" onClick={handleUndoDelete}>
+            Hoàn tác ({pendingDelete.secondsLeft}s)
+          </button>
+        </div>
+      )}
 
       {toast && <div className="chat-toast">{toast}</div>}
     </div>

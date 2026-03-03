@@ -25,7 +25,7 @@ const normalizeResData = (res) => res?.data?.data || res?.data || {};
 const visibilityLabels = [
   { key: "fullname", label: "Hiện tên" },
   { key: "avatar", label: "Hiện avatar" },
-  { key: "bio", label: "Hiện note" },
+  { key: "bio", label: "Hiện tiểu sử" },
   { key: "email", label: "Hiện email" },
   { key: "phoneNumber", label: "Hiện số điện thoại" },
   { key: "dateOfBirth", label: "Hiện ngày sinh" },
@@ -203,16 +203,16 @@ export default function EditProfileSetting() {
         <button
           className="eps-back"
           onClick={() => navigate(-1)}
-          aria-label="Back"
+          aria-label="Quay lại"
         >
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <div className="eps-title">Edit Profile</div>
+        <div className="eps-title">Chỉnh sửa hồ sơ</div>
       </div>
 
       <div className="eps-content">
         {loading ? (
-          <div className="eps-loading">Loading...</div>
+          <div className="eps-loading">Đang tải...</div>
         ) : (
           <form className="eps-form" onSubmit={onSubmit}>
             {!!error && <div className="eps-alert eps-error">{error}</div>}
@@ -283,7 +283,7 @@ export default function EditProfileSetting() {
             </label>
 
             <label className="eps-field">
-              <span>Note</span>
+              <span>Tiểu sử</span>
               <textarea
                 rows={3}
                 value={form.bio}
@@ -342,7 +342,7 @@ export default function EditProfileSetting() {
             </div>
 
             <button type="submit" className="eps-submit" disabled={!canSubmit}>
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Đang lưu..." : "Lưu"}
             </button>
           </form>
         )}

@@ -22,13 +22,13 @@ const DeleteAccountConfirmPage = () => {
             lineHeight: "1.5",
           }}
         >
-          We have sent you an email to verify <br />
-          you have 30 days to confirm your email
+          Chúng tôi đã gửi email xác minh cho bạn. <br />
+          Bạn có 30 ngày để xác nhận qua email.
         </p>
 
         {/* 3. Nút quay lại đăng nhập */}
         <Link to="/login" style={{ textDecoration: "none" }}>
-          <GradientButton text="BACK TO LOG IN" />
+          <GradientButton text="QUAY LẠI ĐĂNG NHẬP" />
         </Link>
       </div>
     </div>
