@@ -45,11 +45,13 @@ const sendMessage = asyncHandler(async (req, res) => {
 
   // A) Find or create conversation
   let conversation = await Conversation.findOne({
-    participants: { $all: [senderId, rid] },
+    type: "direct",
+    participants: { $all: [senderId, rid], $size: 2 },
   });
 
   if (!conversation) {
     conversation = await Conversation.create({
+      type: "direct",
       participants: [senderId, rid],
     });
   }
@@ -91,7 +93,8 @@ const getMessages = asyncHandler(async (req, res) => {
   if (!rid) return res.status(400).json({ message: "receiverId invalid" });
 
   const conversation = await Conversation.findOne({
-    participants: { $all: [senderId, rid] },
+    type: "direct",
+    participants: { $all: [senderId, rid], $size: 2 },
   });
 
   if (!conversation) return res.status(200).json([]);
@@ -222,11 +225,13 @@ const getOrCreateConversation = asyncHandler(async (req, res) => {
   }
 
   let conversation = await Conversation.findOne({
-    participants: { $all: [currentUserId, otherId] },
+    type: "direct",
+    participants: { $all: [currentUserId, otherId], $size: 2 },
   }).populate("participants", "username fullname avatar");
 
   if (!conversation) {
     conversation = await Conversation.create({
+      type: "direct",
       participants: [currentUserId, otherId],
     });
     await conversation.populate("participants", "username fullname avatar");
@@ -245,7 +250,8 @@ const markRead = asyncHandler(async (req, res) => {
   if (!rid) return res.status(400).json({ message: "receiverId invalid" });
 
   const conversation = await Conversation.findOne({
-    participants: { $all: [currentUserId, rid] },
+    type: "direct",
+    participants: { $all: [currentUserId, rid], $size: 2 },
   });
 
   if (!conversation) return res.status(200).json({ updated: 0 });
