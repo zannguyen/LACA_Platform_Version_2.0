@@ -1441,7 +1441,9 @@
   border-radius: 20px;
 }
 
-.mobile-wrapper .swipe-card-media > * {
+.mobile-wrapper .swipe-card-media > .swipe-card-image,
+.mobile-wrapper .swipe-card-media > video.swipe-card-image,
+.mobile-wrapper .swipe-card-media > .swipe-card-no-media {
   width: 100%;
   height: 100%;
   object-fit: cover;

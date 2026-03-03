@@ -665,6 +665,23 @@ const Home = () => {
     let posts =
       activeTab === "following" ? followingPosts || [] : feedPosts || [];
 
+    if (activeTab === "following") {
+      posts = posts.filter(
+        (p) =>
+          p?.isMutualFollow ||
+          (Boolean(p?.user?.isFollowing) && Boolean(p?.user?.isFollowed)),
+      );
+    } else {
+      posts = posts.filter((p) => {
+        const isNearby5km =
+          typeof p?.distanceKm === "number" && Number(p.distanceKm) <= 5;
+        const isMutualFollow =
+          p?.isMutualFollow ||
+          (Boolean(p?.user?.isFollowing) && Boolean(p?.user?.isFollowed));
+        return isNearby5km || isMutualFollow;
+      });
+    }
+
     // Search filter
     posts = posts.filter((p) => {
       if (!q) return true;
@@ -732,7 +749,9 @@ const Home = () => {
 
     return posts;
   }, [
+    activeTab,
     feedPosts,
+    followingPosts,
     searchText,
     onlyHasLocation,
     onlyNearby,
