@@ -39,7 +39,7 @@ function deg2rad(deg) {
 exports.getPostsInRadius = async ({
   lat,
   lng,
-  limit = 10,
+  limit = 100,
   radiusMeters = 5000,
   blockedUserIds = [],
   followedUserIds = [],
@@ -63,7 +63,7 @@ exports.getPostsInRadius = async ({
         spherical: true,
       },
     },
-    { $limit: 40 },
+    { $limit: 200 },
     {
       $lookup: {
         from: "posts",
@@ -165,7 +165,7 @@ exports.getPostsInRadius = async ({
     },
 
     { $sort: { createdAt: -1, distanceKm: 1 } },
-    { $limit: Math.max(limit, 10) },
+    { $limit: Math.max(limit, 100) },
   ];
 
   const nearbyPosts = await Place.aggregate(nearbyPipeline);
@@ -358,7 +358,7 @@ exports.getPostsInRadius = async ({
     nonMatchingPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     // Combine: matching posts first, then non-matching
-    const result = [...matchingPosts, ...nonMatchingPosts].slice(0, Math.max(limit, 10));
+    const result = [...matchingPosts, ...nonMatchingPosts].slice(0, Math.max(limit, 100));
 
     if (!result.length) {
       throw new AppError("No posts found in this area", 404);
@@ -377,7 +377,7 @@ exports.getPostsInRadius = async ({
     return da - db;
   });
 
-  const result = merged.slice(0, Math.max(limit, 10));
+  const result = merged.slice(0, Math.max(limit, 100));
 
   if (!result.length) {
     throw new AppError("No posts found in this area", 404);
@@ -400,34 +400,26 @@ exports.getPostsAtPoint = async ({
   const blockedIds = normalizeObjectIds(blockedUserIds);
   const followedIds = normalizeObjectIds(followedUserIds);
 
-  let remoteOnlyFollowed = false;
+  // Calculate distance from user to clicked point
+  const distanceFromUser = userLat && userLng
+    ? calculateDistance(userLat, userLng, lat, lng)
+    : 0;
 
-  if (userLat && userLng) {
-    const distance = calculateDistance(userLat, userLng, lat, lng);
+  // Determine if we should show posts from followed users outside 5km
+  const showFollowedPostsOutside5km = followedIds.length > 0 && distanceFromUser > 5;
 
-    if (distance > 5) {
-      remoteOnlyFollowed = true;
-
-      if (!followedIds.length) {
-        throw new AppError(
-          "Bạn không thể xem bài viết ở vị trí này. Chỉ xem được ngoài 5km khi hai người đã follow nhau. Vui lòng di chuyển đến gần hơn.",
-          403,
-        );
-      }
-    }
-  }
-
-  const pipeline = [
+  // Pipeline for nearby posts (within 5km)
+  const nearbyPipeline = [
     {
       $geoNear: {
         near: { type: "Point", coordinates: [lng, lat] },
         distanceField: "distanceMeters",
-        maxDistance: 100,
+        maxDistance: 5000, // 5km - increased from 100m
         spherical: true,
-        query: { isActive: true },
+        query: { isActive: true, status: "active" },
       },
     },
-    { $limit: 20 },
+    { $limit: 100 }, // increased from 20
     {
       $lookup: {
         from: "posts",
@@ -462,9 +454,6 @@ exports.getPostsAtPoint = async ({
 
     { $match: { status: "active" } },
 
-    ...(remoteOnlyFollowed
-      ? [{ $match: { userId: { $in: followedIds } } }]
-      : []),
     ...(blockedIds.length > 0
       ? [{ $match: { userId: { $nin: blockedIds } } }]
       : []),
@@ -498,10 +487,112 @@ exports.getPostsAtPoint = async ({
     },
   ];
 
-  const posts = await Place.aggregate(pipeline);
+  let nearbyPosts = await Place.aggregate(nearbyPipeline);
+
+  // If followed user exists and distance > 5km, also get posts from those users
+  let followedPosts = [];
+  if (showFollowedPostsOutside5km && followedIds.length > 0) {
+    const followedPipeline = [
+      {
+        $match: {
+          status: 'active',
+          userId: { $in: followedIds },
+          ...(blockedIds.length > 0 ? { userId: { $nin: blockedIds } } : {}),
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: 100 },
+      {
+        $lookup: {
+          from: 'places',
+          localField: 'placeId',
+          foreignField: '_id',
+          as: 'placeDoc',
+        },
+      },
+      { $unwind: { path: '$placeDoc', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      {
+        $addFields: {
+          place: {
+            _id: '$placeDoc._id',
+            name: '$placeDoc.name',
+            address: '$placeDoc.address',
+            location: {
+              lng: { $arrayElemAt: ['$placeDoc.location.coordinates', 0] },
+              lat: { $arrayElemAt: ['$placeDoc.location.coordinates', 1] },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          content: 1,
+          type: 1,
+          mediaUrl: 1,
+          createdAt: 1,
+          placeId: 1,
+          place: 1,
+          distanceKm: null,
+          user: {
+            _id: '$user._id',
+            fullname: '$user.fullname',
+            username: '$user.username',
+            avatar: '$user.avatar',
+          },
+        },
+      },
+    ];
+
+    followedPosts = await Post.aggregate(followedPipeline);
+
+    // Calculate distance for each followed post
+    for (const post of followedPosts) {
+      if (post.place?.location?.lat && post.place?.location?.lng) {
+        const distance = calculateDistance(
+          userLat,
+          userLng,
+          post.place.location.lat,
+          post.place.location.lng
+        );
+        post.distanceKm = Math.round(distance * 100) / 100;
+      }
+    }
+  }
+
+  // Merge posts, avoiding duplicates
+  const seen = new Set();
+  const mergedPosts = [];
+
+  for (const post of [...nearbyPosts, ...followedPosts]) {
+    const key = String(post._id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    mergedPosts.push(post);
+  }
+
+  // Sort by createdAt desc, then distance
+  mergedPosts.sort((a, b) => {
+    const ta = new Date(a.createdAt).getTime();
+    const tb = new Date(b.createdAt).getTime();
+    if (tb !== ta) return tb - ta;
+
+    const da = a.distanceKm == null ? 999999 : a.distanceKm;
+    const db = b.distanceKm == null ? 999999 : b.distanceKm;
+    return da - db;
+  });
 
   // Return empty array instead of throwing error when no posts found
-  return posts;
+  return mergedPosts;
 };
 
 // ===============================
@@ -525,7 +616,7 @@ exports.getPostDensity = async ({
         distanceField: "distanceMeters",
         maxDistance: radiusMeters,
         spherical: true,
-        query: { isActive: true },
+        query: { isActive: true, status: "active" },
       },
     },
     { $limit: 1500 },
@@ -583,7 +674,7 @@ exports.getPostHotspots = async ({
         distanceField: "distanceMeters",
         maxDistance: radiusMeters,
         spherical: true,
-        query: { isActive: true },
+        query: { isActive: true, status: "active" },
       },
     },
 
@@ -644,7 +735,7 @@ exports.getPostHotspots = async ({
 // 5) Get all posts from mutual follow users (no radius limit)
 // ===============================
 exports.getPostsFromFollowedUsers = async ({
-  limit = 50,
+  limit = 100,
   blockedUserIds = [],
   mutualFollowUserIds = [],
 }) => {

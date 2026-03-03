@@ -381,7 +381,7 @@ export const getPostHotspots = async (
 };
 
 // Get all posts from mutual follow users (no radius limit)
-export const getPostsFromFollowed = async (limit = 50) => {
+export const getPostsFromFollowed = async (limit = 100) => {
   try {
     const res = await apiClient.get("/map/posts/followed", {
       params: { limit },
