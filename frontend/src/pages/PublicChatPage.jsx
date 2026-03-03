@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
 import PublicChatMessages from "../components/Chat/PublicChatMessages";
-import PublicChatParticipants from "../components/Chat/PublicChatParticipants";
 import PublicChatInput from "../components/Chat/PublicChatInput";
 import * as publicChatApi from "../api/publicChatApi";
 import "../components/Chat/PublicChat.css";
@@ -161,19 +160,6 @@ const PublicChatPage = () => {
     navigate(-1);
   };
 
-  // Explicitly leave the conversation (for when user wants to leave permanently)
-  const handleLeaveChat = async () => {
-    if (!window.confirm("Bạn có chắc muốn rời khỏi cuộc trò chuyện này?"))
-      return;
-    try {
-      await publicChatApi.leavePublicChat(postId);
-      navigate(-1);
-    } catch (err) {
-      console.error("Leave chat error:", err);
-      alert("Không thể rời khỏi chat");
-    }
-  };
-
   return (
     <div className="mobile-wrapper">
       <div className="public-chat-wrapper">
@@ -185,6 +171,9 @@ const PublicChatPage = () => {
           <div className="public-chat-post-info">
             <div className="public-chat-post-title" title={conversationTitle}>
               {conversationTitle}
+            </div>
+            <div className="public-chat-subtitle">
+              {participants.length} người đang tham gia
             </div>
           </div>
           <button
@@ -200,17 +189,7 @@ const PublicChatPage = () => {
         </div>
 
         {/* Error message */}
-        {error && (
-          <div
-            style={{
-              padding: "var(--space-md)",
-              color: "var(--error)",
-              textAlign: "center",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        {error && <div className="public-chat-error">{error}</div>}
 
         {/* Main content */}
         <div className="public-chat-content">

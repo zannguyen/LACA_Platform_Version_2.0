@@ -223,17 +223,39 @@ const ChatListPage = () => {
 
       <div className="chat-list">
         {loading ? (
-          <p style={{ textAlign: "center", padding: 20 }}>Đang tải...</p>
+          <div className="chat-list-state-wrap">
+            <div className="chat-list-state-card">
+              <i className="fa-solid fa-spinner fa-spin"></i>
+              <p className="chat-list-state">Đang tải cuộc trò chuyện...</p>
+            </div>
+          </div>
         ) : error ? (
-          <p style={{ textAlign: "center", padding: 20, color: "red" }}>
-            {error}
-          </p>
+          <div className="chat-list-state-wrap">
+            <div className="chat-list-state-card chat-list-state-card-error">
+              <i className="fa-solid fa-circle-exclamation"></i>
+              <p className="chat-list-state chat-list-error">{error}</p>
+            </div>
+          </div>
         ) : filteredConversations.length === 0 ? (
-          <p style={{ textAlign: "center", padding: 20 }}>
-            {activeTab === "private"
-              ? "Chưa có cuộc trò chuyện riêng tư"
-              : "Chưa có cuộc trò chuyện công khai"}
-          </p>
+          <div className="chat-list-state-wrap">
+            <div className="chat-list-state-card">
+              <i
+                className={`fa-solid ${
+                  activeTab === "private" ? "fa-user-group" : "fa-comments"
+                }`}
+              ></i>
+              <p className="chat-list-state chat-list-empty">
+                {activeTab === "private"
+                  ? "Chưa có cuộc trò chuyện riêng tư"
+                  : "Chưa có cuộc trò chuyện công khai"}
+              </p>
+              <span className="chat-list-state-note">
+                {activeTab === "private"
+                  ? "Khi có tin nhắn mới, cuộc trò chuyện sẽ xuất hiện tại đây."
+                  : "Tham gia trò chuyện công khai để xem nội dung ở đây."}
+              </span>
+            </div>
+          </div>
         ) : (
           filteredConversations.map((conv) => {
             if (activeTab === "private") {
@@ -266,7 +288,7 @@ const ChatListPage = () => {
               return (
                 <div
                   key={conv._id}
-                  className="chat-item"
+                  className={`chat-item ${isUnread ? "is-unread" : ""}`}
                   onClick={() => handleChatClick(conv)}
                 >
                   <div className="avatar-wrap">
@@ -335,7 +357,7 @@ const ChatListPage = () => {
               return (
                 <div
                   key={conv._id}
-                  className="chat-item"
+                  className={`chat-item ${isUnread ? "is-unread" : ""}`}
                   onClick={() =>
                     postIdStr && navigate(`/chat/public/${postIdStr}`)
                   }
