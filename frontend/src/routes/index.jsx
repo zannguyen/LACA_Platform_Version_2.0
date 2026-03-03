@@ -15,6 +15,7 @@ import UserManagement from "../components/admin/UserManagement";
 import ContentModeration from "../components/admin/ContentModeration";
 import MapManagement from "../components/admin/MapManagement";
 import AdminAnalytics from "../components/admin/AdminAnalytics";
+import AdminAccount from "../components/admin/AdminAccount";
 import TagManagement from "../components/admin/TagManagement";
 import AdminBroadcastPage from "../pages/AdminBroadcastPage";
 import FeedbackPage from "../pages/FeedbackPage";
@@ -154,6 +155,7 @@ export default function AppRoutes() {
         <Route path="tags" element={<TagManagement />} />
         <Route path="broadcast" element={<AdminBroadcastPage />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="account" element={<AdminAccount />} />
       </Route>
 
       {/* Optional: route không tồn tại */}
