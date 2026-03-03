@@ -30,7 +30,7 @@ const emailOTPSchema = new mongoose.Schema(
     // ✅ DEFINE purpose ở đây
     purpose: {
       type: String,
-      enum: ["REGISTER", "RESET_PASSWORD", "CHANGE_EMAIL"],
+      enum: ["REGISTER", "RESET_PASSWORD", "CHANGE_EMAIL", "DELETE_ACCOUNT"],
       required: true,
       default: "REGISTER",
       index: true,

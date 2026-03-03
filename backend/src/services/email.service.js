@@ -14,6 +14,7 @@ exports.sendOTP = async (email, otp, purpose) => {
     REGISTER: "verify your account",
     RESET_PASSWORD: "reset your password",
     CHANGE_EMAIL: "confirm your new email",
+    DELETE_ACCOUNT: "confirm account deletion",
   };
 
   let subject = "Verification Code";
@@ -23,6 +24,8 @@ exports.sendOTP = async (email, otp, purpose) => {
     subject = "Account Registration Verification Code";
   } else if (purpose === "CHANGE_EMAIL") {
     subject = "Email Change Verification Code";
+  } else if (purpose === "DELETE_ACCOUNT") {
+    subject = "Account Deletion Verification Code";
   }
 
   const html = `
