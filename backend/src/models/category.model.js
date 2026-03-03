@@ -7,7 +7,6 @@ const categorySchema = new mongoose.Schema(
       required: [true, "Category name is required"],
       unique: true,
       trim: true,
-      lowercase: true,
     },
     description: String,
     icon: String, // icon URL (⚽ football, 🏸 badminton, etc.)
@@ -25,18 +24,18 @@ const categorySchema = new mongoose.Schema(
 );
 
 /**
- * Normalize category name before saving
+ * Trim and normalize category name before saving
  * - trim whitespace
- * - lowercase
  * - remove multiple spaces (replace with single space)
  */
 categorySchema.pre("save", async function () {
   if (this.name) {
-    this.name = this.name.trim().toLowerCase().replace(/\s+/g, " ");
+    this.name = this.name.trim().replace(/\s+/g, " ");
   }
 });
 
-// Index for faster queries
+// Index for faster queries (case-insensitive unique)
+categorySchema.index({ name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 categorySchema.index({ isActive: 1 });
 categorySchema.index({ name: "text" });
 

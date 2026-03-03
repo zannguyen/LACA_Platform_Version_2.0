@@ -8,14 +8,13 @@ const AppError = require("../utils/appError");
  */
 const createCategory = async (data) => {
   try {
-    // Normalize name to lowercase
-    const normalizedData = {
-      ...data,
-      name: data.name ? data.name.trim().toLowerCase() : data.name,
-    };
+    const trimmedName = data.name ? data.name.trim() : data.name;
 
-    // Check if category exists (including inactive)
-    const existingCategory = await Category.findOne({ name: normalizedData.name });
+    // Check if category exists (case-insensitive, including inactive)
+    const lowerName = trimmedName.toLowerCase();
+    const existingCategory = await Category.findOne({
+      name: { $regex: new RegExp(`^${lowerName}$`, 'i') }
+    });
 
     if (existingCategory) {
       // If category was soft-deleted, reactivate it
@@ -26,14 +25,13 @@ const createCategory = async (data) => {
         existingCategory.color = data.color || existingCategory.color;
         existingCategory.order = data.order || existingCategory.order;
         await existingCategory.save();
-        console.log("✅ Category reactivated:", existingCategory._id);
         return existingCategory;
       }
       // Active category with same name exists
       throw new AppError("Category name already exists", 400);
     }
 
-    const category = await Category.create(normalizedData);
+    const category = await Category.create({ ...data, name: trimmedName });
     return category;
   } catch (error) {
     if (error.code === 11000) {
@@ -100,28 +98,21 @@ const getCategoryById = async (categoryId) => {
  * Update category
  */
 const updateCategory = async (categoryId, data) => {
-  try {
-    console.log("[updateCategory] Input:", { categoryId, data });
+  const category = await Category.findById(categoryId);
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
 
-    // Get current category
-    const currentCategory = await Category.findById(categoryId);
-    if (!currentCategory) {
-      throw new AppError("Category not found", 404);
-    }
-    console.log("[updateCategory] Current:", currentCategory.name);
+  // If updating name, check for duplicates case-insensitively
+  if (data.name) {
+    const trimmedName = data.name.trim();
+    const lowerName = trimmedName.toLowerCase();
+    const lowerCurrentName = category.name.toLowerCase();
 
-    // Normalize name to lowercase if provided
-    const normalizedData = { ...data };
-    if (normalizedData.name) {
-      normalizedData.name = normalizedData.name.trim().toLowerCase();
-    }
-    console.log("[updateCategory] Normalized:", normalizedData);
-
-    // If name is provided and different from current, check for duplicates
-    if (normalizedData.name && normalizedData.name !== currentCategory.name) {
-      console.log("[updateCategory] Name changed, checking duplicates...");
+    // Only check if the case-insensitive name is different from current
+    if (lowerName !== lowerCurrentName) {
       const existingCategory = await Category.findOne({
-        name: normalizedData.name,
+        name: { $regex: new RegExp(`^${lowerName}$`, 'i') },
         _id: { $ne: categoryId },
         isActive: true,
       });
@@ -131,37 +122,20 @@ const updateCategory = async (categoryId, data) => {
       }
     }
 
-    // If name is same as current, remove it from update data (to force update other fields)
-    if (normalizedData.name === currentCategory.name) {
-      console.log("[updateCategory] Name same, removing from update");
-      delete normalizedData.name;
-    }
-
-    // If no data to update, return current category
-    if (Object.keys(normalizedData).length === 0) {
-      console.log("[updateCategory] No data to update, returning current");
-      return currentCategory;
-    }
-
-    console.log("[updateCategory] Performing update with:", normalizedData);
-    const category = await Category.findByIdAndUpdate(categoryId, normalizedData, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!category) {
-      throw new AppError("Category not found", 404);
-    }
-
-    console.log("[updateCategory] Updated category:", category.name);
-    return category;
-  } catch (error) {
-    console.error("[updateCategory] Error:", error.message);
-    if (error.code === 11000) {
-      throw new AppError("Category name already exists", 400);
-    }
-    throw error;
+    // Use the trimmed name (preserve original casing)
+    data.name = trimmedName;
   }
+
+  const updatedCategory = await Category.findByIdAndUpdate(categoryId, data, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!updatedCategory) {
+    throw new AppError("Category not found", 404);
+  }
+
+  return updatedCategory;
 };
 
 /**
@@ -205,13 +179,13 @@ const createTag = async (categoryId, data) => {
       throw new AppError("Category not found", 404);
     }
 
-    // Normalize name to lowercase before creating
-    const normalizedName = data.name ? data.name.trim().toLowerCase() : data.name;
+    const trimmedName = data.name ? data.name.trim() : data.name;
 
-    // Check if tag with same name exists (including inactive)
+    // Check if tag with same name exists (case-insensitive, including inactive)
+    const lowerName = trimmedName.toLowerCase();
     const existingTag = await Tag.findOne({
       categoryId,
-      name: normalizedName,
+      name: { $regex: new RegExp(`^${lowerName}$`, 'i') },
     });
 
     if (existingTag) {
@@ -223,26 +197,20 @@ const createTag = async (categoryId, data) => {
         existingTag.color = data.color || existingTag.color;
         existingTag.order = data.order || existingTag.order;
         await existingTag.save();
-        console.log("✅ Tag reactivated:", existingTag._id);
         return existingTag;
       }
       // Active tag with same name exists
       throw new AppError("Tag name already exists in this category", 400);
     }
 
-    console.log("✅ Creating tag:", { categoryId, name: normalizedName });
-
     const tag = await Tag.create({
       ...data,
-      name: normalizedName,
+      name: trimmedName,
       categoryId,
     });
 
-    console.log("✅ Tag created successfully:", tag._id);
     return tag;
   } catch (error) {
-    console.error("❌ Error creating tag:", error.message, error.code);
-
     if (error.code === 11000) {
       throw new AppError("Tag name already exists in this category", 400);
     }
@@ -289,24 +257,22 @@ const getTagById = async (tagId) => {
  * Update tag
  */
 const updateTag = async (tagId, data) => {
-  try {
-    // Get current tag
-    const currentTag = await Tag.findById(tagId);
-    if (!currentTag) {
-      throw new AppError("Tag not found", 404);
-    }
+  const tag = await Tag.findById(tagId);
+  if (!tag) {
+    throw new AppError("Tag not found", 404);
+  }
 
-    // Normalize name to lowercase if provided
-    const normalizedData = { ...data };
-    if (normalizedData.name) {
-      normalizedData.name = normalizedData.name.trim().toLowerCase();
-    }
+  // If updating name, check for duplicates case-insensitively
+  if (data.name) {
+    const trimmedName = data.name.trim();
+    const lowerName = trimmedName.toLowerCase();
+    const lowerCurrentName = tag.name.toLowerCase();
 
-    // If name is provided and different from current, check for duplicates
-    if (normalizedData.name && normalizedData.name !== currentTag.name) {
+    // Only check if the case-insensitive name is different from current
+    if (lowerName !== lowerCurrentName) {
       const existingTag = await Tag.findOne({
-        categoryId: currentTag.categoryId,
-        name: normalizedData.name,
+        categoryId: tag.categoryId,
+        name: { $regex: new RegExp(`^${lowerName}$`, 'i') },
         _id: { $ne: tagId },
         isActive: true,
       });
@@ -316,32 +282,20 @@ const updateTag = async (tagId, data) => {
       }
     }
 
-    // If name is same as current, remove it to force update other fields
-    if (normalizedData.name === currentTag.name) {
-      delete normalizedData.name;
-    }
-
-    // If no data to update, return current tag
-    if (Object.keys(normalizedData).length === 0) {
-      return currentTag;
-    }
-
-    const tag = await Tag.findByIdAndUpdate(tagId, normalizedData, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!tag) {
-      throw new AppError("Tag not found", 404);
-    }
-
-    return tag;
-  } catch (error) {
-    if (error.code === 11000) {
-      throw new AppError("Tag name already exists", 400);
-    }
-    throw error;
+    // Use the trimmed name (preserve original casing)
+    data.name = trimmedName;
   }
+
+  const updatedTag = await Tag.findByIdAndUpdate(tagId, data, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!updatedTag) {
+    throw new AppError("Tag not found", 404);
+  }
+
+  return updatedTag;
 };
 
 /**

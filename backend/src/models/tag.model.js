@@ -6,7 +6,6 @@ const tagSchema = new mongoose.Schema(
       type: String,
       required: [true, "Tag name is required"],
       trim: true,
-      lowercase: true,
     },
     description: String,
     categoryId: {
@@ -29,19 +28,18 @@ const tagSchema = new mongoose.Schema(
 );
 
 /**
- * Normalize tag name before saving
+ * Trim tag name before saving
  * - trim whitespace
- * - lowercase
  * - remove multiple spaces (replace with single space)
  */
 tagSchema.pre("save", async function () {
   if (this.name) {
-    this.name = this.name.trim().toLowerCase()
+    this.name = this.name.trim().replace(/\s+/g, " ");
   }
-})
+});
 
-// Index for faster queries - UNIQUE per category
-tagSchema.index({ categoryId: 1, name: 1 }, { unique: true });
+// Index for faster queries - UNIQUE per category (case-insensitive)
+tagSchema.index({ categoryId: 1, name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 tagSchema.index({ categoryId: 1, isActive: 1 });
 tagSchema.index({ name: "text" });
 
