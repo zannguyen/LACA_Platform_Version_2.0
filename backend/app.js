@@ -56,7 +56,6 @@ app.use("/api/upload", require("./src/routes/upload.route"));
 app.use("/api/map", require("./src/routes/map.route"));
 app.use("/api/user", require("./src/routes/user.route"));
 app.use("/api/feedbacks", require("./src/routes/feedback.route"));
-app.use("/api/reports", require("./src/routes/report.route"));
 app.use("/api/chat", require("./src/routes/chat.route"));
 app.use("/api/places", require("./src/routes/place.route"));
 app.use("/api/notifications", require("./src/routes/notification.route"));

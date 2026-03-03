@@ -21,7 +21,6 @@ import TagManagement from "../components/admin/TagManagement";
 import FeedbackManagement from "../components/admin/FeedbackManagement";
 import AdminBroadcastPage from "../pages/AdminBroadcastPage";
 import FeedbackPage from "../pages/FeedbackPage";
-import ReportPage from "../pages/ReportPage";
 import ChatListPage from "../pages/ChatListPage";
 import ChatDetailPage from "../pages/ChatDetailPage";
 import PublicChatPage from "../pages/PublicChatPage";
@@ -124,7 +123,6 @@ export default function AppRoutes() {
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />
       <Route path="/notification" element={<Notification />} />
       <Route path="/feedback" element={<FeedbackPage />} />
-      <Route path="/report" element={<ReportPage />} />
       <Route path="/chat" element={<ChatListPage />} />
       <Route path="/chat/detail" element={<ChatDetailPage />} />
       <Route path="/chat/public/:postId" element={<PublicChatPage />} />

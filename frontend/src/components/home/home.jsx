@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import ReportModal from "../report/ReportModal";
 import RankingModal from "../ranking/RankingModal";
 import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
@@ -44,6 +43,7 @@ const Home = () => {
   // Heart reaction
   const [reactionMeta, setReactionMeta] = useState({});
 
+<<<<<<< HEAD
   // report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
@@ -55,6 +55,8 @@ const Home = () => {
   const [blockLoading, setBlockLoading] = useState(false);
   const [blockSuccess, setBlockSuccess] = useState(false);
 
+=======
+>>>>>>> origin/main
   // Ranking modal
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingData, setRankingData] = useState({ locations: [], users: [] });
@@ -101,17 +103,17 @@ const Home = () => {
   }, []);
 
   const toggleFilterTag = (tagId) => {
-    setFilterTags(prev =>
+    setFilterTags((prev) =>
       prev.includes(tagId)
-        ? prev.filter(id => id !== tagId)
-        : [...prev, tagId]
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
     );
   };
 
   const toggleCategory = (categoryId) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
-      [categoryId]: !prev[categoryId]
+      [categoryId]: !prev[categoryId],
     }));
   };
 
@@ -149,12 +151,6 @@ const Home = () => {
   const { enabled: locationEnabled, requestCurrentPosition } =
     useLocationAccess();
 
-  // ✅ HARD RESET report modal when Home mounts (ngăn auto-open do state rác)
-  useEffect(() => {
-    setReportOpen(false);
-    setReportTarget(null);
-  }, []);
-
   // Fetch unread notification count
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -174,12 +170,6 @@ const Home = () => {
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  // (debug, xoá cũng được)
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("reportOpen:", reportOpen, "reportTarget:", reportTarget?._id);
-  }, [reportOpen, reportTarget]);
 
   // ================== LOCATION ==================
   useEffect(() => {
@@ -367,6 +357,12 @@ const Home = () => {
     setChatPopupOpen(false);
   };
 
+  const closeSearch = () => {
+    setSearchExpanded(false);
+    setSearchResults([]);
+    setSearchLoading(false);
+  };
+
   const reactHeart = async (postId) => {
     try {
       const token = getAccessToken();
@@ -508,6 +504,7 @@ const Home = () => {
     );
   };
 
+<<<<<<< HEAD
   // ================== REPORT DROPDOWN ==================
   const [lastToggledId, setLastToggledId] = useState(null);
 
@@ -600,12 +597,26 @@ const Home = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [reportOpen]);
 
+=======
+>>>>>>> origin/main
   // Check if any filter is active
   const hasActiveFilter = useMemo(() => {
-    return filterDistance !== "all" || filterTime !== "all" ||
-           filterSort !== "newest" || filterType !== "all" ||
-           onlyHasLocation || filterTags.length > 0;
-  }, [filterDistance, filterTime, filterSort, filterType, onlyHasLocation, filterTags]);
+    return (
+      filterDistance !== "all" ||
+      filterTime !== "all" ||
+      filterSort !== "newest" ||
+      filterType !== "all" ||
+      onlyHasLocation ||
+      filterTags.length > 0
+    );
+  }, [
+    filterDistance,
+    filterTime,
+    filterSort,
+    filterType,
+    onlyHasLocation,
+    filterTags,
+  ]);
 
   // Load posts from mutual follow users when switching to "following" tab
   useEffect(() => {
@@ -653,8 +664,12 @@ const Home = () => {
   const visiblePosts = useMemo(() => {
     const q = searchText.trim().toLowerCase();
 
+<<<<<<< HEAD
     // Use followingPosts when on "following" tab, otherwise use feedPosts
     let posts = activeTab === "following" ? (followingPosts || []) : (feedPosts || [])
+=======
+    let posts = feedPosts || [];
+>>>>>>> origin/main
 
     // Search filter
     posts = posts.filter((p) => {
@@ -662,10 +677,10 @@ const Home = () => {
       const name = (getDisplayName(p) || "").toLowerCase();
       const content = (p?.content || "").toLowerCase();
       return name.includes(q) || content.includes(q);
-    })
+    });
 
     // Has location filter
-    posts = posts.filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)))
+    posts = posts.filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)));
 
     // Distance filter
     posts = posts.filter((p) => {
@@ -673,7 +688,7 @@ const Home = () => {
       const d = p?.distanceKm;
       if (typeof d !== "number") return false;
       return d <= parseInt(filterDistance);
-    })
+    });
 
     // Time filter
     posts = posts.filter((p) => {
@@ -683,7 +698,11 @@ const Home = () => {
       const diffTime = now - postDate;
 
       if (filterTime === "today") {
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
         return postDate >= today;
       } else if (filterTime === "week") {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -693,29 +712,42 @@ const Home = () => {
         return postDate >= monthAgo;
       }
       return true;
-    })
+    });
 
     // Type filter (image/video)
     posts = posts.filter((p) => {
       if (filterType === "all") return true;
       const mediaType = p.type || "image";
       return mediaType === filterType;
-    })
+    });
 
     // Tags filter
     posts = posts.filter((p) => {
       if (filterTags.length === 0) return true;
-      const postTags = p.tags?.map(t => typeof t === 'string' ? t : t._id) || [];
-      return filterTags.some(tagId => postTags.includes(tagId));
-    })
+      const postTags =
+        p.tags?.map((t) => (typeof t === "string" ? t : t._id)) || [];
+      return filterTags.some((tagId) => postTags.includes(tagId));
+    });
 
     // Sort
     if (filterSort === "popular") {
-      posts = [...posts].sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+      posts = [...posts].sort(
+        (a, b) => (b.likes?.length || 0) - (a.likes?.length || 0),
+      );
     }
 
     return posts;
-  }, [feedPosts, searchText, onlyHasLocation, onlyNearby, filterDistance, filterTime, filterSort, filterType, filterTags]);
+  }, [
+    feedPosts,
+    searchText,
+    onlyHasLocation,
+    onlyNearby,
+    filterDistance,
+    filterTime,
+    filterSort,
+    filterType,
+    filterTags,
+  ]);
 
   // Swipe handlers
   const handleTouchStart = (e) => {
@@ -739,10 +771,12 @@ const Home = () => {
     if (Math.abs(diff) > threshold) {
       if (diff > 0) {
         // Swipe right - next card
-        setCurrentCardIndex(prev => Math.min(prev + 1, visiblePosts.length - 1));
+        setCurrentCardIndex((prev) =>
+          Math.min(prev + 1, visiblePosts.length - 1),
+        );
       } else {
         // Swipe left - previous card
-        setCurrentCardIndex(prev => Math.max(prev - 1, 0));
+        setCurrentCardIndex((prev) => Math.max(prev - 1, 0));
       }
     }
 
@@ -752,25 +786,31 @@ const Home = () => {
 
   const goToNextCard = () => {
     if (currentCardIndex < visiblePosts.length - 1) {
-      setCurrentCardIndex(prev => prev + 1);
+      setCurrentCardIndex((prev) => prev + 1);
     }
   };
 
   const goToPrevCard = () => {
     if (currentCardIndex > 0) {
-      setCurrentCardIndex(prev => prev - 1);
+      setCurrentCardIndex((prev) => prev - 1);
     }
   };
 
   const currentPost = visiblePosts[currentCardIndex];
-  const cardRotation = isSwiping ? (currentX.current - startX.current) * 0.05 : 0;
+  const cardRotation = isSwiping
+    ? (currentX.current - startX.current) * 0.05
+    : 0;
   const cardTranslate = isSwiping ? currentX.current - startX.current : 0;
 
   return (
     <div className="mobile-wrapper">
       <header className="home-header">
         {/* Logo - click to refresh */}
-        <button className="home-logo" title="Trang chủ" onClick={() => window.location.reload()}>
+        <button
+          className="home-logo"
+          title="Trang chủ"
+          onClick={() => window.location.reload()}
+        >
           <img src={lacaLogo} alt="LACA" />
         </button>
 
@@ -819,7 +859,7 @@ const Home = () => {
             className="header-action-btn"
             onClick={() => setFilterOpen((v) => !v)}
             title="Lọc"
-            style={{ display: 'none' }}
+            style={{ display: "none" }}
           >
             <i className="fa-solid fa-sliders"></i>
           </button>
@@ -828,123 +868,142 @@ const Home = () => {
 
       {/* search + filter - only show when expanded */}
       {searchExpanded && (
-        <div className="home-topbar expanded">
-          <div className="home-search">
-            <input
-              type="text"
-              className="home-search-input"
-              placeholder="Tìm bạn bè bằng email hoặc username..."
-              value={searchText}
-              onChange={async (e) => {
-                const value = e.target.value;
-                setSearchText(value);
-                if (value.trim().length > 0) {
-                  setSearchLoading(true);
-                  try {
-                    const res = await userApi.searchUsers(value);
-                    setSearchResults(res.data || []);
-                  } catch (err) {
-                    console.error("Search error:", err);
-                    setSearchResults([]);
-                  } finally {
-                    setSearchLoading(false);
-                  }
-                } else {
-                  setSearchResults([]);
-                }
-              }}
-              autoFocus
-            />
-            {searchText ? (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={() => {
-                  setSearchText("");
-                  setSearchExpanded(false);
-                }}
-                aria-label="Close search"
-              >
-                <i className="fa-solid fa-arrow-left" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={() => setSearchExpanded(false)}
-                aria-label="Close search"
-              >
-                <i className="fa-solid fa-arrow-left" />
-              </button>
-            )}
-          </div>
+        <>
+          <button
+            type="button"
+            className="search-backdrop"
+            aria-label="Đóng tìm kiếm"
+            onClick={closeSearch}
+          />
 
-          {/* Search Results */}
-          {searchText.trim().length > 0 && (
-            <div className="search-results">
-              {searchLoading ? (
-                <div className="search-loading">Đang tìm...</div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((user) => (
-                  <div key={user._id} className="search-result-item">
-                    <Link
-                      to={`/profile/${user._id}`}
-                      className="search-result-link"
-                      onClick={() => {
-                        setSearchText("");
-                        setSearchExpanded(false);
-                        setSearchResults([]);
-                      }}
-                    >
-                      <div className="search-result-avatar">
-                        {user.avatar ? (
-                          <img src={user.avatar} alt={user.fullname || user.username} />
-                        ) : (
-                          <i className="fa-solid fa-user"></i>
-                        )}
-                      </div>
-                      <div className="search-result-info">
-                        <div className="search-result-name">
-                          {user.fullname || user.username}
-                        </div>
-                        <div className="search-result-username">@{user.username}</div>
-                      </div>
-                    </Link>
-                    <button
-                      className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        try {
-                          if (user.isFollowing) {
-                            await userApi.unfollowUser(user._id);
-                            setSearchResults((prev) =>
-                              prev.map((u) =>
-                                u._id === user._id ? { ...u, isFollowing: false } : u
-                              )
-                            );
-                          } else {
-                            await userApi.followUser(user._id);
-                            setSearchResults((prev) =>
-                              prev.map((u) =>
-                                u._id === user._id ? { ...u, isFollowing: true } : u
-                              )
-                            );
-                          }
-                        } catch (err) {
-                          console.error("Follow error:", err);
-                        }
-                      }}
-                    >
-                      {user.isFollowing ? "Following" : "Follow"}
-                    </button>
-                  </div>
-                ))
+          <div className="home-topbar expanded">
+            <div className="home-search">
+              <input
+                type="text"
+                className="home-search-input"
+                placeholder="Tìm bạn bè bằng email hoặc username..."
+                value={searchText}
+                onChange={async (e) => {
+                  const value = e.target.value;
+                  setSearchText(value);
+                  if (value.trim().length > 0) {
+                    setSearchLoading(true);
+                    try {
+                      const res = await userApi.searchUsers(value);
+                      setSearchResults(res.data || []);
+                    } catch (err) {
+                      console.error("Search error:", err);
+                      setSearchResults([]);
+                    } finally {
+                      setSearchLoading(false);
+                    }
+                  } else {
+                    setSearchResults([]);
+                  }
+                }}
+                autoFocus
+              />
+              {searchText ? (
+                <button
+                  type="button"
+                  className="home-search-clear"
+                  onClick={() => {
+                    setSearchText("");
+                    closeSearch();
+                  }}
+                  aria-label="Close search"
+                >
+                  <i className="fa-solid fa-arrow-left" />
+                </button>
               ) : (
-                <div className="search-no-results">Không tìm thấy người dùng</div>
+                <button
+                  type="button"
+                  className="home-search-clear"
+                  onClick={closeSearch}
+                  aria-label="Close search"
+                >
+                  <i className="fa-solid fa-arrow-left" />
+                </button>
               )}
             </div>
-          )}
-        </div>
+
+            {/* Search Results */}
+            {searchText.trim().length > 0 && (
+              <div className="search-results">
+                {searchLoading ? (
+                  <div className="search-loading">Đang tìm...</div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((user) => (
+                    <div key={user._id} className="search-result-item">
+                      <Link
+                        to={`/profile/${user._id}`}
+                        className="search-result-link"
+                        onClick={() => {
+                          setSearchText("");
+                          closeSearch();
+                        }}
+                      >
+                        <div className="search-result-avatar">
+                          {user.avatar ? (
+                            <img
+                              src={user.avatar}
+                              alt={user.fullname || user.username}
+                            />
+                          ) : (
+                            <i className="fa-solid fa-user"></i>
+                          )}
+                        </div>
+                        <div className="search-result-info">
+                          <div className="search-result-name">
+                            {user.fullname || user.username}
+                          </div>
+                          <div className="search-result-username">
+                            @{user.username}
+                          </div>
+                        </div>
+                      </Link>
+                      <button
+                        className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            if (user.isFollowing) {
+                              await userApi.unfollowUser(user._id);
+                              setSearchResults((prev) =>
+                                prev.map((u) =>
+                                  u._id === user._id
+                                    ? { ...u, isFollowing: false }
+                                    : u,
+                                ),
+                              );
+                            } else {
+                              await userApi.followUser(user._id);
+                              setSearchResults((prev) =>
+                                prev.map((u) =>
+                                  u._id === user._id
+                                    ? { ...u, isFollowing: true }
+                                    : u,
+                                ),
+                              );
+                            }
+                          } catch (err) {
+                            console.error("Follow error:", err);
+                          }
+                        }}
+                      >
+                        {user.isFollowing ? "Following" : "Follow"}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="search-no-results">
+                    Không tìm thấy người dùng
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       <main className="home-main">
@@ -969,11 +1028,12 @@ const Home = () => {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              style={{ touchAction: 'none' }}
+              style={{ touchAction: "none" }}
             >
               {visiblePosts.map((post, idx) => {
                 const isActive = idx === currentCardIndex;
-                const isVisible = idx >= currentCardIndex && idx <= currentCardIndex + 1;
+                const isVisible =
+                  idx >= currentCardIndex && idx <= currentCardIndex + 1;
 
                 if (!isVisible) return null;
 
@@ -991,7 +1051,7 @@ const Home = () => {
                         : `translateX(${(idx - currentCardIndex) * 20}px) translateY(${(idx - currentCardIndex) * 10}px) scale(${1 - (idx - currentCardIndex) * 0.05})`,
                       zIndex: visiblePosts.length - idx,
                       opacity: isVisible ? 1 : 0,
-                      pointerEvents: isActive ? 'auto' : 'none',
+                      pointerEvents: isActive ? "auto" : "none",
                     }}
                   >
                     <div className="swipe-card-media">
@@ -1006,21 +1066,31 @@ const Home = () => {
                             playsInline
                           />
                         ) : (
-                          <img src={media} alt="Post" className="swipe-card-image" />
+                          <img
+                            src={media}
+                            alt="Post"
+                            className="swipe-card-image"
+                          />
                         )
                       ) : (
-                        <div className="swipe-card-no-media">{post.content}</div>
+                        <div className="swipe-card-no-media">
+                          {post.content}
+                        </div>
                       )}
 
                       {/* Location button - always show if post has location */}
                       {hasPlace && (
                         <button
                           className="swipe-card-location-btn"
-                          onClick={(e) => { e.stopPropagation(); goToPostOnMap(post); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goToPostOnMap(post);
+                          }}
                         >
                           <i className="fa-solid fa-location-dot"></i>
                         </button>
                       )}
+<<<<<<< HEAD
 
                       {/* Report button */}
                       <button
@@ -1039,11 +1109,16 @@ const Home = () => {
                           </button>
                         </div>
                       )}
+=======
+>>>>>>> origin/main
                     </div>
 
                     {/* Overlay: User info, Tags, Content on image */}
                     <div className="swipe-card-overlay">
-                      <Link to={`/profile/${post.user?._id}`} className="swipe-card-user-row">
+                      <Link
+                        to={`/profile/${post.user?._id}`}
+                        className="swipe-card-user-row"
+                      >
                         <div className="swipe-card-avatar">
                           {post.user?.avatar ? (
                             <img src={post.user.avatar} alt="" />
@@ -1052,7 +1127,9 @@ const Home = () => {
                           )}
                         </div>
                         <div className="swipe-card-name">
-                          <span className="swipe-card-username">{getDisplayName(post)}</span>
+                          <span className="swipe-card-username">
+                            {getDisplayName(post)}
+                          </span>
                           {post.distanceKm != null && (
                             <span className="swipe-card-distance">
                               {formatDistance(post.distanceKm)}
@@ -1065,7 +1142,10 @@ const Home = () => {
                       {post.tags && post.tags.length > 0 && (
                         <div className="swipe-card-tags">
                           {post.tags.slice(0, 3).map((tag, idx) => (
-                            <span key={tag._id || idx} className="swipe-card-tag">
+                            <span
+                              key={tag._id || idx}
+                              className="swipe-card-tag"
+                            >
                               {tag.icon} {tag.name}
                             </span>
                           ))}
@@ -1202,17 +1282,6 @@ const Home = () => {
         </div>
       )}
 
-      <ReportModal
-        open={reportOpen}
-        targetType="post"
-        targetId={reportTarget?._id}
-        onClose={(ok) => {
-          setReportOpen(false);
-          setReportTarget(null);
-          if (ok) alert("Đã gửi report");
-        }}
-      />
-
       <RankingModal
         open={rankingOpen}
         onClose={() => setRankingOpen(false)}
@@ -1221,14 +1290,16 @@ const Home = () => {
       />
 
       {/* Floating Filter Button - Top left */}
-      <button
-        className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
-        onClick={() => setFilterOpen(true)}
-        title="Bộ lọc"
-      >
-        <i className="fa-solid fa-sliders"></i>
-        {hasActiveFilter && <span className="filter-active-dot"></span>}
-      </button>
+      {!searchExpanded && (
+        <button
+          className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
+          onClick={() => setFilterOpen(true)}
+          title="Bộ lọc"
+        >
+          <i className="fa-solid fa-sliders"></i>
+          {hasActiveFilter && <span className="filter-active-dot"></span>}
+        </button>
+      )}
 
       {/* Filter Modal - Floating panel */}
       {filterOpen && (
@@ -1279,33 +1350,52 @@ const Home = () => {
             <div className="filter-section">
               <label className="filter-label">Tags</label>
               {tagsLoading ? (
-                <span style={{ color: '#999', fontSize: '14px' }}>Đang tải...</span>
+                <span style={{ color: "#999", fontSize: "14px" }}>
+                  Đang tải...
+                </span>
               ) : tagCategories.length > 0 ? (
-                tagCategories.map(category => (
-                  <div key={category._id} style={{ marginBottom: '12px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                tagCategories.map((category) => (
+                  <div
+                    key={category._id}
+                    style={{
+                      marginBottom: "12px",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
                       onClick={() => toggleCategory(category._id)}
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '12px 14px',
-                        background: 'rgba(0,0,0,0.03)',
-                        cursor: 'pointer',
-                        userSelect: 'none'
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "12px 14px",
+                        background: "rgba(0,0,0,0.03)",
+                        cursor: "pointer",
+                        userSelect: "none",
                       }}
                     >
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#333' }}>
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          color: "#333",
+                        }}
+                      >
                         {category.name}
                       </span>
                       <i
-                        className={`fa-solid fa-chevron-${expandedCategories[category._id] ? 'up' : 'down'}`}
-                        style={{ fontSize: '12px', color: '#666' }}
+                        className={`fa-solid fa-chevron-${expandedCategories[category._id] ? "up" : "down"}`}
+                        style={{ fontSize: "12px", color: "#666" }}
                       ></i>
                     </div>
                     {expandedCategories[category._id] && (
-                      <div className="filter-options" style={{ padding: '12px' }}>
-                        {category.tags?.map(tag => (
+                      <div
+                        className="filter-options"
+                        style={{ padding: "12px" }}
+                      >
+                        {category.tags?.map((tag) => (
                           <button
                             key={tag._id}
                             className={`filter-option-btn ${filterTags.includes(tag._id) ? "active" : ""}`}
@@ -1319,7 +1409,9 @@ const Home = () => {
                   </div>
                 ))
               ) : (
-                <span style={{ color: '#999', fontSize: '14px' }}>Không có tags</span>
+                <span style={{ color: "#999", fontSize: "14px" }}>
+                  Không có tags
+                </span>
               )}
             </div>
 

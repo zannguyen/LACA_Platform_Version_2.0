@@ -8,7 +8,14 @@ router.get("/me/profile", auth, controller.getMyProfile);
 router.put("/me/profile", auth, controller.updateMyProfile);
 router.put("/me/password", auth, controller.changePassword);
 router.get("/me/account-settings", auth, controller.getMyAccountSettings);
+router.post(
+	"/me/account-settings/email-otp/send",
+	auth,
+	controller.sendEmailChangeOtp,
+);
 router.put("/me/account-settings", auth, controller.updateMyAccountSettings);
+router.post("/me/delete-account/request", auth, controller.requestDeleteAccount);
+router.post("/me/delete-account/confirm", auth, controller.confirmDeleteAccount);
 router.get("/me/privacy-data", auth, controller.getMyPrivacyData);
 router.put("/me/privacy-data", auth, controller.updateMyPrivacyData);
 router.get("/me/recent-activities", auth, controller.getMyRecentActivities);

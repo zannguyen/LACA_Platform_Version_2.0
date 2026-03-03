@@ -100,6 +100,23 @@ exports.getMyAccountSettings = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/user/me/account-settings/email-otp/send
+ * (Auth required)
+ */
+exports.sendEmailChangeOtp = asyncHandler(async (req, res) => {
+  const data = await UserService.sendEmailChangeOtp({
+    userId: req.user.id,
+    email: req.body?.email,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "OTP đã được gửi tới email mới",
+    data,
+  });
+});
+
+/**
  * PUT /api/user/me/account-settings
  * (Auth required)
  */
@@ -111,6 +128,40 @@ exports.updateMyAccountSettings = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json({ success: true, message: "Account settings updated", data });
+});
+
+/**
+ * POST /api/user/me/delete-account/request
+ * (Auth required)
+ */
+exports.requestDeleteAccount = asyncHandler(async (req, res) => {
+  const data = await UserService.requestDeleteAccountOtp({
+    userId: req.user.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Đã gửi mã xác nhận xóa tài khoản qua email",
+    data,
+  });
+});
+
+/**
+ * POST /api/user/me/delete-account/confirm
+ * (Auth required)
+ */
+exports.confirmDeleteAccount = asyncHandler(async (req, res) => {
+  const data = await UserService.confirmDeleteAccount({
+    userId: req.user.id,
+    otpToken: req.body?.otpToken,
+    otpCode: req.body?.otpCode,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Tài khoản đã được xóa",
+    data,
+  });
 });
 
 /**

@@ -286,6 +286,37 @@
   min-width: 34px;
 }
 
+.chat-delete-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-muted) 85%, var(--text-secondary));
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.chat-item:hover .chat-delete-btn,
+.chat-item.is-unread .chat-delete-btn {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .chat-delete-btn {
+    opacity: 1;
+  }
+}
+
+.chat-delete-btn:hover {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--bg-card));
+}
+
 .chat-unread-dot {
   width: 8px;
   height: 8px;
@@ -401,11 +432,21 @@
   cursor: pointer;
 }
 
+.message-row.me .message-avatar-circle {
+  margin-right: 0;
+  margin-left: var(--space-xs);
+}
+
 .message-avatar-spacer {
   width: 30px;
   height: 30px;
   margin-right: var(--space-xs);
   flex-shrink: 0;
+}
+
+.message-row.me .message-avatar-spacer {
+  margin-right: 0;
+  margin-left: var(--space-xs);
 }
 
 .message-sender-name {
@@ -418,6 +459,11 @@
   padding: 0 var(--space-sm);
   margin-bottom: 4px;
   text-align: left;
+}
+
+.message-row.me .message-sender-name {
+  text-align: right;
+  width: 100%;
 }
 
 .message-sender-name:hover {
@@ -577,6 +623,41 @@
   font-family: var(--font-sans);
   box-shadow: var(--shadow-lg);
   z-index: 999;
+}
+
+.chat-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + var(--safe-bottom));
+  transform: translateX(-50%);
+  min-width: 280px;
+  max-width: calc(100% - 24px);
+  background: var(--text-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  z-index: 1001;
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+}
+
+.chat-undo-toast button {
+  border: none;
+  background: color-mix(in srgb, var(--info) 85%, #fff);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-undo-toast button:hover {
+  opacity: 0.92;
 }
 
 @media (prefers-reduced-motion: reduce) {

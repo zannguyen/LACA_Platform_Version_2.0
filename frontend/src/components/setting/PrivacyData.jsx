@@ -37,7 +37,7 @@ export default function PrivacyData() {
         setError(
           e?.response?.data?.message ||
             e?.message ||
-            "Không tải được cài đặt Privacy and Data",
+            "Không tải được cài đặt quyền riêng tư và dữ liệu",
         );
       } finally {
         if (mounted) setLoading(false);
@@ -69,7 +69,7 @@ export default function PrivacyData() {
         ...defaultPrivacyData,
         ...data,
       }));
-      setSuccess("Saved");
+      setSuccess("Đã lưu");
       window.setTimeout(() => {
         setSuccess("");
       }, 1800);
@@ -78,7 +78,7 @@ export default function PrivacyData() {
       setError(
         e?.response?.data?.message ||
           e?.message ||
-          "Cập nhật Privacy and Data thất bại",
+          "Cập nhật quyền riêng tư và dữ liệu thất bại",
       );
     } finally {
       setSavingKey("");
@@ -91,7 +91,7 @@ export default function PrivacyData() {
         <button className="privacy-back" onClick={() => navigate(-1)}>
           ←
         </button>
-        <h1>Privacy and Data</h1>
+        <h1>Quyền riêng tư và dữ liệu</h1>
       </div>
 
       <div className="privacy-list">
@@ -100,7 +100,7 @@ export default function PrivacyData() {
 
         <div className="privacy-item">
           <div className="privacy-label">
-            <p>Allow follow from strangers</p>
+            <p>Cho phép người lạ theo dõi</p>
           </div>
           <label className="privacy-toggle">
             <input
@@ -115,7 +115,7 @@ export default function PrivacyData() {
 
         <div className="privacy-item">
           <div className="privacy-label">
-            <p>Allow people interaction to your posts</p>
+            <p>Cho phép mọi người tương tác với bài viết</p>
           </div>
           <label className="privacy-toggle">
             <input
@@ -130,7 +130,7 @@ export default function PrivacyData() {
 
         <div className="privacy-item">
           <div className="privacy-label">
-            <p>Allow people to see your profile</p>
+            <p>Cho phép mọi người xem hồ sơ của bạn</p>
           </div>
           <label className="privacy-toggle">
             <input

@@ -1,13 +1,17 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const AppError = require("../utils/appError");
+const { randomUUID } = require("crypto");
 
 const User = require("../models/user.model");
+const EmailOTP = require("../models/emailOTP.model");
+const RefreshToken = require("../models/refreshToken.model");
 const Post = require("../models/post.model");
 const BlockUser = require("../models/blockUser.model");
 const Follow = require("../models/follow.model");
 const Reaction = require("../models/reaction.model");
 const Notification = require("../models/notification.model");
+const emailService = require("./email.service");
 
 const PASSWORD_LENGTH_MIN = Number(process.env.PASSWORD_LENGTH_MIN || 6);
 const PASSWORD_LENGTH_MAX = Number(process.env.PASSWORD_LENGTH_MAX || 50);
@@ -82,6 +86,14 @@ function normalizePrivacyData(raw = {}) {
         ? src.allowPeopleToSeeProfile
         : DEFAULT_PRIVACY_DATA.allowPeopleToSeeProfile,
   };
+}
+
+function generateOtpCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function generateOtpExpiredAt() {
+  return new Date(Date.now() + Number(process.env.OTP_EXPIRED_IN || 120000));
 }
 
 function toPublicUser(user, isOwner = false) {
@@ -415,6 +427,137 @@ async function getMyAccountSettings(userId) {
   };
 }
 
+async function sendEmailChangeOtp({ userId, email }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id).lean();
+  if (!user) throw new AppError("User not found", 404);
+
+  const nextEmail = String(email || "").trim().toLowerCase();
+  const isEmailFormatValid = /^\S+@\S+\.\S+$/.test(nextEmail);
+  if (!isEmailFormatValid) throw new AppError("Invalid email", 400);
+  if (nextEmail === user.email) {
+    throw new AppError("Email mới phải khác email hiện tại", 400);
+  }
+
+  const existed = await User.findOne({
+    email: nextEmail,
+    _id: { $ne: id },
+  }).lean();
+  if (existed) throw new AppError("Email already exists", 400);
+
+  await EmailOTP.deleteMany({ userId: id, purpose: "CHANGE_EMAIL" });
+
+  const plainOtp = generateOtpCode();
+  const otpToken = randomUUID();
+
+  await EmailOTP.create({
+    otpToken,
+    userId: id,
+    targetEmail: nextEmail,
+    otp: await bcrypt.hash(plainOtp, SALT_ROUNDS),
+    purpose: "CHANGE_EMAIL",
+    expiresAt: generateOtpExpiredAt(),
+    isUsed: false,
+    attempts: 0,
+  });
+
+  await emailService.sendOTP(nextEmail, plainOtp, "CHANGE_EMAIL");
+
+  return {
+    otpToken,
+    targetEmail: nextEmail,
+    expiresInMs: Number(process.env.OTP_EXPIRED_IN || 120000),
+  };
+}
+
+async function requestDeleteAccountOtp({ userId }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id).lean();
+  if (!user) throw new AppError("User not found", 404);
+  if (user.deletedAt) throw new AppError("Tài khoản đã bị xóa", 400);
+
+  await EmailOTP.deleteMany({ userId: id, purpose: "DELETE_ACCOUNT" });
+
+  const plainOtp = generateOtpCode();
+  const otpToken = randomUUID();
+
+  await EmailOTP.create({
+    otpToken,
+    userId: id,
+    targetEmail: user.email,
+    otp: await bcrypt.hash(plainOtp, SALT_ROUNDS),
+    purpose: "DELETE_ACCOUNT",
+    expiresAt: generateOtpExpiredAt(),
+    isUsed: false,
+    attempts: 0,
+  });
+
+  await emailService.sendOTP(user.email, plainOtp, "DELETE_ACCOUNT");
+
+  return {
+    otpToken,
+    email: user.email,
+    expiresInMs: Number(process.env.OTP_EXPIRED_IN || 120000),
+  };
+}
+
+async function confirmDeleteAccount({ userId, otpToken, otpCode }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id);
+  if (!user) throw new AppError("User not found", 404);
+  if (user.deletedAt) throw new AppError("Tài khoản đã bị xóa", 400);
+
+  const token = String(otpToken || "").trim();
+  const code = String(otpCode || "").trim();
+  if (!token || !code) {
+    throw new AppError("otpToken và otpCode là bắt buộc", 400);
+  }
+
+  const otpDoc = await EmailOTP.findOne({
+    otpToken: token,
+    userId: id,
+    purpose: "DELETE_ACCOUNT",
+    isUsed: false,
+  });
+
+  if (!otpDoc) throw new AppError("OTP không hợp lệ", 400);
+  if (otpDoc.expiresAt.getTime() <= Date.now()) {
+    throw new AppError("Mã OTP đã hết hạn", 400);
+  }
+  if ((otpDoc.attempts || 0) >= 5) {
+    throw new AppError("OTP bị khóa do nhập sai quá nhiều lần", 429);
+  }
+
+  const isOtpValid = await bcrypt.compare(code, otpDoc.otp);
+  if (!isOtpValid) {
+    otpDoc.attempts = (otpDoc.attempts || 0) + 1;
+    await otpDoc.save();
+    throw new AppError("Mã OTP không đúng", 400);
+  }
+
+  otpDoc.isUsed = true;
+  await otpDoc.save();
+
+  const suffix = `${Date.now()}_${String(user._id).slice(-6)}`;
+  user.fullname = "Deleted User";
+  user.username = `deleted_${suffix}`;
+  user.email = `deleted+${suffix}@laca.local`;
+  user.avatar = "";
+  user.bio = "";
+  user.phoneNumber = "";
+  user.dateOfBirth = null;
+  user.isActive = false;
+  user.isEmailVerified = false;
+  user.deletedAt = new Date();
+  user.updatedAt = new Date();
+  await user.save();
+
+  await RefreshToken.updateMany({ userId: id, isRevoked: false }, { $set: { isRevoked: true } });
+  await EmailOTP.deleteMany({ userId: id });
+
+  return { deleted: true };
+}
+
 async function updateMyAccountSettings({ userId, body }) {
   const id = safeObjectId(userId);
   const user = await User.findById(id);
@@ -478,8 +621,48 @@ async function updateMyAccountSettings({ userId, body }) {
     if (existed) throw new AppError("Email already exists", 400);
 
     if (email !== user.email) {
+      const emailOtpToken = String(body.emailOtpToken || "").trim();
+      const emailOtpCode = String(body.emailOtpCode || "").trim();
+
+      if (!emailOtpToken || !emailOtpCode) {
+        throw new AppError(
+          "Vui lòng xác thực OTP cho email mới trước khi cập nhật",
+          400,
+        );
+      }
+
+      const otpDoc = await EmailOTP.findOne({
+        otpToken: emailOtpToken,
+        userId: id,
+        targetEmail: email,
+        purpose: "CHANGE_EMAIL",
+        isUsed: false,
+      });
+
+      if (!otpDoc) {
+        throw new AppError("OTP không hợp lệ hoặc không khớp email", 400);
+      }
+
+      if (otpDoc.expiresAt.getTime() <= Date.now()) {
+        throw new AppError("Mã OTP đã hết hạn", 400);
+      }
+
+      if ((otpDoc.attempts || 0) >= 5) {
+        throw new AppError("OTP bị khóa do nhập sai quá nhiều lần", 429);
+      }
+
+      const isOtpValid = await bcrypt.compare(emailOtpCode, otpDoc.otp);
+      if (!isOtpValid) {
+        otpDoc.attempts = (otpDoc.attempts || 0) + 1;
+        await otpDoc.save();
+        throw new AppError("Mã OTP không đúng", 400);
+      }
+
+      otpDoc.isUsed = true;
+      await otpDoc.save();
+
       user.email = email;
-      user.isEmailVerified = false;
+      user.isEmailVerified = true;
       changed = true;
     }
   }
@@ -790,6 +973,9 @@ module.exports = {
   updateMyProfile,
   changePassword,
   getMyAccountSettings,
+  sendEmailChangeOtp,
+  requestDeleteAccountOtp,
+  confirmDeleteAccount,
   updateMyAccountSettings,
   getMyRecentActivities,
 
