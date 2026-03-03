@@ -100,8 +100,10 @@ exports.getPostHotspots = asyncHandler(async (req, res) => {
   const limit = Number(req.query.limit || 80);
 
   let blockedUserIds = [];
+  let mutualFollowUserIds = [];
   if (req.user?.id) {
     blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+    mutualFollowUserIds = await UserService.getMutualFollowUserIds(req.user.id);
   }
 
   const data = await MapService.getPostHotspots({
@@ -111,6 +113,7 @@ exports.getPostHotspots = asyncHandler(async (req, res) => {
     days,
     limit,
     blockedUserIds,
+    mutualFollowUserIds,
   });
 
   res.status(200).json({
