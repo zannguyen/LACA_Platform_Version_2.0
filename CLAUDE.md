@@ -6,6 +6,11 @@ This file provides guidance to Claude Opus (claude.ai/code) when working with co
 
 LACA (Location-Based Social Network) is a full-stack social media platform using Node.js/Express backend with MongoDB and React frontend with Vite. The platform allows users to share posts, check-in at places, interact with others, and discover content around their location.
 
+**AI Features:**
+- Chatbot AI assistant with Groq (Llama 3.3) or OpenAI integration
+- RAG (Retrieval-Augmented Generation) for context-aware responses
+- Content analysis for posts
+
 ## Common Development Commands
 
 ### Setup
@@ -71,39 +76,45 @@ cd frontend && npm run lint
 - **Frontend**: React 18, Vite, React Router, Leaflet (maps), Socket.IO client, Axios
 - **Real-time**: Socket.IO for chat and online status
 - **Authentication**: JWT tokens with refresh token rotation
+- **AI**: Groq (Llama 3.3), OpenAI (GPT-3.5), Google Gemini for chatbot and content analysis
 
 ## Environment Setup
 
 ### Backend (.env in root)
 ```env
 PORT=4000
-NODE_ENV=development
-MONGO_URI=mongodb://localhost:27017/laca
-JWT_SECRET=your_secret
-JWT_EXPIRE_IN=7d
-REFRESH_TOKEN_SECRET=your_refresh_secret
-REFRESH_TOKEN_EXPIRE_IN=30d
+MONGO_URI=mongodb+srv://<user>:<password>@laca.gm9ln1j.mongodb.net/social_local_db
+JWT_ACCESS_SECRET=access0002
+JWT_REFRESH_SECRET=refresh0003
+JWT_OTP_SECRET=otp0001
+JWT_ACCESS_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
 SALT_ROUNDS=10
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+SOCKET_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173
+USERNAME_LENGTH_MIN=6
+USERNAME_LENGTH_MAX=20
+PASSWORD_LENGTH_MIN=8
+PASSWORD_LENGTH_MAX=30
+OTP_EXPIRED_IN=120000
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USERNAME=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-OTP_EXPIRED_IN=300000
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173
-SOCKET_ORIGINS=http://localhost:3000,http://localhost:5173
-USERNAME_LENGTH_MIN=3
-USERNAME_LENGTH_MAX=30
-PASSWORD_LENGTH_MIN=6
-PASSWORD_LENGTH_MAX=50
+EMAIL_USERNAME=le0063020@gmail.com
+EMAIL_PASSWORD=<app_password>
+CLOUDINARY_CLOUD_NAME=dtjhqvafy
+CLOUDINARY_API_KEY=492383661879689
+CLOUDINARY_API_SECRET=<secret>
+# AI APIs (at least one required for chatbot)
+GROQ_API_KEY=gsk_...
+OPENAI_API_KEY=sk-...
+VITE_GEMINI_API_KEY=AIzaSy...
 ```
 
 ### Frontend (.env in frontend/)
 ```env
 VITE_API_URL=http://localhost:4000/api
 VITE_SOCKET_URL=http://localhost:4000
+VITE_GEMINI_API_KEY=AIzaSy...
 ```
 
 ## API Routes
@@ -226,6 +237,16 @@ VITE_SOCKET_URL=http://localhost:4000
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/` | Upload file to Cloudinary |
+
+### Ranking Routes (`/api/ranking`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/featured` | Get featured locations and users ranking |
+
+### Chatbot Routes (`/api/chatbot`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/message` | AI chatbot message (Groq/OpenAI with RAG) |
 
 ### Admin Routes (`/api/admin`)
 | Method | Endpoint | Description |
@@ -409,6 +430,7 @@ Content-based filtering with scoring:
 | `StrangerProfilePage.jsx` | `/profile/:userId` | Other user profiles |
 | `CameraPage.jsx` | `/camera` | Camera capture |
 | `CameraPostPage.jsx` | `/camera-post` | Post creation with media |
+| `PostDetailPage.jsx` | `/post/:postId` | Single post detail |
 | `NotificationPage.jsx` | `/notification` | Notifications list |
 | `ChatListPage.jsx` | `/chat` | Conversation list |
 | `ChatDetailPage.jsx` | `/chat/detail` | Direct message chat |
@@ -416,10 +438,17 @@ Content-based filtering with scoring:
 | `FeedbackPage.jsx` | `/feedback` | Submit feedback |
 | `ReportPage.jsx` | `/report` | Report content |
 | `SettingPage.jsx` | `/setting` | App settings |
+| `EditProfileSettingPage.jsx` | `/edit-profile` | Edit profile |
 | `DeleteAccountConfirmPage.jsx` | `/delete-account-confirm` | Account deletion |
 | `InterestManagementPage.jsx` | `/interests` | Manage interests |
 | `TagPreferencePage.jsx` | `/tag-preference` | Tag preferences |
 | `AdminBroadcastPage.jsx` | `/admin/broadcast` | Admin broadcast |
+
+## Frontend Chatbot
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `Chatbot.jsx` | `components/chatbot/Chatbot.jsx` | AI chatbot floating button (Groq/OpenAI with RAG) |
 
 ## Frontend Admin Components
 
@@ -435,6 +464,7 @@ Content-based filtering with scoring:
 | `TagManagement.jsx` | `/admin/tags` | Tag/category CRUD |
 | `BroadcastNotification.jsx` | - | Broadcast form |
 | `BroadcastHistory.jsx` | - | Broadcast history |
+| `RankingModal.jsx` | - | Featured ranking modal (locations/users) |
 
 ## Important Files to Know
 
@@ -446,15 +476,18 @@ Content-based filtering with scoring:
 - `src/services/recommendation.service.js` - Feed algorithm
 - `src/middlewares/auth.middleware.js` - JWT validation
 - `src/middlewares/requireAdmin.js` - Admin role check
+- `src/controllers/chatbot.controller.js` - AI chatbot logic (Groq/OpenAI)
+- `src/services/rag.service.js` - RAG (Retrieval-Augmented Generation) for context
 
 ### Frontend
 - `frontend/src/context/SocketContext.jsx` - Socket provider
-- `frontend/src/context/AuthContext.jsx` - Auth state
+- `frontend/src/context/LocationAccessContext.jsx` - Location access context
 - `frontend/src/api/client.js` - Axios config with interceptors
 - `frontend/src/routes/index.jsx` - Route definitions
 - `frontend/src/routes/RequireAuth.jsx` - Auth guard
 - `frontend/src/components/map/` - Leaflet map components
 - `frontend/src/components/Chat/` - Real-time chat UI
+- `frontend/src/components/chatbot/Chatbot.jsx` - AI chatbot UI
 
 ## Common Tasks
 
@@ -479,6 +512,12 @@ Content-based filtering with scoring:
 - Use `requireAdmin.js` middleware to protect admin routes
 - Admin routes in `src/routes/admin*.routes.js`
 - Admin controllers in `src/controllers/admin*.controller.js`
+
+### AI/Chatbot Features
+- Chatbot uses RAG (Retrieval-Augmented Generation) to query database context
+- AI providers: Groq (Llama 3.3) first, fallback to OpenAI (GPT-3.5)
+- `src/services/rag.service.js` - Query database for relevant context (places, users, posts, stats)
+- `src/controllers/chatbot.controller.js` - Main chatbot logic with fallback responses
 
 ## Database Relationships
 

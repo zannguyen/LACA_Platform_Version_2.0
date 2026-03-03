@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
+import { addReaction, removeReaction } from "../../api/postApi";
+import { useLocationAccess } from "../../context/LocationAccessContext";
 import TagDisplay from "../profile/TagDisplay";
 import TagSelectionModal from "../profile/TagSelectionModal";
 import "./stranger_profile.css";
@@ -68,6 +70,7 @@ const formatDateOfBirth = (value) => {
 export default function StrangerProfile() {
   const params = useParams();
   const navigate = useNavigate();
+  const { location: userLocation } = useLocationAccess();
 
   // hỗ trợ cả 2 route param:
   // - /profile/:userId  -> params.userId
@@ -76,6 +79,9 @@ export default function StrangerProfile() {
     () => params.userId || params.id || null,
     [params],
   );
+
+  // Reaction state
+  const [reactionStates, setReactionStates] = useState({});
 
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({ posts: 0, followers: 0 });
@@ -241,6 +247,41 @@ export default function StrangerProfile() {
       alert(msg);
     } finally {
       setFollowPending(false);
+    }
+  };
+
+  // Toggle like reaction on post
+  const handleToggleLike = async (e, postId) => {
+    e.stopPropagation();
+    const currentState = reactionStates[postId] || { reacted: false, loading: false };
+    if (currentState.loading) return;
+
+    const isReacted = currentState.reacted;
+    const newReacted = !isReacted;
+    const newCount = (currentState.count || 0) + (newReacted ? 1 : -1);
+
+    // Optimistic update
+    setReactionStates(prev => ({
+      ...prev,
+      [postId]: { reacted: newReacted, loading: true, count: newCount }
+    }));
+
+    try {
+      if (isReacted) {
+        await removeReaction(postId);
+      } else {
+        await addReaction(postId, "like", userLocation?.latitude, userLocation?.longitude);
+      }
+      setReactionStates(prev => ({
+        ...prev,
+        [postId]: { reacted: newReacted, loading: false, count: newCount }
+      }));
+    } catch (err) {
+      setReactionStates(prev => ({
+        ...prev,
+        [postId]: { reacted: isReacted, loading: false, count: currentState.count }
+      }));
+      console.error("Reaction error:", err);
     }
   };
 
@@ -433,7 +474,15 @@ export default function StrangerProfile() {
                 >
                   {media ? (
                     isVideo ? (
-                      <video src={media} />
+                      <video
+                        src={media}
+                        autoPlay
+                        loop
+                        playsInline
+                        preload="auto"
+                        muted
+                        style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                      />
                     ) : (
                       <img src={media} alt="post" />
                     )
@@ -442,13 +491,15 @@ export default function StrangerProfile() {
                       No media
                     </div>
                   )}
-                  <div className="profile-post-overlay">
-                    <span className="profile-post-stat">
-                      <i className="fa-solid fa-heart"></i>
-                    </span>
-                    <span className="profile-post-stat">
-                      <i className="fa-solid fa-comment"></i>
-                    </span>
+                  <div className="profile-post-overlay" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
+                      onClick={(e) => handleToggleLike(e, id)}
+                      disabled={reactionStates[id]?.loading}
+                    >
+                      <i className={`fa-solid fa-heart ${reactionStates[id]?.reacted ? "fas" : "far"}`}></i>
+                      <span>{(reactionStates[id]?.count ?? p.reactionCount ?? p.likes ?? 0)}</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -462,11 +513,10 @@ export default function StrangerProfile() {
 
         {canViewPosts && pagination.page < pagination.totalPages && (
           <button
-            className="profile-action-btn"
-            style={{ width: "100%", marginTop: 12 }}
+            className="load-more-btn"
             onClick={() => fetchProfile(pagination.page + 1)}
           >
-            TẢI THÊM
+            <i className="fa-solid fa-plus"></i> Xem thêm bài viết
           </button>
         )}
       </div>
