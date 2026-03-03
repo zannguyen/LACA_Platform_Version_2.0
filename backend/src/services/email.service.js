@@ -13,12 +13,17 @@ exports.sendOTP = async (email, otp, purpose) => {
   const contentMap = {
     REGISTER: "verify your account",
     RESET_PASSWORD: "reset your password",
+    CHANGE_EMAIL: "confirm your new email",
   };
 
-  const subject =
-    purpose === "RESET_PASSWORD"
-      ? "Password Reset Verification Code"
-      : "Account Registration Verification Code";
+  let subject = "Verification Code";
+  if (purpose === "RESET_PASSWORD") {
+    subject = "Password Reset Verification Code";
+  } else if (purpose === "REGISTER") {
+    subject = "Account Registration Verification Code";
+  } else if (purpose === "CHANGE_EMAIL") {
+    subject = "Email Change Verification Code";
+  }
 
   const html = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; padding: 24px; background-color: #ffffff;">

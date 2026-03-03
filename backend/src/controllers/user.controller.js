@@ -100,6 +100,23 @@ exports.getMyAccountSettings = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/user/me/account-settings/email-otp/send
+ * (Auth required)
+ */
+exports.sendEmailChangeOtp = asyncHandler(async (req, res) => {
+  const data = await UserService.sendEmailChangeOtp({
+    userId: req.user.id,
+    email: req.body?.email,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "OTP đã được gửi tới email mới",
+    data,
+  });
+});
+
+/**
  * PUT /api/user/me/account-settings
  * (Auth required)
  */

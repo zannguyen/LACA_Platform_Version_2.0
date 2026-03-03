@@ -238,8 +238,6 @@ export default function UserProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
-
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/home");
@@ -374,7 +372,6 @@ export default function UserProfile() {
     // Not used in new design, kept for compatibility
   };
 
-
   // Delete post (IG-style: gọi từ ProfilePostViewerModal)
   const handleDeletePost = async (postId) => {
     const id = String(postId);
@@ -387,7 +384,7 @@ export default function UserProfile() {
     setPosts((prev) => prev.filter((p) => String(p?._id || p?.id) !== id));
     setStats((s) => ({
       ...(s || {}),
-      posts: Math.max(0, Number((s?.posts ?? prevPosts.length)) - 1),
+      posts: Math.max(0, Number(s?.posts ?? prevPosts.length) - 1),
     }));
 
     try {
@@ -687,7 +684,11 @@ export default function UserProfile() {
             onClick={handleEditToggle}
             disabled={saving}
           >
-            {saving ? "Saving..." : isEditing ? "Save Note" : "Edit Note"}
+            {saving
+              ? "Đang lưu..."
+              : isEditing
+                ? "Lưu hồ sơ"
+                : "Chỉnh sửa hồ sơ"}
           </button>
         </div>
 
@@ -762,9 +763,7 @@ export default function UserProfile() {
                       <span>{placeName}</span>
                     </div>
                   ) : null}
-                  <div
-                    className="profile-post-overlay"
-                  >
+                  <div className="profile-post-overlay">
                     <button
                       className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
                       onClick={(e) => handleToggleLike(e, id)}
