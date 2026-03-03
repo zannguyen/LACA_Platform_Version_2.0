@@ -169,12 +169,6 @@ export default function UserProfile() {
   const [userTags, setUserTags] = useState([]);
   const [showTagModal, setShowTagModal] = useState(false);
 
-  // Post menu + modal delete
-  const [activeMenuId, setActiveMenuId] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-
   const token = useMemo(
     () => localStorage.getItem("token") || localStorage.getItem("authToken"),
     [],
@@ -244,12 +238,7 @@ export default function UserProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // click outside -> đóng menu post
-  useEffect(() => {
-    const handleClickOutside = () => setActiveMenuId(null);
-    window.addEventListener("click", handleClickOutside);
-    return () => window.removeEventListener("click", handleClickOutside);
-  }, []);
+
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -385,49 +374,44 @@ export default function UserProfile() {
     // Not used in new design, kept for compatibility
   };
 
-  const togglePostMenu = (e, postId) => {
-    e.stopPropagation();
-    const sid = String(postId);
-    setActiveMenuId((prev) => (prev === sid ? null : sid));
-  };
 
-  const handlePostEditClick = (e) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    setError("Chức năng sửa bài đăng sẽ được làm sau.");
-  };
-
-  const handleDeleteClick = (e, postId) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    setPostToDelete(String(postId));
-    setShowModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setPostToDelete(null);
-  };
-
-  const confirmDelete = async () => {
-    if (!postToDelete) return;
-    setDeleting(true);
+  // Delete post (IG-style: gọi từ ProfilePostViewerModal)
+  const handleDeletePost = async (postId) => {
+    const id = String(postId);
     setError("");
 
     const prevPosts = posts;
-    setPosts((prev) =>
-      prev.filter((p) => String(p._id || p.id) !== String(postToDelete)),
-    );
+    const prevStats = stats;
+
+    // optimistic UI
+    setPosts((prev) => prev.filter((p) => String(p?._id || p?.id) !== id));
+    setStats((s) => ({
+      ...(s || {}),
+      posts: Math.max(0, Number((s?.posts ?? prevPosts.length)) - 1),
+    }));
 
     try {
-      await deletePost(postToDelete);
+      await deletePost(id);
+
+      // cleanup reaction cache
+      setReactionStates((prev) => {
+        const next = { ...(prev || {}) };
+        delete next[id];
+        return next;
+      });
+      reactionFetchedRef.current.delete(id);
+
       setPagination((p) => ({
         ...(p || {}),
         total: Math.max(0, (p?.total ?? prevPosts.length) - 1),
       }));
-      closeDeleteModal();
+
+      return { success: true };
     } catch (e) {
+      // revert
       setPosts(prevPosts);
+      setStats(prevStats);
+
       const msg =
         e?.response?.data?.message || e?.message || "Xóa bài đăng thất bại";
       setError(msg);
@@ -438,8 +422,8 @@ export default function UserProfile() {
         localStorage.removeItem("user");
         navigate("/login");
       }
-    } finally {
-      setDeleting(false);
+
+      return { success: false, message: msg };
     }
   };
 
@@ -826,38 +810,6 @@ export default function UserProfile() {
         )}
       </div>
 
-      {/* Modal delete (giữ nguyên) */}
-      <div
-        className="modal-overlay"
-        style={{ display: showModal ? "flex" : "none" }}
-        onClick={closeDeleteModal}
-      >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <p className="modal-text">ARE YOU SURE YOU WANT TO DELETE?</p>
-          <div className="modal-actions">
-            <button
-              className="btn-modal btn-no"
-              onClick={closeDeleteModal}
-              disabled={deleting}
-            >
-              NO
-            </button>
-            <button
-              className="btn-modal btn-yes"
-              onClick={confirmDelete}
-              disabled={deleting}
-            >
-              {deleting ? "..." : "YES"}
-            </button>
-          </div>
-          {deleting ? (
-            <div style={{ marginTop: 10, fontSize: 11, color: "#666" }}>
-              Đang xóa...
-            </div>
-          ) : null}
-        </div>
-      </div>
-
       {/* Tag Selection Modal */}
       <TagSelectionModal
         isOpen={showTagModal}
@@ -881,6 +833,7 @@ export default function UserProfile() {
         reactionStates={reactionStates}
         onToggleLike={toggleLike}
         isOwnerProfile
+        onDeletePost={handleDeletePost}
       />
     </div>
   );
