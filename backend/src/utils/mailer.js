@@ -13,7 +13,10 @@ const sendEmail = async (options) => {
     },
     tls: {
       rejectUnauthorized: false,
-    }
+      minVersion: 'TLSv1'
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000
   });
 
   const mailOptions = {
