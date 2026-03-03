@@ -66,17 +66,18 @@ export default function FeedbackPage() {
         content: finalContent,
         type: "feedback",
         createdAt: new Date().toISOString(),
-      });
+      };
 
-      setSuccess(true);
-      setContent("");
-    } catch (e) {
-      console.error("Lỗi gửi feedback:", e);
-      setError(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Có lỗi xảy ra, vui lòng thử lại sau."
-      );
+      // Gọi API
+      await feedbackApi.sendFeedback(data);
+
+      // 3. Thành công
+      alert("Gửi góp ý thành công! Cảm ơn bạn.");
+      navigate("/");
+    } catch (error) {
+      // 4. Thất bại
+      console.error("Lỗi gửi góp ý:", error);
+      alert("Có lỗi xảy ra, vui lòng thử lại sau!");
     } finally {
       setIsLoading(false);
     }
@@ -92,92 +93,25 @@ export default function FeedbackPage() {
         >
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <div className="fb-title">Feedback</div>
-        <div className="fb-spacer" />
+        <h2 className="page-title">Góp ý</h2>
       </div>
 
-      <div className="fb-content">
-        <div className="fb-card">
-          <div className="fb-hero">
-            <div className="fb-hero-icon" aria-hidden="true">
-              <i className="fa-regular fa-paper-plane"></i>
-            </div>
-            <div className="fb-hero-text">
-              <div className="fb-hero-title">Góp ý để LACA tốt hơn</div>
-              <div className="fb-hero-sub">
-                Nói với tụi mình điều bạn muốn cải thiện — càng cụ thể càng dễ
-                làm.
-              </div>
-            </div>
-          </div>
+      <TextArea
+        placeholder="Hãy chia sẻ góp ý của bạn để LACA cải thiện tốt hơn..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={15}
+        disabled={isLoading} // Khóa ô nhập khi đang gửi
+        style={{ minHeight: "300px" }}
+      />
 
-          <div className="fb-field">
-            <div className="fb-label">Chủ đề</div>
-            <div className="fb-chips">
-              {TOPICS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  className={`fb-chip ${topic === t.key ? "active" : ""}`}
-                  onClick={() => setTopic(t.key)}
-                  disabled={isLoading}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="fb-field">
-            <div className="fb-label">Nội dung góp ý</div>
-            <TextArea
-              placeholder="Ví dụ: Mình muốn có chức năng ... / Mình gặp lỗi khi ..."
-              value={content}
-              onChange={(e) => {
-                setSuccess(false);
-                setError("");
-                setContent(String(e.target.value || "").slice(0, MAX_LEN));
-              }}
-              rows={10}
-              disabled={isLoading}
-              maxLength={MAX_LEN}
-              className="fb-textarea"
-            />
-
-            <div className="fb-meta">
-              <div className="fb-counter">
-                {content.length}/{MAX_LEN}
-              </div>
-              <div className="fb-tip">
-                Tránh nhập mật khẩu/OTP hoặc thông tin nhạy cảm.
-              </div>
-            </div>
-          </div>
-
-          {error && <div className="fb-alert error">{error}</div>}
-          {success && (
-            <div className="fb-alert success">
-              <b>Đã gửi!</b> Cảm ơn bạn — tụi mình đã nhận được góp ý.
-            </div>
-          )}
-
-          <div className="fb-actions">
-            <GradientButton
-              text={isLoading ? "ĐANG GỬI..." : "GỬI FEEDBACK"}
-              onClick={handleSubmit}
-              disabled={isLoading || trimmed.length === 0}
-            />
-
-            <button
-              type="button"
-              className="fb-secondary"
-              onClick={() => navigate(-1)}
-              disabled={isLoading}
-            >
-              Quay lại
-            </button>
-          </div>
-        </div>
+      <div style={{ marginTop: "20px" }}>
+        {/* Nếu đang loading thì hiện chữ đang gửi..., ngược lại hiện GỬI */}
+        <GradientButton
+          text={isLoading ? "ĐANG GỬI..." : "GỬI"}
+          onClick={handleSubmit}
+          disabled={isLoading}
+        />
       </div>
     </div>
   );

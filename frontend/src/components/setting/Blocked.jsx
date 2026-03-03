@@ -36,7 +36,7 @@ export default function Blocked() {
   };
 
   const confirmUnblock = (userId) => {
-    const ok = window.confirm("Unblock this user?");
+    const ok = window.confirm("Bạn có muốn bỏ chặn người dùng này không?");
     if (!ok) return;
     unblockUser(userId);
   };
@@ -47,14 +47,14 @@ export default function Blocked() {
         <button className="blocked-back" onClick={() => navigate(-1)}>
           ←
         </button>
-        <h1>Blocked</h1>
+        <h1>Đã chặn</h1>
       </div>
 
       <div className="blocked-list">
         {loading ? (
-          <p className="blocked-loading">Loading...</p>
+          <p className="blocked-loading">Đang tải...</p>
         ) : blockedUsers.length === 0 ? (
-          <p className="blocked-empty">No blocked users</p>
+          <p className="blocked-empty">Không có người dùng bị chặn</p>
         ) : (
           blockedUsers.map((user) => (
             <div key={user.blockedUserId} className="blocked-user-card">
@@ -63,7 +63,7 @@ export default function Blocked() {
                   className="blocked-unblock-text"
                   onClick={() => unblockUser(user.blockedUserId)}
                 >
-                  Unblock
+                  Bỏ chặn
                 </button>
               </div>
 
@@ -81,7 +81,7 @@ export default function Blocked() {
                 <button
                   className="blocked-close"
                   onClick={() => confirmUnblock(user.blockedUserId)}
-                  aria-label="Close"
+                  aria-label="Đóng"
                 >
                   ✕
                 </button>

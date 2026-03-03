@@ -361,8 +361,9 @@ const TagManagement = () => {
             </div>
 
             <div className="modal-actions">
-              <button onClick={() => setShowCategoryModal(false)}>Hủy</button>
+              <button type="button" onClick={() => setShowCategoryModal(false)}>Hủy</button>
               <button
+                type="button"
                 className="btn-primary"
                 onClick={saveCategory}
                 disabled={saving || !categoryForm.name.trim()}
@@ -423,8 +424,9 @@ const TagManagement = () => {
             </div>
 
             <div className="modal-actions">
-              <button onClick={() => setShowTagModal(false)}>Hủy</button>
+              <button type="button" onClick={() => setShowTagModal(false)}>Hủy</button>
               <button
+                type="button"
                 className="btn-primary"
                 onClick={saveTag}
                 disabled={saving || !tagForm.name.trim()}

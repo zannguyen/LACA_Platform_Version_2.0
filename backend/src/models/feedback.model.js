@@ -15,7 +15,7 @@ const feedbackSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["feedback", "report"], // Chỉ cho phép 2 loại này
+      enum: ["feedback"], // Chỉ feedback
       default: "feedback",
     },
     status: {

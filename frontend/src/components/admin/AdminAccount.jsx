@@ -1,7 +1,7 @@
 // Admin Account Management Page
 import React, { useEffect, useRef, useState } from "react";
 import userApi from "../../api/userApi";
-import { authApi } from "../../api/authApi";
+import { authApi, changePassword } from "../../api/authApi";
 import { uploadMedia } from "../../api/postApi";
 import AvatarCropModal from "../profile/AvatarCropModal";
 import "./AdminAccount.css";
@@ -25,6 +25,16 @@ const AdminAccount = () => {
     bio: "",
     avatar: "",
   });
+
+  // State for password change
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // Fetch current admin profile
   const fetchProfile = async () => {
@@ -84,7 +94,14 @@ const AdminAccount = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const res = await userApi.updateMyProfile(editForm);
+      // Convert fullName to fullname for backend API
+      const payload = {
+        fullname: editForm.fullName,
+        username: editForm.username,
+        bio: editForm.bio,
+        avatar: editForm.avatar,
+      };
+      const res = await userApi.updateMyProfile(payload);
       if (res?.data?.success || res?.success) {
         setProfile((prev) => ({ ...prev, ...editForm }));
         setIsEditing(false);
@@ -141,21 +158,61 @@ const AdminAccount = () => {
     setSaving(true);
     setError(null);
     try {
+      console.log("Starting avatar upload...");
+
       // Convert blob to File for uploadMedia
       const file = new File([blob], `avatar_${Date.now()}.jpg`, {
         type: blob.type || "image/jpeg",
       });
 
       const up = await uploadMedia(file);
-      const url = up?.secure_url || up?.url;
-      if (!url) throw new Error("Upload avatar thất bại (không có URL)");
+      console.log("Upload response:", up);
 
-      // Update profile directly
-      setProfile((prev) => ({ ...prev, avatar: url }));
-      setEditForm((prev) => ({ ...prev, avatar: url }));
+      // Handle different response formats
+      const url = up?.secure_url || up?.url || up?.data?.secure_url || up?.data?.url;
+      console.log("Extracted URL:", url);
 
-      // Also save to server
-      await userApi.updateMyProfile({ avatar: url });
+      if (!url) {
+        console.error("Upload response full:", up);
+        throw new Error("Upload avatar thất bại (không có URL)");
+      }
+
+      // Save to server
+      const res = await userApi.updateMyProfile({ avatar: url });
+      console.log("Save profile response:", res);
+
+      // Handle response similar to user_profile.jsx
+      const root = res?.data ? res : { data: res };
+      const body = root.data;
+      if (body?.success === false) {
+        throw new Error(body?.message || "Update failed");
+      }
+
+      const updatedUser = body?.data || body;
+      const finalAvatar = updatedUser?.avatar || url;
+
+      // Update profile state - use server response avatar or fallback to URL
+      setProfile((prev) => {
+        const newProfile = {
+          ...(prev || {}),
+          ...(updatedUser || {}),
+          avatar: finalAvatar,
+        };
+        return newProfile;
+      });
+
+      // Update edit form
+      setEditForm((prev) => ({
+        ...prev,
+        avatar: finalAvatar,
+      }));
+
+      // Update localStorage for persistence
+      const currentUser = authApi.getCurrentUser();
+      if (currentUser) {
+        const updatedLocalUser = { ...currentUser, avatar: finalAvatar };
+        localStorage.setItem("user", JSON.stringify(updatedLocalUser));
+      }
 
       closeCropModal();
       alert("Avatar updated successfully!");
@@ -165,6 +222,60 @@ const AdminAccount = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Password change handlers
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    setPasswordError("");
+    setPasswordSuccess(false);
+  };
+
+  const handlePasswordSubmit = async () => {
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Mật khẩu mới không khớp");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const res = await changePassword(currentPassword, newPassword, confirmPassword);
+
+      if (res.success) {
+        setPasswordSuccess(true);
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordSuccess(false);
+        }, 2000);
+      } else {
+        setPasswordError(res.message || "Đổi mật khẩu thất bại");
+      }
+    } catch (err) {
+      setPasswordError(err.response?.data?.message || "Đổi mật khẩu thất bại");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setPasswordError("");
+    setPasswordSuccess(false);
   };
 
   if (loading) {
@@ -362,6 +473,26 @@ const AdminAccount = () => {
             </div>
           </div>
         </div>
+
+        {/* Change Password Card */}
+        <div className="info-card">
+          <h3>Security</h3>
+          <div className="info-list">
+            <div className="info-item" style={{ justifyContent: "flex-start" }}>
+              <span className="info-label">
+                <i className="fa-solid fa-lock"></i>
+                Password
+              </span>
+              <button
+                className="change-password-btn"
+                onClick={() => setShowPasswordModal(true)}
+              >
+                <i className="fa-solid fa-key"></i>
+                Change Password
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Avatar Crop Modal */}
@@ -372,6 +503,72 @@ const AdminAccount = () => {
         onCancel={closeCropModal}
         onSaveBlob={handleSaveCroppedAvatar}
       />
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={closePasswordModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Change Password</h3>
+
+            {passwordSuccess ? (
+              <div className="success-message">
+                <i className="fa-solid fa-check-circle"></i>
+                Password changed successfully!
+              </div>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>Current Password</label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordForm.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>New Password</label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Confirm New Password</label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordForm.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+
+                {passwordError && (
+                  <div className="error-message">{passwordError}</div>
+                )}
+
+                <div className="modal-actions">
+                  <button className="btn-cancel" onClick={closePasswordModal}>
+                    Cancel
+                  </button>
+                  <button
+                    className="save-btn"
+                    onClick={handlePasswordSubmit}
+                    disabled={saving}
+                  >
+                    {saving ? "Changing..." : "Change Password"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

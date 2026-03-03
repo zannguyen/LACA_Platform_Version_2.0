@@ -6,6 +6,7 @@ const controller = require("../controllers/user.controller");
 // My profile (Auth)
 router.get("/me/profile", auth, controller.getMyProfile);
 router.put("/me/profile", auth, controller.updateMyProfile);
+router.put("/me/password", auth, controller.changePassword);
 router.get("/me/account-settings", auth, controller.getMyAccountSettings);
 router.put("/me/account-settings", auth, controller.updateMyAccountSettings);
 router.get("/me/privacy-data", auth, controller.getMyPrivacyData);

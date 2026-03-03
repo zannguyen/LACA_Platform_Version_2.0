@@ -103,3 +103,13 @@ export const resetPassword = async ({
   });
   return res.data;
 };
+
+// Change password (authenticated user)
+export const changePassword = async (currentPassword, newPassword, confirmPassword) => {
+  const res = await apiClient.put("/user/me/password", {
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });
+  return res.data;
+};

@@ -7,11 +7,43 @@
   margin: 0 auto;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
 .page-header h1 {
   font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: var(--space-lg);
+  margin: 0;
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Tabs */

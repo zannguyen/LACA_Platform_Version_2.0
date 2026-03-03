@@ -3,9 +3,8 @@ import apiClient from "./client";
 
 export const adminFeedbackApi = {
   // Get all feedbacks with filters
-  getAll: async ({ type, status, page = 1, limit = 20 } = {}) => {
+  getAll: async ({ status, page = 1, limit = 20 } = {}) => {
     const params = new URLSearchParams();
-    if (type) params.append("type", type);
     if (status) params.append("status", status);
     params.append("page", page);
     params.append("limit", limit);

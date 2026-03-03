@@ -359,6 +359,30 @@ async function updateMyProfile({ userId, body }) {
   };
 }
 
+async function changePassword({ userId, currentPassword, newPassword }) {
+  const bcrypt = require("bcrypt");
+  const id = safeObjectId(userId);
+
+  const user = await User.findById(id).select("+password");
+  if (!user) {
+    return { success: false, message: "User not found" };
+  }
+
+  // Verify current password
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    return { success: false, message: "Current password is incorrect" };
+  }
+
+  // Hash new password
+  const salt = await bcrypt.genSalt(Number(process.env.SALT_ROUNDS) || 10);
+  user.password = await bcrypt.hash(newPassword, salt);
+
+  await user.save();
+
+  return { success: true };
+}
+
 async function getMyAccountSettings(userId) {
   const id = safeObjectId(userId);
   const user = await User.findById(id).lean();
@@ -753,6 +777,7 @@ module.exports = {
   // profile
   getProfile,
   updateMyProfile,
+  changePassword,
   getMyAccountSettings,
   updateMyAccountSettings,
   getMyRecentActivities,

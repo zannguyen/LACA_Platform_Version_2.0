@@ -16,6 +16,9 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Activity detail modal
+  const [selectedActivity, setSelectedActivity] = useState(null);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -154,7 +157,14 @@ const AdminDashboard = () => {
             <div className="empty-state">No recent activity</div>
           ) : (
             recentActivity.map((activity, index) => (
-              <div key={activity.id || index} className="activity-item">
+              <div
+                key={activity.id || index}
+                className="activity-item"
+                onClick={() => setSelectedActivity(activity)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && setSelectedActivity(activity)}
+              >
                 <div className="activity-avatar">
                   {activity?.user?.avatar ? (
                     <img
@@ -205,6 +215,125 @@ const AdminDashboard = () => {
           </button>
         </div>
       </div>
+
+      {/* Activity Detail Modal */}
+      {selectedActivity && (
+        <div className="modal-overlay" onClick={() => setSelectedActivity(null)}>
+          <div className="modal-content activity-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Activity Details</h3>
+              <button
+                className="modal-close"
+                onClick={() => setSelectedActivity(null)}
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* User Info */}
+              <div className="detail-section">
+                <div className="detail-label">User</div>
+                <div className="detail-user">
+                  <div className="detail-avatar">
+                    {selectedActivity?.user?.avatar ? (
+                      <img src={selectedActivity.user.avatar} alt={selectedActivity.user.name} />
+                    ) : (
+                      <div className="avatar-placeholder">
+                        {selectedActivity?.user?.name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="detail-user-info">
+                    <div className="detail-user-name">
+                      {selectedActivity?.user?.name || "Unknown"}
+                    </div>
+                    <div className="detail-user-email">
+                      {selectedActivity?.user?.email || "-"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action */}
+              <div className="detail-section">
+                <div className="detail-label">Action</div>
+                <div className="detail-value">
+                  {selectedActivity?.action || "-"}
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="detail-section">
+                <div className="detail-label">Location</div>
+                <div className="detail-value">
+                  {selectedActivity?.location || "-"}
+                </div>
+              </div>
+
+              {/* Timestamp */}
+              <div className="detail-section">
+                <div className="detail-label">Time</div>
+                <div className="detail-value">
+                  {selectedActivity?.timestamp
+                    ? new Date(selectedActivity.timestamp).toLocaleString("vi-VN", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "-"}
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              {selectedActivity?.details && (
+                <div className="detail-section">
+                  <div className="detail-label">Additional Details</div>
+                  <div className="detail-value detail-details">
+                    {Object.entries(selectedActivity.details).map(([key, value]) => (
+                      <div key={key} className="detail-item">
+                        <span className="detail-key">{key}:</span>
+                        <span className="detail-value-text">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* IP Address */}
+              {selectedActivity?.ipAddress && (
+                <div className="detail-section">
+                  <div className="detail-label">IP Address</div>
+                  <div className="detail-value">
+                    {selectedActivity.ipAddress}
+                  </div>
+                </div>
+              )}
+
+              {/* Device/Browser Info */}
+              {selectedActivity?.device && (
+                <div className="detail-section">
+                  <div className="detail-label">Device</div>
+                  <div className="detail-value">
+                    {selectedActivity.device}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn-close"
+                onClick={() => setSelectedActivity(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

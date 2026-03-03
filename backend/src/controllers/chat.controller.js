@@ -284,6 +284,85 @@ const markRead = asyncHandler(async (req, res) => {
   return res.status(200).json({ updated: result.modifiedCount || 0 });
 });
 
+// 7) Mark a conversation as read by conversationId
+const markConversationRead = asyncHandler(async (req, res) => {
+  const { conversationId } = req.params;
+  const currentUserId = req.user?._id;
+  const cid = toObjectId(conversationId);
+
+  if (!currentUserId) return res.status(401).json({ message: "Unauthorized" });
+  if (!cid) return res.status(400).json({ message: "conversationId invalid" });
+
+  const conversation = await Conversation.findById(cid);
+  if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+
+  const isParticipant = conversation.participants.some(
+    (participantId) => String(participantId) === String(currentUserId),
+  );
+  if (!isParticipant) {
+    return res
+      .status(403)
+      .json({ message: "Bạn không thuộc cuộc trò chuyện này" });
+  }
+
+  if (
+    conversation.lastMessage?.sender &&
+    String(conversation.lastMessage.sender) !== String(currentUserId) &&
+    conversation.lastMessage.isRead === false
+  ) {
+    await Conversation.findByIdAndUpdate(conversation._id, {
+      "lastMessage.isRead": true,
+    });
+  }
+
+  return res.status(200).json({ updated: 1 });
+});
+
+// 7) Delete conversation
+const deleteConversation = asyncHandler(async (req, res) => {
+  const { conversationId } = req.params;
+  const userId = req.user?._id;
+  const cid = toObjectId(conversationId);
+
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!cid) return res.status(400).json({ message: "conversationId invalid" });
+
+  const conversation = await Conversation.findById(cid);
+  if (!conversation) {
+    return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
+  }
+
+  const isParticipant = conversation.participants.some(
+    (participantId) => String(participantId) === String(userId),
+  );
+
+  if (!isParticipant) {
+    return res
+      .status(403)
+      .json({ message: "Bạn không có quyền xóa cuộc trò chuyện này" });
+  }
+
+  if (conversation.type === "public") {
+    conversation.participants = conversation.participants.filter(
+      (participantId) => String(participantId) !== String(userId),
+    );
+
+    if (conversation.participants.length === 0) {
+      await Message.deleteMany({ conversationId: conversation._id });
+      await Conversation.deleteOne({ _id: conversation._id });
+      return res.status(200).json({ deleted: true, mode: "public_removed" });
+    }
+
+    await conversation.save();
+    return res.status(200).json({ deleted: true, mode: "public_left" });
+  }
+
+  await Message.deleteMany({ conversationId: conversation._id });
+  await Conversation.deleteOne({ _id: conversation._id });
+
+  return res.status(200).json({ deleted: true, mode: "direct_deleted" });
+});
+
 // 7) Join public chat for a post
 const joinPublicChat = asyncHandler(async (req, res) => {
   const { postId } = req.params;
@@ -616,6 +695,8 @@ module.exports = {
   searchUsers,
   getOrCreateConversation,
   markRead,
+  markConversationRead,
+  deleteConversation,
   joinPublicChat,
   joinPublicChatIfOwner,
   sendPublicMessage,
