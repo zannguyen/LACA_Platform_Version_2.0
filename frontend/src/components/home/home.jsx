@@ -340,6 +340,12 @@ const Home = () => {
     setChatPopupOpen(false);
   };
 
+  const closeSearch = () => {
+    setSearchExpanded(false);
+    setSearchResults([]);
+    setSearchLoading(false);
+  };
+
   const reactHeart = async (postId) => {
     try {
       const token = getAccessToken();
@@ -710,134 +716,142 @@ const Home = () => {
 
       {/* search + filter - only show when expanded */}
       {searchExpanded && (
-        <div className="home-topbar expanded">
-          <div className="home-search">
-            <input
-              type="text"
-              className="home-search-input"
-              placeholder="Tìm bạn bè bằng email hoặc username..."
-              value={searchText}
-              onChange={async (e) => {
-                const value = e.target.value;
-                setSearchText(value);
-                if (value.trim().length > 0) {
-                  setSearchLoading(true);
-                  try {
-                    const res = await userApi.searchUsers(value);
-                    setSearchResults(res.data || []);
-                  } catch (err) {
-                    console.error("Search error:", err);
-                    setSearchResults([]);
-                  } finally {
-                    setSearchLoading(false);
-                  }
-                } else {
-                  setSearchResults([]);
-                }
-              }}
-              autoFocus
-            />
-            {searchText ? (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={() => {
-                  setSearchText("");
-                  setSearchExpanded(false);
-                }}
-                aria-label="Close search"
-              >
-                <i className="fa-solid fa-arrow-left" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={() => setSearchExpanded(false)}
-                aria-label="Close search"
-              >
-                <i className="fa-solid fa-arrow-left" />
-              </button>
-            )}
-          </div>
+        <>
+          <button
+            type="button"
+            className="search-backdrop"
+            aria-label="Đóng tìm kiếm"
+            onClick={closeSearch}
+          />
 
-          {/* Search Results */}
-          {searchText.trim().length > 0 && (
-            <div className="search-results">
-              {searchLoading ? (
-                <div className="search-loading">Đang tìm...</div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((user) => (
-                  <div key={user._id} className="search-result-item">
-                    <Link
-                      to={`/profile/${user._id}`}
-                      className="search-result-link"
-                      onClick={() => {
-                        setSearchText("");
-                        setSearchExpanded(false);
-                        setSearchResults([]);
-                      }}
-                    >
-                      <div className="search-result-avatar">
-                        {user.avatar ? (
-                          <img
-                            src={user.avatar}
-                            alt={user.fullname || user.username}
-                          />
-                        ) : (
-                          <i className="fa-solid fa-user"></i>
-                        )}
-                      </div>
-                      <div className="search-result-info">
-                        <div className="search-result-name">
-                          {user.fullname || user.username}
-                        </div>
-                        <div className="search-result-username">
-                          @{user.username}
-                        </div>
-                      </div>
-                    </Link>
-                    <button
-                      className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        try {
-                          if (user.isFollowing) {
-                            await userApi.unfollowUser(user._id);
-                            setSearchResults((prev) =>
-                              prev.map((u) =>
-                                u._id === user._id
-                                  ? { ...u, isFollowing: false }
-                                  : u,
-                              ),
-                            );
-                          } else {
-                            await userApi.followUser(user._id);
-                            setSearchResults((prev) =>
-                              prev.map((u) =>
-                                u._id === user._id
-                                  ? { ...u, isFollowing: true }
-                                  : u,
-                              ),
-                            );
-                          }
-                        } catch (err) {
-                          console.error("Follow error:", err);
-                        }
-                      }}
-                    >
-                      {user.isFollowing ? "Following" : "Follow"}
-                    </button>
-                  </div>
-                ))
+          <div className="home-topbar expanded">
+            <div className="home-search">
+              <input
+                type="text"
+                className="home-search-input"
+                placeholder="Tìm bạn bè bằng email hoặc username..."
+                value={searchText}
+                onChange={async (e) => {
+                  const value = e.target.value;
+                  setSearchText(value);
+                  if (value.trim().length > 0) {
+                    setSearchLoading(true);
+                    try {
+                      const res = await userApi.searchUsers(value);
+                      setSearchResults(res.data || []);
+                    } catch (err) {
+                      console.error("Search error:", err);
+                      setSearchResults([]);
+                    } finally {
+                      setSearchLoading(false);
+                    }
+                  } else {
+                    setSearchResults([]);
+                  }
+                }}
+                autoFocus
+              />
+              {searchText ? (
+                <button
+                  type="button"
+                  className="home-search-clear"
+                  onClick={() => {
+                    setSearchText("");
+                    closeSearch();
+                  }}
+                  aria-label="Close search"
+                >
+                  <i className="fa-solid fa-arrow-left" />
+                </button>
               ) : (
-                <div className="search-no-results">
-                  Không tìm thấy người dùng
-                </div>
+                <button
+                  type="button"
+                  className="home-search-clear"
+                  onClick={closeSearch}
+                  aria-label="Close search"
+                >
+                  <i className="fa-solid fa-arrow-left" />
+                </button>
               )}
             </div>
-          )}
-        </div>
+
+            {/* Search Results */}
+            {searchText.trim().length > 0 && (
+              <div className="search-results">
+                {searchLoading ? (
+                  <div className="search-loading">Đang tìm...</div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((user) => (
+                    <div key={user._id} className="search-result-item">
+                      <Link
+                        to={`/profile/${user._id}`}
+                        className="search-result-link"
+                        onClick={() => {
+                          setSearchText("");
+                          closeSearch();
+                        }}
+                      >
+                        <div className="search-result-avatar">
+                          {user.avatar ? (
+                            <img
+                              src={user.avatar}
+                              alt={user.fullname || user.username}
+                            />
+                          ) : (
+                            <i className="fa-solid fa-user"></i>
+                          )}
+                        </div>
+                        <div className="search-result-info">
+                          <div className="search-result-name">
+                            {user.fullname || user.username}
+                          </div>
+                          <div className="search-result-username">
+                            @{user.username}
+                          </div>
+                        </div>
+                      </Link>
+                      <button
+                        className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            if (user.isFollowing) {
+                              await userApi.unfollowUser(user._id);
+                              setSearchResults((prev) =>
+                                prev.map((u) =>
+                                  u._id === user._id
+                                    ? { ...u, isFollowing: false }
+                                    : u,
+                                ),
+                              );
+                            } else {
+                              await userApi.followUser(user._id);
+                              setSearchResults((prev) =>
+                                prev.map((u) =>
+                                  u._id === user._id
+                                    ? { ...u, isFollowing: true }
+                                    : u,
+                                ),
+                              );
+                            }
+                          } catch (err) {
+                            console.error("Follow error:", err);
+                          }
+                        }}
+                      >
+                        {user.isFollowing ? "Following" : "Follow"}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="search-no-results">
+                    Không tìm thấy người dùng
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       <main className="home-main">
@@ -1099,14 +1113,16 @@ const Home = () => {
       />
 
       {/* Floating Filter Button - Top left */}
-      <button
-        className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
-        onClick={() => setFilterOpen(true)}
-        title="Bộ lọc"
-      >
-        <i className="fa-solid fa-sliders"></i>
-        {hasActiveFilter && <span className="filter-active-dot"></span>}
-      </button>
+      {!searchExpanded && (
+        <button
+          className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
+          onClick={() => setFilterOpen(true)}
+          title="Bộ lọc"
+        >
+          <i className="fa-solid fa-sliders"></i>
+          {hasActiveFilter && <span className="filter-active-dot"></span>}
+        </button>
+      )}
 
       {/* Filter Modal - Floating panel */}
       {filterOpen && (
