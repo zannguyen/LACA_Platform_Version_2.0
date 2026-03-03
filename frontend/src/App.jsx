@@ -9,7 +9,7 @@ import Chatbot, { ChatbotFloatingButton } from "./components/chatbot/Chatbot.jsx
 // sẽ tự lấy routes/index.jsx
 
 function ChatbotWrapper() {
-  const { location } = useLocationAccess();
+  const { lastPosition, enabled } = useLocationAccess();
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const locationRouter = useLocation();
 
@@ -18,22 +18,26 @@ function ChatbotWrapper() {
 
   if (!showChatbot) return null;
 
+  // Only show location warning if enabled but no position yet
+  const showLocationWarning = enabled && !lastPosition;
+
   return (
-    <>
+    <div className="chatbot-wrapper">
       <ChatbotFloatingButton onClick={() => setChatbotOpen(true)} />
       <Chatbot
         isOpen={chatbotOpen}
         onClose={() => setChatbotOpen(false)}
-        userLocation={location}
+        userLocation={lastPosition}
+        showLocationWarning={showLocationWarning}
       />
-    </>
+    </div>
   );
 }
 
 export default function App() {
   return (
     <div className="laca-app">
-      <div className="laca-container">
+      <div className="laca-container" style={{ position: "relative" }}>
         <SocketProvider>
           <NotificationListener />
           <LocationAccessProvider>

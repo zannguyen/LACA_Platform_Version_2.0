@@ -64,9 +64,14 @@ export default function ContentModeration() {
   const reporter = (r) => r?.reporter || null;
 
   const getLatLng = (r) => {
-    const lat = r?.post?.place?.location?.lat;
-    const lng = r?.post?.place?.location?.lng;
-    if (typeof lat === "number" && typeof lng === "number") return { lat, lng };
+    // GeoJSON format: location.coordinates = [lng, lat]
+    const place = r?.post?.place;
+    if (place?.location?.coordinates && Array.isArray(place.location.coordinates)) {
+      const [lng, lat] = place.location.coordinates;
+      if (typeof lat === "number" && typeof lng === "number") {
+        return { lat, lng };
+      }
+    }
     return null;
   };
 

@@ -6,6 +6,7 @@ import { addReaction, removeReaction } from "../../api/postApi";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import TagDisplay from "../profile/TagDisplay";
 import TagSelectionModal from "../profile/TagSelectionModal";
+import ReportModal from "../home/ReportModal";
 import "./stranger_profile.css";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
@@ -104,6 +105,7 @@ export default function StrangerProfile() {
   // Tags
   const [userTags, setUserTags] = useState([]);
   const [showTagModal, setShowTagModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -200,7 +202,7 @@ export default function StrangerProfile() {
 
   const handleReport = () => {
     setShowHeaderMenu(false);
-    alert("Report: (tạm thời chưa có BE)");
+    setShowReportModal(true);
   };
 
   const handleShowAllTags = () => {
@@ -552,6 +554,14 @@ export default function StrangerProfile() {
         onClose={() => setShowTagModal(false)}
         currentTags={userTags}
         onSave={null}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        target={profile}
+        targetType="user"
       />
     </div>
   );

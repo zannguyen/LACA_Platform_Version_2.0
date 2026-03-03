@@ -253,6 +253,14 @@ body {
 .laca-container {
   width: 100%;
   min-height: 100%;
+  position: relative;
+}
+
+.chatbot-wrapper {
+  position: fixed;
+  bottom: 70px;
+  right: 16px;
+  z-index: 9997;
 }
 
 /* Map/Leaflet: không ảnh hưởng layout */
