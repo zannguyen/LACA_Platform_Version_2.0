@@ -59,16 +59,20 @@
 
 /* Map info bar - dưới header, trên map */
 .map-info-bar {
-  flex-shrink: 0;
-  padding: 10px 16px 12px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  z-index: 50;
+  position: absolute;
+  top: 66px;
+  left: 0;
+  right: 0;
+  padding: 10px 12px;
+  background: transparent;
+  border-bottom: none;
+  z-index: 120;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.06);
+  box-shadow: none;
+  pointer-events: none;
 }
 
 .checkin-count {
@@ -88,10 +92,13 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--bg-input);
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
 }
 
 .stat-item {
@@ -125,8 +132,9 @@
 /* Map info controls - buttons in info bar */
 .map-info-controls {
   display: flex;
-  gap: var(--space-sm);
+  gap: 8px;
   flex-shrink: 0;
+  pointer-events: auto;
 }
 
 /* Map container */
@@ -179,18 +187,18 @@
 /* Recenter & Refresh buttons */
 .recenter-btn,
 .refresh-btn {
-  width: 40px;
-  height: 40px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  background: rgba(17, 24, 39, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
   transition: all 0.2s ease;
-  color: var(--text-secondary);
+  color: #fff;
   touch-action: manipulation;
 }
 
@@ -208,16 +216,16 @@
 
 .recenter-btn:hover:not(:disabled),
 .refresh-btn:hover:not(:disabled) {
-  background: var(--gradient-soft);
-  color: var(--primary);
+  background: #111827;
+  color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.28);
 }
 
 /* Notice banner (thay vì error đỏ) */
 .notice-banner {
   position: absolute;
-  top: 122px;
+  top: 128px;
   left: 50%;
   transform: translateX(-50%);
   background: #fff7ed;
@@ -257,7 +265,8 @@
   }
 
   .map-info-bar {
-    padding: var(--space-lg);
+    top: 72px;
+    padding: 12px 18px;
   }
 
   .checkin-count {
@@ -266,7 +275,7 @@
   }
 
   .notice-banner {
-    top: 150px;
+    top: 140px;
   }
 }
 
