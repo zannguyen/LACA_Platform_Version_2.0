@@ -432,11 +432,21 @@
   cursor: pointer;
 }
 
+.message-row.me .message-avatar-circle {
+  margin-right: 0;
+  margin-left: var(--space-xs);
+}
+
 .message-avatar-spacer {
   width: 30px;
   height: 30px;
   margin-right: var(--space-xs);
   flex-shrink: 0;
+}
+
+.message-row.me .message-avatar-spacer {
+  margin-right: 0;
+  margin-left: var(--space-xs);
 }
 
 .message-sender-name {
@@ -449,6 +459,11 @@
   padding: 0 var(--space-sm);
   margin-bottom: 4px;
   text-align: left;
+}
+
+.message-row.me .message-sender-name {
+  text-align: right;
+  width: 100%;
 }
 
 .message-sender-name:hover {

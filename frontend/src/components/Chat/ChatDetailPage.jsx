@@ -19,6 +19,8 @@ const ChatDetailPage = () => {
   const conversationIdRef = useRef("");
 
   const [currentUserId, setCurrentUserId] = useState("");
+  const [currentUserName, setCurrentUserName] = useState("Bạn");
+  const [currentUserAvatar, setCurrentUserAvatar] = useState("");
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [toast, setToast] = useState("");
@@ -63,6 +65,11 @@ const ChatDetailPage = () => {
     [receiverName],
   );
 
+  const myInitials = useMemo(
+    () => (currentUserName || "Bạn").trim().charAt(0).toUpperCase(),
+    [currentUserName],
+  );
+
   const receiverOnline = useMemo(
     () => onlineUsers.has(String(receiverId || "")),
     [onlineUsers, receiverId],
@@ -92,6 +99,18 @@ const ChatDetailPage = () => {
   useEffect(() => {
     const me = getCurrentUserId();
     setCurrentUserId(me);
+
+    const rawUser = localStorage.getItem("user");
+    if (rawUser) {
+      try {
+        const user = JSON.parse(rawUser);
+        setCurrentUserName(user?.fullname || user?.username || "Bạn");
+        setCurrentUserAvatar(user?.avatar || "");
+      } catch {
+        setCurrentUserName("Bạn");
+        setCurrentUserAvatar("");
+      }
+    }
 
     const id = localStorage.getItem("chatReceiverId");
     const name = localStorage.getItem("chatReceiverName") || "User";
@@ -315,31 +334,50 @@ const ChatDetailPage = () => {
                 key={msg._id || msg.createdAt || idx}
                 className={`message-row ${msg.isSent ? "me" : ""} ${!isFirstInGroup ? "grouped" : ""} ${newMessageKey === (msg._id || msg.createdAt || `msg-${idx}`) ? "is-new" : ""}`}
               >
-                {!msg.isSent &&
-                  (isLastInGroup ? (
-                    <div
-                      className="avatar-circle message-avatar-circle"
-                      onClick={() =>
-                        senderId && navigate(`/profile/${senderId}`)
-                      }
-                      title="Xem trang cá nhân"
-                    >
-                      {senderAvatar && !avatarErrors.has(String(senderId)) ? (
+                {msg.isSent ? (
+                  isLastInGroup ? (
+                    <div className="avatar-circle message-avatar-circle">
+                      {currentUserAvatar ? (
                         <img
-                          src={senderAvatar}
-                          alt={senderName}
+                          src={currentUserAvatar}
+                          alt={currentUserName}
                           className="chat-header-avatar-image"
-                          onError={() => handleAvatarError(senderId)}
+                          onError={() => setCurrentUserAvatar("")}
                         />
                       ) : (
-                        senderName.charAt(0).toUpperCase()
+                        myInitials
                       )}
                     </div>
                   ) : (
                     <div className="message-avatar-spacer" aria-hidden="true" />
-                  ))}
+                  )
+                ) : isLastInGroup ? (
+                  <div
+                    className="avatar-circle message-avatar-circle"
+                    onClick={() => senderId && navigate(`/profile/${senderId}`)}
+                    title="Xem trang cá nhân"
+                  >
+                    {senderAvatar && !avatarErrors.has(String(senderId)) ? (
+                      <img
+                        src={senderAvatar}
+                        alt={senderName}
+                        className="chat-header-avatar-image"
+                        onError={() => handleAvatarError(senderId)}
+                      />
+                    ) : (
+                      senderName.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                ) : (
+                  <div className="message-avatar-spacer" aria-hidden="true" />
+                )}
 
                 <div className="message-content">
+                  {msg.isSent && isFirstInGroup && (
+                    <span className="message-sender-name">
+                      {currentUserName}
+                    </span>
+                  )}
                   {!msg.isSent && isFirstInGroup && (
                     <button
                       className="message-sender-name"
