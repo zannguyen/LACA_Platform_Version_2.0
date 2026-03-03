@@ -572,11 +572,13 @@ exports.getPostHotspots = async ({
   days = 30,
   limit = 80,
   blockedUserIds = [],
+  mutualFollowUserIds = [],
 }) => {
   const blockedIds = normalizeObjectIds(blockedUserIds);
+  const mutualIds = normalizeObjectIds(mutualFollowUserIds);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const pipeline = [
+  const nearbyPipeline = [
     {
       $geoNear: {
         near: { type: "Point", coordinates: [lng, lat] },
@@ -637,7 +639,78 @@ exports.getPostHotspots = async ({
     { $limit: limit },
   ];
 
-  return Place.aggregate(pipeline);
+  const nearbyHotspots = await Place.aggregate(nearbyPipeline);
+
+  let mutualFollowHotspots = [];
+  if (mutualIds.length > 0) {
+    const mutualPipeline = [
+      {
+        $match: {
+          status: "active",
+          createdAt: { $gte: since },
+          userId: { $in: mutualIds },
+          placeId: { $ne: null },
+          ...(blockedIds.length > 0 ? { userId: { $in: mutualIds, $nin: blockedIds } } : {}),
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: "$placeId",
+          weight: { $sum: 1 },
+          thumb: { $first: { $arrayElemAt: ["$mediaUrl", 0] } },
+        },
+      },
+      {
+        $lookup: {
+          from: "places",
+          localField: "_id",
+          foreignField: "_id",
+          as: "place",
+        },
+      },
+      { $unwind: "$place" },
+      {
+        $project: {
+          _id: 0,
+          placeId: "$_id",
+          lng: { $arrayElemAt: ["$place.location.coordinates", 0] },
+          lat: { $arrayElemAt: ["$place.location.coordinates", 1] },
+          weight: 1,
+          thumb: 1,
+          distanceMeters: null,
+        },
+      },
+      { $match: { lat: { $ne: null }, lng: { $ne: null } } },
+      { $limit: Math.max(limit * 2, 120) },
+    ];
+
+    mutualFollowHotspots = await Post.aggregate(mutualPipeline);
+  }
+
+  const mergedByPlace = new Map();
+
+  for (const hotspot of nearbyHotspots) {
+    mergedByPlace.set(String(hotspot.placeId), { ...hotspot });
+  }
+
+  for (const hotspot of mutualFollowHotspots) {
+    const key = String(hotspot.placeId);
+    const existing = mergedByPlace.get(key);
+
+    if (existing) {
+      existing.weight = (existing.weight || 0) + (hotspot.weight || 0);
+      if (!existing.thumb && hotspot.thumb) {
+        existing.thumb = hotspot.thumb;
+      }
+    } else {
+      mergedByPlace.set(key, { ...hotspot });
+    }
+  }
+
+  return Array.from(mergedByPlace.values())
+    .sort((a, b) => (b.weight || 0) - (a.weight || 0))
+    .slice(0, limit);
 };
 
 // ===============================
