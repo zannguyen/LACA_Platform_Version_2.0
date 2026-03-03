@@ -129,7 +129,18 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
     throw new AppError("This user does not allow public profile viewing", 403);
   }
 
-  const postFilter = { userId: targetId, status: "active" };
+  // For owner: show all posts (including expired)
+  // For non-owners: only show active posts that haven't expired
+  const baseFilter = { userId: targetId, status: "active" };
+  const postFilter = isOwner
+    ? baseFilter // Owner can see all their posts
+    : {
+      ...baseFilter,
+      $or: [
+        { expireAt: null },
+        { expireAt: { $gt: new Date() } }
+      ]
+    };
 
   const followersCountPromise = Follow.countDocuments({
     followingUserId: targetId,

@@ -8,6 +8,7 @@ import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
 import rankingApi from "../../api/rankingApi";
 import { getCategoriesWithTags } from "../../api/tagApi";
+import { getPostsFromFollowed } from "../../api/map.api";
 import lacaLogo from "../../assets/images/laca_logo.png";
 import "./home.css";
 
@@ -48,6 +49,12 @@ const Home = () => {
   const [reportTarget, setReportTarget] = useState(null);
   const [dropdownPostId, setDropdownPostId] = useState(null);
 
+  // block modal
+  const [blockUserId, setBlockUserId] = useState(null);
+  const [blockUserName, setBlockUserName] = useState(null);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockSuccess, setBlockSuccess] = useState(false);
+
   // Ranking modal
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingData, setRankingData] = useState({ locations: [], users: [] });
@@ -60,6 +67,8 @@ const Home = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("for-you");
+  const [followingPosts, setFollowingPosts] = useState([]); // Posts from mutual follow users
+  const [followingLoading, setFollowingLoading] = useState(false);
 
   // Filter states
   const [onlyNearby, setOnlyNearby] = useState(false);
@@ -471,20 +480,13 @@ const Home = () => {
     return null;
   };
 
-  // Check if user can view location: within 5km OR mutual follow
+  // Check if user can view location: within 5km OR mutual follow (has distance calculated)
   const canViewLocation = (post) => {
     const p = getPostLatLng(post);
     if (!p) return false;
 
-    // If within 5km, can view
-    if (post.distanceKm != null && post.distanceKm <= 5) {
-      return true;
-    }
-
-    // If mutual follow (both follow each other), can view location even if outside 5km
-    // Check both isFollowing (I follow them) and isFollowed (they follow me)
-    const isMutual = post.user?.isFollowing && post.user?.isFollowed;
-    if (isMutual) {
+    // If distance is calculated (either within 5km or mutual follow), can view
+    if (post.distanceKm != null) {
       return true;
     }
 
@@ -507,9 +509,20 @@ const Home = () => {
   };
 
   // ================== REPORT DROPDOWN ==================
+  const [lastToggledId, setLastToggledId] = useState(null);
+
   const toggleReportMenu = (e, postId) => {
     e.stopPropagation();
-    setDropdownPostId(prev => prev === postId ? null : postId);
+    e.preventDefault();
+    const postIdStr = String(postId);
+
+    // Nếu click vào cùng một post thì toggle, nếu khác thì set mới
+    if (dropdownPostId === postIdStr) {
+      setDropdownPostId(null);
+    } else {
+      setDropdownPostId(postIdStr);
+      setLastToggledId(postIdStr);
+    }
   };
 
   const closeAllReportDropdowns = () => {
@@ -565,7 +578,11 @@ const Home = () => {
 
   useEffect(() => {
     const close = (e) => {
-      if (!e.target.closest(".report-dropdown")) closeAllReportDropdowns();
+      // Không đóng dropdown khi click vào nút toggle hoặc dropdown
+      if (e.target.closest(".swipe-card-more-btn") || e.target.closest(".report-dropdown")) {
+        return;
+      }
+      closeAllReportDropdowns();
     };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
@@ -590,11 +607,54 @@ const Home = () => {
            onlyHasLocation || filterTags.length > 0;
   }, [filterDistance, filterTime, filterSort, filterType, onlyHasLocation, filterTags]);
 
+  // Load posts from mutual follow users when switching to "following" tab
+  useEffect(() => {
+    if (activeTab === "following") {
+      const loadFollowingPosts = async () => {
+        setFollowingLoading(true);
+        try {
+          const result = await getPostsFromFollowed(50);
+          if (result?.success) {
+            // Add isMutualFollow flag to all posts
+            const posts = (result.data?.data || []).map(p => ({
+              ...p,
+              isMutualFollow: true
+            }));
+            setFollowingPosts(posts);
+          } else {
+            setFollowingPosts([]);
+          }
+        } catch (e) {
+          setFollowingPosts([]);
+        } finally {
+          setFollowingLoading(false);
+        }
+      };
+
+      loadFollowingPosts();
+    } else {
+      setFollowingPosts([]);
+    }
+  }, [activeTab]);
+
+  // Reload posts when switching to "for-you" tab
+  const previousTabRef = useRef(activeTab);
+  useEffect(() => {
+    if (previousTabRef.current !== "for-you" && activeTab === "for-you") {
+      // Switched to "for-you" tab - reload posts
+      if (userLocation) {
+        fetchHomePosts(userLocation.lat, userLocation.lng);
+      }
+    }
+    previousTabRef.current = activeTab;
+  }, [activeTab, userLocation]);
+
   // ================== FRONTEND-ONLY FILTER/SEARCH ==================
   const visiblePosts = useMemo(() => {
     const q = searchText.trim().toLowerCase();
 
-    let posts = (feedPosts || [])
+    // Use followingPosts when on "following" tab, otherwise use feedPosts
+    let posts = activeTab === "following" ? (followingPosts || []) : (feedPosts || [])
 
     // Search filter
     posts = posts.filter((p) => {
@@ -888,20 +948,20 @@ const Home = () => {
       )}
 
       <main className="home-main">
-        {loading && (
+        {(loading || followingLoading) && (
           <div style={{ padding: 12, textAlign: "center" }}>
             Đang tải bài đăng...
           </div>
         )}
 
-        {errMsg && !loading && (
+        {errMsg && !loading && !followingLoading && (
           <div style={{ padding: 12, textAlign: "center" }}>
             <p>{errMsg}</p>
             <button onClick={() => window.location.reload()}>Thử lại</button>
           </div>
         )}
 
-        {!loading && !errMsg && visiblePosts.length > 0 && (
+        {!loading && !followingLoading && !errMsg && visiblePosts.length > 0 && (
           <div className="swipe-cards-container">
             {/* Card stack */}
             <div
@@ -969,13 +1029,13 @@ const Home = () => {
                       >
                         <i className="fa-solid fa-ellipsis"></i>
                       </button>
-                      {dropdownPostId === post._id && (
-                        <div className="report-dropdown" style={{ position: 'absolute', top: 50, right: 16, zIndex: 200 }}>
-                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); setReportTarget(post); setReportOpen(true); setDropdownPostId(null); }}>
+                      {dropdownPostId === String(post._id) && (
+                        <div className="report-dropdown">
+                          <button className="dropdown-item warning" onClick={(e) => { e.stopPropagation(); handleAction("report", post, e); }}>
                             <i className="fa-solid fa-flag"></i> Báo cáo
                           </button>
-                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); setDropdownPostId(null); }}>
-                            <i className="fa-solid fa-ban"></i> Chặn
+                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); handleAction("block", post, e); }}>
+                            <i className="fa-solid fa-ban"></i> Chặn người dùng
                           </button>
                         </div>
                       )}
@@ -1077,10 +1137,14 @@ const Home = () => {
           </div>
         )}
 
-        {!loading && !errMsg && visiblePosts.length === 0 && (
+        {!loading && !followingLoading && !errMsg && visiblePosts.length === 0 && (
           <div className="swipe-empty">
-            <i className="fa-solid fa-inbox"></i>
-            <p>Không có bài đăng nào</p>
+            <i className={`fa-solid ${activeTab === "following" ? "fa-user-plus" : "fa-inbox"}`}></i>
+            <p>
+              {activeTab === "following"
+                ? "Không có bài viết nào từ người bạn follow"
+                : "Không có bài đăng nào"}
+            </p>
           </div>
         )}
       </main>

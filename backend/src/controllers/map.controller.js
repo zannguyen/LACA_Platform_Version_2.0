@@ -47,7 +47,7 @@ exports.getPostsInRadius = asyncHandler(async (req, res) => {
   }
 
   const posts = await MapService.getPostsInRadius({
-    lat, // ✅ đúng thứ tự
+    lat,
     lng,
     limit,
     blockedUserIds,
@@ -55,6 +55,7 @@ exports.getPostsInRadius = asyncHandler(async (req, res) => {
     userPreferredTagIds,
     userInterestNames,
     useRecommendation,
+    currentUserId: req.user?.id,
   });
 
   res.status(200).json({
@@ -142,6 +143,32 @@ exports.getPostsAtPoint = asyncHandler(async (req, res) => {
     userLng,
     blockedUserIds,
     followedUserIds,
+  });
+
+  res.status(200).json({
+    success: true,
+    count: posts.length,
+    data: posts,
+  });
+});
+
+// GET /map/posts/followed - Get all posts from mutual follow users (no radius limit)
+exports.getPostsFromFollowed = asyncHandler(async (req, res) => {
+  const limit = Number(req.query.limit || 50);
+
+  let blockedUserIds = [];
+  let mutualFollowUserIds = [];
+
+  if (req.user?.id) {
+    blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+    // Get mutual follow users
+    mutualFollowUserIds = await UserService.getMutualFollowUserIds(req.user.id);
+  }
+
+  const posts = await MapService.getPostsFromFollowedUsers({
+    limit,
+    blockedUserIds,
+    mutualFollowUserIds,
   });
 
   res.status(200).json({

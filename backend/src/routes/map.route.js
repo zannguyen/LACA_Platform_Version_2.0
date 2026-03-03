@@ -37,4 +37,10 @@ router.get(
   mapController.getPostHotspots,
 );
 
+// Posts from mutual follow users (no radius limit)
+router.get(
+  "/posts/followed",
+  mapController.getPostsFromFollowed,
+);
+
 module.exports = router;

@@ -21,6 +21,13 @@ const create = async (req, res) => {
         ? [rawMediaUrl]
         : [];
 
+    // Calculate expireAt based on expireHours (-1 = never expire)
+    let expireAt = null;
+    const expireHours = parseInt(req.body.expireHours) || -1;
+    if (expireHours > 0) {
+      expireAt = new Date(Date.now() + expireHours * 60 * 60 * 1000);
+    }
+
     const post = await service.createPost({
       userId: req.user.id,
       placeId: req.body.placeId || null,
@@ -29,7 +36,7 @@ const create = async (req, res) => {
       status: "active",
       mediaUrl,
       reportCount: 0,
-      expireAt: req.body.expireAt || null,
+      expireAt,
       tags: req.body.tags || [],
     });
 
@@ -89,6 +96,13 @@ const createWithMedia = async (req, res) => {
       else type = "text";
     }
 
+    // Calculate expireAt based on expireHours (-1 = never expire)
+    let expireAt = null;
+    const expireHours = parseInt(req.body.expireHours) || -1;
+    if (expireHours > 0) {
+      expireAt = new Date(Date.now() + expireHours * 60 * 60 * 1000);
+    }
+
     const post = await service.createPost({
       userId: req.user.id,
       placeId: req.body.placeId || null,
@@ -97,7 +111,7 @@ const createWithMedia = async (req, res) => {
       status: "active",
       mediaUrl,
       reportCount: 0,
-      expireAt: null,
+      expireAt,
       tags: req.body.tags || [],
     });
 
@@ -149,13 +163,16 @@ const getHomePosts = async (req, res) => {
     let blockedUserIds = [];
     let userPreferredTagIds = [];
     let userInterestNames = [];
+    let followingUserIds = new Set(); // Users that current user follows
+    let followerUserIds = new Set(); // Users that follow current user
+    const currentUserId = req.user?.id;
 
-    if (req.user?.id) {
-      blockedUserIds = await UserService.getBlockedUserIds(req.user.id);
+    if (currentUserId) {
+      blockedUserIds = await UserService.getBlockedUserIds(currentUserId);
 
       // Get user's preferred tags and interests for recommendations
       const User = require("../models/user.model");
-      const user = await User.findById(req.user.id)
+      const user = await User.findById(currentUserId)
         .populate("preferredTags")
         .populate("interests");
 
@@ -175,6 +192,14 @@ const getHomePosts = async (req, res) => {
               return String(interest).toLowerCase();
             })
             .filter(Boolean);
+        }
+
+        // Get following and followers list for mutual follow check
+        if (user.following && user.following.length > 0) {
+          user.following.forEach((id) => followingUserIds.add(id.toString()));
+        }
+        if (user.followers && user.followers.length > 0) {
+          user.followers.forEach((id) => followerUserIds.add(id.toString()));
         }
       }
     }
@@ -196,6 +221,20 @@ const getHomePosts = async (req, res) => {
     const nonMatchingPosts = [];
 
     posts.forEach((post) => {
+      // Add follow status to post's user
+      const postUserId = post.userId?._id?.toString();
+      const isFollowing = postUserId ? followingUserIds.has(postUserId) : false;
+      const isFollowed = postUserId ? followerUserIds.has(postUserId) : false;
+
+      // Attach follow status to user object for frontend to check mutual follow
+      if (post.userId && typeof post.userId === "object") {
+        post.userId = {
+          ...post.userId,
+          isFollowing,
+          isFollowed,
+        };
+      }
+
       // Check if post has tags that match user's preferred tags (by ID)
       const postTagIds = post.tags ? post.tags.map((tag) => tag._id.toString()) : [];
       const postTagNames = post.tags

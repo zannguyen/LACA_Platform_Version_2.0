@@ -385,12 +385,21 @@ export default function CameraPost() {
       const url = up?.secure_url || up?.url;
       if (!url) throw new Error("Upload thành công nhưng không nhận được URL");
 
+      // Calculate expireHours based on timerValue
+      let expireHours = -1; // -1 = never expire
+      if (timerValue === "1h") expireHours = 1;
+      else if (timerValue === "2h") expireHours = 2;
+      else if (timerValue === "3h") expireHours = 3;
+      else if (timerValue === "24h") expireHours = 24;
+      // unlimited = -1 (never expire)
+
       await createPost({
         content: caption,
         type: mediaType,
         mediaUrl: [url],
         placeId: pickedPlace._id,
         tags: selectedTags.map((t) => t._id),
+        expireHours,
       });
 
       navigate("/home");
@@ -472,7 +481,34 @@ export default function CameraPost() {
                   setShowTimer(false);
                 }}
               >
-                <i className="fa-solid fa-infinity"></i> Unlimited
+                <i className="fa-solid fa-infinity"></i> Vĩnh viễn
+              </div>
+              <div
+                className={`timer-option ${timerValue === "1h" ? "active" : ""}`}
+                onClick={() => {
+                  setTimerValue("1h");
+                  setShowTimer(false);
+                }}
+              >
+                <i className="fa-regular fa-clock"></i> 1 giờ
+              </div>
+              <div
+                className={`timer-option ${timerValue === "2h" ? "active" : ""}`}
+                onClick={() => {
+                  setTimerValue("2h");
+                  setShowTimer(false);
+                }}
+              >
+                <i className="fa-regular fa-clock"></i> 2 giờ
+              </div>
+              <div
+                className={`timer-option ${timerValue === "3h" ? "active" : ""}`}
+                onClick={() => {
+                  setTimerValue("3h");
+                  setShowTimer(false);
+                }}
+              >
+                <i className="fa-regular fa-clock"></i> 3 giờ
               </div>
               <div
                 className={`timer-option ${timerValue === "24h" ? "active" : ""}`}
@@ -481,7 +517,7 @@ export default function CameraPost() {
                   setShowTimer(false);
                 }}
               >
-                <i className="fa-solid fa-hourglass-half"></i> 24 Hours
+                <i className="fa-solid fa-hourglass-half"></i> 24 giờ
               </div>
             </div>
           </div>
