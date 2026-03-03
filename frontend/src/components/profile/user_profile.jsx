@@ -2,7 +2,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
-import { deletePost, uploadMedia, addReaction, removeReaction } from "../../api/postApi";
+import {
+  deletePost,
+  uploadMedia,
+  addReaction,
+  removeReaction,
+} from "../../api/postApi";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import TagDisplay from "./TagDisplay";
 import TagSelectionModal from "./TagSelectionModal";
@@ -441,7 +446,10 @@ export default function UserProfile() {
   // Toggle like reaction on post
   const handleToggleLike = async (e, postId) => {
     e.stopPropagation();
-    const currentState = reactionStates[postId] || { reacted: false, loading: false };
+    const currentState = reactionStates[postId] || {
+      reacted: false,
+      loading: false,
+    };
     if (currentState.loading) return;
 
     const isReacted = currentState.reacted;
@@ -449,27 +457,36 @@ export default function UserProfile() {
     const newCount = (currentState.count || 0) + (newReacted ? 1 : -1);
 
     // Optimistic update
-    setReactionStates(prev => ({
+    setReactionStates((prev) => ({
       ...prev,
-      [postId]: { reacted: newReacted, loading: true, count: newCount }
+      [postId]: { reacted: newReacted, loading: true, count: newCount },
     }));
 
     try {
       if (isReacted) {
         await removeReaction(postId);
       } else {
-        await addReaction(postId, "like", userLocation?.latitude, userLocation?.longitude);
+        await addReaction(
+          postId,
+          "like",
+          userLocation?.latitude,
+          userLocation?.longitude,
+        );
       }
       // Update state with success
-      setReactionStates(prev => ({
+      setReactionStates((prev) => ({
         ...prev,
-        [postId]: { reacted: newReacted, loading: false, count: newCount }
+        [postId]: { reacted: newReacted, loading: false, count: newCount },
       }));
     } catch (err) {
       // Revert on error
-      setReactionStates(prev => ({
+      setReactionStates((prev) => ({
         ...prev,
-        [postId]: { reacted: isReacted, loading: false, count: currentState.count }
+        [postId]: {
+          reacted: isReacted,
+          loading: false,
+          count: currentState.count,
+        },
       }));
       console.error("Reaction error:", err);
     }
@@ -477,10 +494,23 @@ export default function UserProfile() {
 
   const displayName = profile?.fullname || profile?.username || "User";
   const displayBio = isEditing ? draftBio : profile?.bio || "";
+  const visibility = profile?.profileVisibility || {};
   const profileMetaRows = [
-    { label: "Email", value: profile?.email || "" },
-    { label: "SĐT", value: profile?.phoneNumber || "" },
-    { label: "Ngày sinh", value: formatDateOfBirth(profile?.dateOfBirth) },
+    {
+      label: "Email",
+      value: visibility.email === false ? "" : profile?.email || "",
+    },
+    {
+      label: "SĐT",
+      value: visibility.phoneNumber === false ? "" : profile?.phoneNumber || "",
+    },
+    {
+      label: "Ngày sinh",
+      value:
+        visibility.dateOfBirth === false
+          ? ""
+          : formatDateOfBirth(profile?.dateOfBirth),
+    },
   ].filter((row) => row.value);
 
   if (loading && !profile) {
@@ -664,7 +694,11 @@ export default function UserProfile() {
                         playsInline
                         preload="auto"
                         muted
-                        style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                        style={{
+                          objectFit: "cover",
+                          width: "100%",
+                          height: "100%",
+                        }}
                       />
                     ) : (
                       <img src={media} alt="post" />
@@ -674,14 +708,24 @@ export default function UserProfile() {
                       No media
                     </div>
                   )}
-                  <div className="profile-post-overlay" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="profile-post-overlay"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
                       onClick={(e) => handleToggleLike(e, id)}
                       disabled={reactionStates[id]?.loading}
                     >
-                      <i className={`fa-solid fa-heart ${reactionStates[id]?.reacted ? "fas" : "far"}`}></i>
-                      <span>{(reactionStates[id]?.count ?? p.reactionCount ?? p.likes ?? 0)}</span>
+                      <i
+                        className={`fa-solid fa-heart ${reactionStates[id]?.reacted ? "fas" : "far"}`}
+                      ></i>
+                      <span>
+                        {reactionStates[id]?.count ??
+                          p.reactionCount ??
+                          p.likes ??
+                          0}
+                      </span>
                     </button>
                   </div>
                 </div>

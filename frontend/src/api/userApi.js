@@ -19,6 +19,14 @@ const userApi = {
   getMyAccountSettings: () => api.get(`/user/me/account-settings`),
 
   updateMyAccountSettings: (body) => api.put(`/user/me/account-settings`, body),
+
+  getMyPrivacyData: () => api.get(`/user/me/privacy-data`),
+
+  updateMyPrivacyData: (body) => api.put(`/user/me/privacy-data`, body),
+
+  getMyRecentActivities: ({ page = 1, limit = 20 } = {}) =>
+    api.get(`/user/me/recent-activities${buildQuery({ page, limit })}`),
+
   getUserProfile: ({ userId, page = 1, limit = 10 } = {}) => {
     if (!userId)
       return Promise.reject(new Error("Missing userId for getUserProfile"));

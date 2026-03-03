@@ -47,6 +47,26 @@
   border-radius: 8px;
 }
 
+.privacy-error {
+  background: #ffe9ec;
+  color: #b00020;
+  border: 1px solid #f6b6c1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.privacy-success {
+  background: #e9f9ef;
+  color: #0f7a36;
+  border: 1px solid #b5e8c8;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
 .privacy-toggle {
   display: flex;
   align-items: center;

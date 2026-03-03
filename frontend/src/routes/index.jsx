@@ -30,6 +30,7 @@ import PrivacyData from "../components/setting/PrivacyData";
 import InterestManagementPage from "../pages/InterestManagementPage";
 import TagPreferencePage from "../pages/TagPreferencePage";
 import PostDetailPage from "../pages/PostDetailPage";
+import RecentActivityPage from "../pages/RecentActivityPage";
 import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
@@ -87,6 +88,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <EditProfileSettingPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recent-activity"
+        element={
+          <RequireAuth>
+            <RecentActivityPage />
           </RequireAuth>
         }
       />

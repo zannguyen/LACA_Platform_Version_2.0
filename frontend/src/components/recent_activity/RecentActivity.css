@@ -1,0 +1,138 @@
+.recent-activity-page {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: #fff;
+}
+
+.ra-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  border-bottom: 1px solid #e9e9e9;
+  background: #fff;
+}
+
+.ra-back {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #111;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.ra-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+}
+
+.ra-content {
+  padding: 12px;
+}
+
+.ra-state {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-top: 32px;
+}
+
+.ra-error {
+  color: #b00020;
+}
+
+.ra-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #ececec;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.ra-item.clickable {
+  cursor: pointer;
+}
+
+.ra-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  flex: 0 0 42px;
+  overflow: hidden;
+}
+
+.ra-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ra-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ra-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  line-height: 1.4;
+}
+
+.ra-item-desc {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.ra-item-time {
+  font-size: 12px;
+  color: #8a8a8a;
+  margin-top: 6px;
+}
+
+.ra-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #0ea5e9;
+  margin-top: 6px;
+  flex: 0 0 8px;
+}
+
+.ra-load-more {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #1597e5;
+  color: #fff;
+  padding: 11px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+.ra-load-more:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
