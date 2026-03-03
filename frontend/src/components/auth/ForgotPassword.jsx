@@ -7,7 +7,7 @@ import {
   resetPassword,
 } from "../../api/authApi";
 import "./ForgotPassword.css";
-import logo from "../../assets/images/laca_logo.png";
+import lacaLogo from "../../assets/images/laca_logo.png";
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
@@ -186,43 +186,42 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="forgot-password-container">
-      <div className="forgot-password-card">
-        <div className="logo-container">
-          <img src={logo} alt="LACA Logo" className="logo" />
-        </div>
+    <>
+      <div className="logo-section">
+        <img src={lacaLogo} alt="LACA Logo" className="brand-logo" />
+      </div>
 
-        {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">{error}</div>}
 
-        {step === 1 && (
-          <>
-            <h2 className="title">FORGET PASSWORD</h2>
-            <p className="subtitle">Enter your registered email bellow</p>
+      {step === 1 && (
+        <>
+          <h2 className="title">FORGET PASSWORD</h2>
+          <p className="subtitle">Enter your registered email bellow</p>
 
-            <div className="input-group">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError("");
-                }}
-                className="email-input"
-                placeholder="Enter your email"
-                disabled={loading}
-              />
-              <button
-                onClick={handleRequestOTP}
-                className="otp-button"
-                disabled={loading || !email}
-              >
-                {loading ? "Sending..." : "OTP"}
-              </button>
-            </div>
-
+          <div className="input-group">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+              }}
+              className="email-input"
+              placeholder="Enter your email"
+              disabled={loading}
+            />
             <button
               onClick={handleRequestOTP}
-              className="submit-button"
+              className="otp-button"
+              disabled={loading || !email}
+            >
+              {loading ? "Sending..." : "OTP"}
+            </button>
+          </div>
+
+          <button
+            onClick={handleRequestOTP}
+            className="submit-button"
               disabled={loading || !email}
             >
               {loading ? "SUBMITTING..." : "SUBMIT"}
@@ -362,8 +361,7 @@ const ForgotPassword = () => {
             </button>
           </>
         )}
-      </div>
-    </div>
+    </>
   );
 };
 

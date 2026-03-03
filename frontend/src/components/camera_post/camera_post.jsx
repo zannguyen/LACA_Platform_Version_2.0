@@ -432,7 +432,7 @@ export default function CameraPost() {
             onClick={openLocationSheet}
             disabled={loading}
             title="Chọn vị trí"
-            style={{ color: pickedPlace ? "#2bd0d0" : "white" }}
+            style={{ color: pickedPlace ? "#e94057" : "#333" }}
           >
             <i className="fa-solid fa-location-dot"></i>
           </button>
@@ -444,26 +444,11 @@ export default function CameraPost() {
             onClick={() => setTagOpen(true)}
             disabled={loading}
             title="Chọn tag"
-            style={{ color: selectedTags.length > 0 ? "#2bd0d0" : "white" }}
+            style={{ position: "relative", color: selectedTags.length > 0 ? "#e94057" : "#333" }}
           >
             <i className="fa-solid fa-tag"></i>
             {selectedTags.length > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  background: "#2bd0d0",
-                  color: "black",
-                  borderRadius: "50%",
-                  width: 16,
-                  height: 16,
-                  fontSize: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <span className="tag-badge">
                 {selectedTags.length}
               </span>
             )}
@@ -474,7 +459,7 @@ export default function CameraPost() {
             <div
               className="timer-btn"
               onClick={() => setShowTimer(!showTimer)}
-              style={{ color: timerValue === "24h" ? "#2bd0d0" : "white" }}
+              style={{ color: timerValue === "24h" ? "#e94057" : "#333" }}
             >
               <i className="fa-regular fa-clock"></i>
             </div>
@@ -503,28 +488,7 @@ export default function CameraPost() {
         </div>
       </div>
 
-      {/* HIỂN THỊ PLACE & TAGS */}
-      <div
-        style={{
-          padding: "8px 12px",
-          color: "white",
-          fontSize: 13,
-          position: "relative",
-          zIndex: 10,
-        }}
-      >
-        {pickedPlace ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <span style={{ color: "#2bd0d0" }}>
-              <i className="fa-solid fa-location-dot"></i> {pickedPlace.name}
-            </span>
-            <span style={{ opacity: 0.8 }}>{pickedPlace.address}</span>
-          </div>
-        ) : (
-          <span style={{ opacity: 0.7 }} />
-        )}
-      </div>
-
+      {/* Caption input */}
       <div className="caption-wrapper">
         <input
           type="text"
