@@ -168,15 +168,35 @@ const Camera = () => {
     event.target.value = "";
   };
 
-  const handleBack = () => {
-    // ✅ quay lại trang trước, không về "/"
-    if (window.history.length > 1) navigate(-1);
-    else navigate("/home");
+  const handleBack = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Stop camera stream
+    try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    } catch (err) {
+      console.log("Stop stream error:", err);
+    }
+
+    // Direct navigate
+    window.location.href = "/home";
   };
 
   return (
     <div className="camera-wrapper">
       <div className="camera-view">
+        {/* Close button - top left */}
+        <button type="button" className="close-btn" onClick={handleBack}>
+          <i className="fa-solid fa-xmark"></i>
+        </button>
+
         <video
           ref={videoRef}
           autoPlay
@@ -203,11 +223,6 @@ const Camera = () => {
       </div>
 
       <div className="controls">
-        {/* ✅ Back đúng */}
-        <button className="btn-icon" onClick={handleBack}>
-          <i className="fa-solid fa-arrow-left"></i>
-        </button>
-
         <button className="btn-icon" onClick={handleUploadClick}>
           <i className="fa-regular fa-image"></i>
         </button>

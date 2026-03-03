@@ -7,6 +7,7 @@ import RankingModal from "../ranking/RankingModal";
 import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
 import rankingApi from "../../api/rankingApi";
+import { getCategoriesWithTags } from "../../api/tagApi";
 import lacaLogo from "../../assets/images/laca_logo.png";
 import "./home.css";
 
@@ -67,6 +68,43 @@ const Home = () => {
   const [filterTime, setFilterTime] = useState("all"); // all, today, week, month
   const [filterSort, setFilterSort] = useState("newest"); // newest, popular
   const [filterType, setFilterType] = useState("all"); // all, image, video
+  const [filterTags, setFilterTags] = useState([]); // selected tag IDs
+  const [tagCategories, setTagCategories] = useState([]); // categories with tags from system
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({}); // track which categories are expanded
+
+  // Fetch tags from system - same as camera_post
+  const fetchSystemTags = async () => {
+    setTagsLoading(true);
+    try {
+      const res = await getCategoriesWithTags();
+      const data = res?.data?.data || res?.data || [];
+      setTagCategories(data);
+    } catch (e) {
+      console.error("Failed to fetch tags:", e);
+    } finally {
+      setTagsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSystemTags();
+  }, []);
+
+  const toggleFilterTag = (tagId) => {
+    setFilterTags(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const toggleCategory = (categoryId) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
 
   const getAccessToken = () =>
     localStorage.getItem("token") || localStorage.getItem("authToken");
@@ -433,9 +471,36 @@ const Home = () => {
     return null;
   };
 
+  // Check if user can view location: within 5km OR mutual follow
+  const canViewLocation = (post) => {
+    const p = getPostLatLng(post);
+    if (!p) return false;
+
+    // If within 5km, can view
+    if (post.distanceKm != null && post.distanceKm <= 5) {
+      return true;
+    }
+
+    // If mutual follow (both follow each other), can view location even if outside 5km
+    // Check both isFollowing (I follow them) and isFollowed (they follow me)
+    const isMutual = post.user?.isFollowing && post.user?.isFollowed;
+    if (isMutual) {
+      return true;
+    }
+
+    return false;
+  };
+
   const goToPostOnMap = (post) => {
     const p = getPostLatLng(post);
     if (!p) return;
+
+    // Check permission before navigating
+    if (!canViewLocation(post)) {
+      alert("Bạn cần trong phạm vi 5km hoặc follow lẫn nhau để xem vị trí");
+      return;
+    }
+
     navigate(
       `/map?focusLat=${p.lat}&focusLng=${p.lng}&openPosts=1&postId=${post._id}`,
     );
@@ -521,8 +586,9 @@ const Home = () => {
   // Check if any filter is active
   const hasActiveFilter = useMemo(() => {
     return filterDistance !== "all" || filterTime !== "all" ||
-           filterSort !== "newest" || filterType !== "all" || onlyHasLocation;
-  }, [filterDistance, filterTime, filterSort, filterType, onlyHasLocation]);
+           filterSort !== "newest" || filterType !== "all" ||
+           onlyHasLocation || filterTags.length > 0;
+  }, [filterDistance, filterTime, filterSort, filterType, onlyHasLocation, filterTags]);
 
   // ================== FRONTEND-ONLY FILTER/SEARCH ==================
   const visiblePosts = useMemo(() => {
@@ -576,13 +642,20 @@ const Home = () => {
       return mediaType === filterType;
     })
 
+    // Tags filter
+    posts = posts.filter((p) => {
+      if (filterTags.length === 0) return true;
+      const postTags = p.tags?.map(t => typeof t === 'string' ? t : t._id) || [];
+      return filterTags.some(tagId => postTags.includes(tagId));
+    })
+
     // Sort
     if (filterSort === "popular") {
       posts = [...posts].sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
     }
 
     return posts;
-  }, [feedPosts, searchText, onlyHasLocation, onlyNearby, filterDistance, filterTime, filterSort, filterType]);
+  }, [feedPosts, searchText, onlyHasLocation, onlyNearby, filterDistance, filterTime, filterSort, filterType, filterTags]);
 
   // Swipe handlers
   const handleTouchStart = (e) => {
@@ -879,7 +952,7 @@ const Home = () => {
                         <div className="swipe-card-no-media">{post.content}</div>
                       )}
 
-                      {/* Location button */}
+                      {/* Location button - always show if post has location */}
                       {hasPlace && (
                         <button
                           className="swipe-card-location-btn"
@@ -1104,7 +1177,7 @@ const Home = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="filter-modal-header">
-              <h3>Bộ lọc</h3>
+              <span className="filter-modal-title">Bộ lọc</span>
               <button
                 className="filter-modal-close"
                 onClick={() => setFilterOpen(false)}
@@ -1138,35 +1211,52 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Khoảng cách */}
+            {/* Tags - grouped by category, collapsible */}
             <div className="filter-section">
-              <label className="filter-label">Khoảng cách</label>
-              <div className="filter-options">
-                <button
-                  className={`filter-option-btn ${filterDistance === "all" ? "active" : ""}`}
-                  onClick={() => setFilterDistance("all")}
-                >
-                  Tất cả
-                </button>
-                <button
-                  className={`filter-option-btn ${filterDistance === "5" ? "active" : ""}`}
-                  onClick={() => setFilterDistance("5")}
-                >
-                  ≤ 5km
-                </button>
-                <button
-                  className={`filter-option-btn ${filterDistance === "10" ? "active" : ""}`}
-                  onClick={() => setFilterDistance("10")}
-                >
-                  ≤ 10km
-                </button>
-                <button
-                  className={`filter-option-btn ${filterDistance === "20" ? "active" : ""}`}
-                  onClick={() => setFilterDistance("20")}
-                >
-                  ≤ 20km
-                </button>
-              </div>
+              <label className="filter-label">Tags</label>
+              {tagsLoading ? (
+                <span style={{ color: '#999', fontSize: '14px' }}>Đang tải...</span>
+              ) : tagCategories.length > 0 ? (
+                tagCategories.map(category => (
+                  <div key={category._id} style={{ marginBottom: '12px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                    <div
+                      onClick={() => toggleCategory(category._id)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px 14px',
+                        background: 'rgba(0,0,0,0.03)',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#333' }}>
+                        {category.name}
+                      </span>
+                      <i
+                        className={`fa-solid fa-chevron-${expandedCategories[category._id] ? 'up' : 'down'}`}
+                        style={{ fontSize: '12px', color: '#666' }}
+                      ></i>
+                    </div>
+                    {expandedCategories[category._id] && (
+                      <div className="filter-options" style={{ padding: '12px' }}>
+                        {category.tags?.map(tag => (
+                          <button
+                            key={tag._id}
+                            className={`filter-option-btn ${filterTags.includes(tag._id) ? "active" : ""}`}
+                            onClick={() => toggleFilterTag(tag._id)}
+                          >
+                            {tag.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <span style={{ color: '#999', fontSize: '14px' }}>Không có tags</span>
+              )}
             </div>
 
             {/* Thời gian */}
@@ -1239,6 +1329,7 @@ const Home = () => {
                   setFilterSort("newest");
                   setFilterType("all");
                   setOnlyHasLocation(false);
+                  setFilterTags([]);
                 }}
               >
                 Reset
