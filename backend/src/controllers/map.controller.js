@@ -3,10 +3,10 @@ const asyncHandler = require("../utils/asyncHandler");
 const UserService = require("../services/user.service");
 const User = require("../models/user.model");
 
-// GET /map/posts/nearby?limit=10&recommendation=true
+// GET /map/posts/nearby?limit=100&recommendation=true
 exports.getPostsInRadius = asyncHandler(async (req, res) => {
   const { lng, lat } = req.geo;
-  const limit = Number(req.query.limit || 10);
+  const limit = Number(req.query.limit || 100);
   const useRecommendation = req.query.recommendation === "true";
 
   let blockedUserIds = [];
@@ -157,7 +157,7 @@ exports.getPostsAtPoint = asyncHandler(async (req, res) => {
 
 // GET /map/posts/followed - Get all posts from mutual follow users (no radius limit)
 exports.getPostsFromFollowed = asyncHandler(async (req, res) => {
-  const limit = Number(req.query.limit || 50);
+  const limit = Number(req.query.limit || 100);
 
   let blockedUserIds = [];
   let mutualFollowUserIds = [];

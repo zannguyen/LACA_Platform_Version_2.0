@@ -42,8 +42,8 @@ export const deletePost = async (postId) => {
 };
 
 // Nearby posts
-export const getNearbyPosts = async ({ lat, lng }) => {
-  const res = await api.get("/map/posts/nearby", { params: { lat, lng } });
+export const getNearbyPosts = async ({ lat, lng, limit = 100 }) => {
+  const res = await api.get("/map/posts/nearby", { params: { lat, lng, limit } });
   return res.data;
 };
 

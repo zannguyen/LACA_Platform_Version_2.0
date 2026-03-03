@@ -229,7 +229,7 @@ const Home = () => {
       }
 
       const res = await fetch(
-        `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}&recommendation=true`,
+        `${API_BASE}/map/posts/nearby?lat=${lat}&lng=${lng}&recommendation=true&limit=100`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
@@ -621,7 +621,7 @@ const Home = () => {
       const loadFollowingPosts = async () => {
         setFollowingLoading(true);
         try {
-          const result = await getPostsFromFollowed(50);
+          const result = await getPostsFromFollowed(100);
           if (result?.success) {
             // Add isMutualFollow flag to all posts
             const posts = (result.data?.data || []).map((p) => ({
