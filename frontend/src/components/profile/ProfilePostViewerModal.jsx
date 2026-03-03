@@ -41,9 +41,14 @@ export default function ProfilePostViewerModal({
   reactionStates,
   onToggleLike,
   isOwnerProfile = true,
+  onDeletePost,
 }) {
   const [details, setDetails] = useState({});
   const [loadingIds, setLoadingIds] = useState({});
+  const [sheetPostId, setSheetPostId] = useState(null);
+  const [sheetStep, setSheetStep] = useState("menu"); // 'menu' | 'confirm'
+  const [sheetBusy, setSheetBusy] = useState(false);
+  const [sheetError, setSheetError] = useState("");
   const listRef = useRef(null);
   const itemRefs = useRef([]);
 
@@ -128,6 +133,49 @@ export default function ProfilePostViewerModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Reset action sheet when modal closes
+  useEffect(() => {
+    if (open) return;
+    setSheetPostId(null);
+    setSheetStep("menu");
+    setSheetBusy(false);
+    setSheetError("");
+  }, [open]);
+
+  const openSheet = (postId) => {
+    setSheetError("");
+    setSheetBusy(false);
+    setSheetStep("menu");
+    setSheetPostId(String(postId));
+  };
+
+  const closeSheet = () => {
+    if (sheetBusy) return;
+    setSheetPostId(null);
+    setSheetStep("menu");
+    setSheetError("");
+  };
+
+  const confirmDelete = async () => {
+    if (!sheetPostId || typeof onDeletePost !== "function") return;
+    setSheetBusy(true);
+    setSheetError("");
+    try {
+      const res = await onDeletePost(sheetPostId);
+      if (res?.success === false)
+        throw new Error(res?.message || "Xóa bài đăng thất bại");
+
+      // nếu xóa hết bài -> đóng viewer
+      const remaining = ids.filter((x) => x !== sheetPostId);
+      closeSheet();
+      if (remaining.length === 0) onClose?.();
+    } catch (e) {
+      setSheetError(e?.message || "Xóa bài đăng thất bại");
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -207,15 +255,28 @@ export default function ProfilePostViewerModal({
                   </div>
                 </Link>
 
-                <button
-                  className={`pv-like ${reacted ? "liked" : ""}`}
-                  onClick={() => onToggleLike?.(id)}
-                  disabled={reactionStates?.[id]?.loading}
-                  aria-label="Like"
-                >
-                  <i className="fa-solid fa-heart" />
-                  <span>{likeCount}</span>
-                </button>
+                <div className="pv-actions">
+                  <button
+                    className={`pv-like ${reacted ? "liked" : ""}`}
+                    onClick={() => onToggleLike?.(id)}
+                    disabled={reactionStates?.[id]?.loading}
+                    aria-label="Like"
+                  >
+                    <i className="fa-solid fa-heart" />
+                    <span>{likeCount}</span>
+                  </button>
+
+                  {isOwnerProfile ? (
+                    <button
+                      className="pv-more"
+                      onClick={() => openSheet(id)}
+                      aria-label="More"
+                      title="Tùy chọn"
+                    >
+                      <i className="fa-solid fa-ellipsis" />
+                    </button>
+                  ) : null}
+                </div>
               </div>
 
               {mediaUrls.length > 0 ? (
@@ -271,6 +332,51 @@ export default function ProfilePostViewerModal({
           );
           })}
         </div>
+
+        {/* Action sheet (Instagram style) */}
+        {sheetPostId ? (
+          <div className="pv-sheet-overlay" onClick={closeSheet}>
+            <div className="pv-sheet" onClick={(e) => e.stopPropagation()}>
+              {sheetStep === "menu" ? (
+                <>
+                  <button
+                    className="pv-sheet-btn danger"
+                    onClick={() => setSheetStep("confirm")}
+                  >
+                    Xóa bài đăng
+                  </button>
+                  <button className="pv-sheet-btn" onClick={closeSheet}>
+                    Hủy
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="pv-sheet-title">Xóa bài đăng?</div>
+                  <div className="pv-sheet-sub">
+                    Thao tác này không thể hoàn tác.
+                  </div>
+                  {sheetError ? (
+                    <div className="pv-sheet-error">{sheetError}</div>
+                  ) : null}
+                  <button
+                    className="pv-sheet-btn danger"
+                    onClick={confirmDelete}
+                    disabled={sheetBusy}
+                  >
+                    {sheetBusy ? "Đang xóa..." : "Xóa"}
+                  </button>
+                  <button
+                    className="pv-sheet-btn"
+                    onClick={closeSheet}
+                    disabled={sheetBusy}
+                  >
+                    Hủy
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
