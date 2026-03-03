@@ -22,6 +22,9 @@ const ForgotPassword = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [countdown, setCountdown] = useState(0);
 
   const [loading, setLoading] = useState(false);
@@ -186,19 +189,25 @@ const ForgotPassword = () => {
   };
 
   return (
-    <>
+    <div className="forgot-password-container">
+      {/* Logo */}
       <div className="logo-section">
         <img src={lacaLogo} alt="LACA Logo" className="brand-logo" />
       </div>
 
+      {/* Error Message */}
       {error && <div className="error-message">{error}</div>}
 
+      {/* Step 1: Enter Email */}
       {step === 1 && (
-        <>
-          <h2 className="title">FORGET PASSWORD</h2>
-          <p className="subtitle">Enter your registered email bellow</p>
+        <div className="forgot-step">
+          <h2 className="step-title">Quên mật khẩu</h2>
+          <p className="step-description">
+            Nhập địa chỉ email đã đăng ký để khôi phục mật khẩu
+          </p>
 
-          <div className="input-group">
+          <div className="field-row">
+            <label className="field-label">Email</label>
             <input
               type="email"
               value={email}
@@ -206,54 +215,47 @@ const ForgotPassword = () => {
                 setEmail(e.target.value);
                 setError("");
               }}
-              className="email-input"
-              placeholder="Enter your email"
+              className="field-input"
+              placeholder="Nhập email của bạn"
               disabled={loading}
             />
-            <button
-              onClick={handleRequestOTP}
-              className="otp-button"
-              disabled={loading || !email}
-            >
-              {loading ? "Sending..." : "OTP"}
-            </button>
           </div>
 
           <button
             onClick={handleRequestOTP}
             className="submit-button"
-              disabled={loading || !email}
-            >
-              {loading ? "SUBMITTING..." : "SUBMIT"}
-            </button>
+            disabled={loading || !email}
+          >
+            {loading ? "Đang gửi..." : "Gửi mã OTP"}
+          </button>
 
-            <p className="footer">
-              Remember password?{" "}
-              <a href="/login" className="link">
-                Log in
-              </a>
-            </p>
-          </>
-        )}
+          <p className="footer-text">
+            Đã nhớ mật khẩu?{" "}
+            <a href="/login" className="link-bold">
+              Đăng nhập
+            </a>
+          </p>
+        </div>
+      )}
 
-        {(step === 2 || step === 3) && (
-          <>
-            <h2 className="title">Forget Password</h2>
-            <p className="subtitle">Enter your registered email bellow</p>
+      {/* Step 2: Enter OTP */}
+      {(step === 2 || step === 3) && (
+        <div className="forgot-step">
+          <h2 className="step-title">Xác nhận email</h2>
+          <p className="step-description">
+            Chúng tôi đã gửi mã xác nhận đến email của bạn
+          </p>
 
-            <div className="input-group">
-              <input
-                type="email"
-                value={email}
-                readOnly
-                className="email-input"
-              />
-              <button className="otp-button" disabled>
-                OTP
-              </button>
+          <div className="field-row">
+            <label className="field-label">Email</label>
+            <div className="email-display">
+              <span>{maskEmail(email)}</span>
             </div>
+          </div>
 
-            <div className="otp-boxes">
+          <div className="otp-section">
+            <label className="field-label">Mã xác nhận</label>
+            <div className="otp-container">
               {otp.map((digit, i) => (
                 <input
                   key={i}
@@ -263,105 +265,184 @@ const ForgotPassword = () => {
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="otp-box-input"
+                  className="otp-box"
                   disabled={loading}
                 />
               ))}
             </div>
+          </div>
 
-            <p className="otp-sent-message">
-              We have sent a reset <strong>OTP</strong> to {maskEmail(email)}
-            </p>
+          <p className="otp-sent-message">
+            Mã xác nhận đã gửi đến <strong>{maskEmail(email)}</strong>
+          </p>
 
-            <p className="resend-text">
-              Can't get email?{" "}
-              <button
-                onClick={handleResendOTP}
-                className="resend-link"
-                disabled={countdown > 0 || loading}
-              >
-                Resubmit {countdown > 0 && `(CD ${countdown}s)`}
-              </button>
-            </p>
-
+          <p className="resend-container">
+            Chưa nhận được email?{" "}
             <button
-              onClick={handleSubmitOTP}
-              className="submit-button"
-              disabled={loading || otp.join("").length !== 6}
+              onClick={handleResendOTP}
+              className="resend-button"
+              disabled={countdown > 0 || loading}
             >
-              {loading ? "VERIFYING..." : "SUBMIT"}
+              {countdown > 0 ? `Gửi lại (${countdown}s)` : "Gửi lại"}
             </button>
+          </p>
 
-            <p className="footer">
-              Remember password?{" "}
-              <a href="/login" className="link">
-                Log in
-              </a>
-            </p>
-          </>
-        )}
+          <button
+            onClick={handleSubmitOTP}
+            className="submit-button"
+            disabled={loading || otp.join("").length !== 6}
+          >
+            {loading ? "Đang xác nhận..." : "Xác nhận"}
+          </button>
 
-        {step === 4 && (
-          <>
-            <h1 className="success-title">SUCCESS</h1>
-            <p className="success-message">
-              Now we will transfer you to
-              <br />
-              reset password page
-            </p>
-
-            <button onClick={() => setStep(5)} className="continue-button">
-              CONTINUE
+          <p className="footer-text">
+            <button
+              onClick={() => {
+                setStep(1);
+                setError("");
+              }}
+              className="back-link"
+            >
+              ← Quay lại
             </button>
-          </>
-        )}
+          </p>
+        </div>
+      )}
 
-        {step === 5 && (
-          <>
-            <h2 className="title">New Password</h2>
+      {/* Step 3: Success */}
+      {step === 4 && (
+        <div className="forgot-step">
+          <div className="success-icon">
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </div>
+          <h2 className="step-title">Xác thực thành công!</h2>
+          <p className="step-description">
+            Vui lòng nhập mật khẩu mới để hoàn tất quá trình khôi phục
+          </p>
 
-            <div className="password-group">
+          <button
+            onClick={() => setStep(5)}
+            className="submit-button"
+          >
+            Tiếp tục
+          </button>
+        </div>
+      )}
+
+      {/* Step 4: New Password */}
+      {step === 5 && (
+        <div className="forgot-step">
+          <h2 className="step-title">Đặt mật khẩu mới</h2>
+          <p className="step-description">
+            Nhập mật khẩu mới an toàn cho tài khoản của bạn
+          </p>
+
+          <div className="field-row">
+            <label className="field-label">Mật khẩu mới</label>
+            <div className="password-input-wrapper">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value);
                   setError("");
                 }}
-                className="password-input"
-                placeholder="Enter new password"
+                className="field-input"
+                placeholder="Nhập mật khẩu mới"
                 disabled={loading}
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
             </div>
+          </div>
 
-            <h2 className="title">Confirm Password</h2>
-
-            <div className="password-group">
+          <div className="field-row">
+            <label className="field-label">Xác nhận mật khẩu</label>
+            <div className="password-input-wrapper">
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   setError("");
                 }}
-                className="password-input"
-                placeholder="Confirm password"
+                className="field-input"
+                placeholder="Nhập lại mật khẩu"
                 disabled={loading}
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
             </div>
+          </div>
 
+          {newPassword && confirmPassword && newPassword !== confirmPassword && (
+            <p className="password-mismatch">Mật khẩu không khớp</p>
+          )}
+
+          <button
+            onClick={handleResetPassword}
+            className="submit-button reset-btn"
+            disabled={
+              loading || !newPassword || newPassword !== confirmPassword
+            }
+          >
+            {loading ? "Đang đặt lại..." : "Đặt lại mật khẩu"}
+          </button>
+
+          <p className="footer-text">
             <button
-              onClick={handleResetPassword}
-              className="submit-button reset-btn"
-              disabled={
-                loading || !newPassword || newPassword !== confirmPassword
-              }
+              onClick={() => {
+                setStep(2);
+                setError("");
+              }}
+              className="back-link"
             >
-              {loading ? "RESETTING..." : "RESET PASSWORD"}
+              ← Quay lại
             </button>
-          </>
-        )}
-    </>
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 
