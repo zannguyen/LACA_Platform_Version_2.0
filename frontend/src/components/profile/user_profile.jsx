@@ -2,7 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
-import { deletePost, uploadMedia } from "../../api/postApi";
+import { deletePost, uploadMedia, addReaction, removeReaction } from "../../api/postApi";
+import { useLocationAccess } from "../../context/LocationAccessContext";
 import TagDisplay from "./TagDisplay";
 import TagSelectionModal from "./TagSelectionModal";
 import "./user_profile.css";
@@ -123,6 +124,10 @@ const formatDateOfBirth = (value) => {
 export default function UserProfile() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { location: userLocation } = useLocationAccess();
+
+  // Reaction state - lưu trạng thái like của từng bài viết
+  const [reactionStates, setReactionStates] = useState({});
 
   const [cropOpen, setCropOpen] = useState(false);
   const [avatarPick, setAvatarPick] = useState(null); // { src: string }
@@ -433,6 +438,43 @@ export default function UserProfile() {
     await fetchMyProfile({ page: nextPage, append: true });
   };
 
+  // Toggle like reaction on post
+  const handleToggleLike = async (e, postId) => {
+    e.stopPropagation();
+    const currentState = reactionStates[postId] || { reacted: false, loading: false };
+    if (currentState.loading) return;
+
+    const isReacted = currentState.reacted;
+    const newReacted = !isReacted;
+    const newCount = (currentState.count || 0) + (newReacted ? 1 : -1);
+
+    // Optimistic update
+    setReactionStates(prev => ({
+      ...prev,
+      [postId]: { reacted: newReacted, loading: true, count: newCount }
+    }));
+
+    try {
+      if (isReacted) {
+        await removeReaction(postId);
+      } else {
+        await addReaction(postId, "like", userLocation?.latitude, userLocation?.longitude);
+      }
+      // Update state with success
+      setReactionStates(prev => ({
+        ...prev,
+        [postId]: { reacted: newReacted, loading: false, count: newCount }
+      }));
+    } catch (err) {
+      // Revert on error
+      setReactionStates(prev => ({
+        ...prev,
+        [postId]: { reacted: isReacted, loading: false, count: currentState.count }
+      }));
+      console.error("Reaction error:", err);
+    }
+  };
+
   const displayName = profile?.fullname || profile?.username || "User";
   const displayBio = isEditing ? draftBio : profile?.bio || "";
   const profileMetaRows = [
@@ -614,19 +656,33 @@ export default function UserProfile() {
                   onClick={() => navigate(`/posts/${id}`)}
                 >
                   {media ? (
-                    <img src={media} alt="post" />
+                    isVideo ? (
+                      <video
+                        src={media}
+                        autoPlay
+                        loop
+                        playsInline
+                        preload="auto"
+                        muted
+                        style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                      />
+                    ) : (
+                      <img src={media} alt="post" />
+                    )
                   ) : (
                     <div style={{ color: "#8e8e8e", fontSize: 12 }}>
                       No media
                     </div>
                   )}
-                  <div className="profile-post-overlay">
-                    <span className="profile-post-stat">
-                      <i className="fa-solid fa-heart"></i>
-                    </span>
-                    <span className="profile-post-stat">
-                      <i className="fa-solid fa-comment"></i>
-                    </span>
+                  <div className="profile-post-overlay" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
+                      onClick={(e) => handleToggleLike(e, id)}
+                      disabled={reactionStates[id]?.loading}
+                    >
+                      <i className={`fa-solid fa-heart ${reactionStates[id]?.reacted ? "fas" : "far"}`}></i>
+                      <span>{(reactionStates[id]?.count ?? p.reactionCount ?? p.likes ?? 0)}</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -640,12 +696,19 @@ export default function UserProfile() {
 
         {canLoadMore && (
           <button
-            className="follow-btn"
-            style={{ width: "100%", marginTop: 12 }}
+            className="load-more-btn"
             onClick={handleLoadMore}
             disabled={loading}
           >
-            {loading ? "LOADING..." : "TẢI THÊM"}
+            {loading ? (
+              <>
+                <i className="fa-solid fa-circle-notch fa-spin"></i> Đang tải...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-plus"></i> Xem thêm bài viết
+              </>
+            )}
           </button>
         )}
       </div>

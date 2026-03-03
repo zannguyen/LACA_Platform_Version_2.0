@@ -61,4 +61,73 @@ export const getPostDetail = async (postId) => {
   return res.data;
 };
 
+// ============================================
+// REACTION APIs
+// ============================================
+
+/**
+ * Thêm reaction vào bài viết
+ * @param {string} postId - ID của bài viết
+ * @param {string} type - Loại reaction: 'like', 'love', 'haha', 'wow', 'sad', 'angry', 'heart'
+ * @param {number} lat - Vĩ độ của user (để kiểm tra khoảng cách)
+ * @param {number} lng - Kinh độ của user
+ */
+export const addReaction = async (postId, type = "like", lat, lng) => {
+  try {
+    const res = await api.post("/reactions", { postId, type, lat, lng });
+    return { success: true, data: res.data };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || "Không thể thả cảm xúc",
+    };
+  }
+};
+
+/**
+ * Xóa reaction khỏi bài viết
+ * @param {string} postId - ID của bài viết
+ */
+export const removeReaction = async (postId) => {
+  try {
+    const res = await api.delete(`/reactions/${postId}`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || "Không thể bỏ cảm xúc",
+    };
+  }
+};
+
+/**
+ * Lấy số lượng reaction của bài viết
+ * @param {string} postId - ID của bài viết
+ */
+export const getReactionCount = async (postId) => {
+  try {
+    const res = await api.get(`/reactions/count/${postId}`);
+    return { success: true, total: res.data.total || 0 };
+  } catch (err) {
+    return { success: false, total: 0 };
+  }
+};
+
+/**
+ * Lấy trạng thái reaction của user hiện tại
+ * @param {string} postId - ID của bài viết
+ */
+export const getReactionStatus = async (postId) => {
+  try {
+    const res = await api.get(`/reactions/status/${postId}`);
+    return {
+      success: true,
+      reacted: res.data.reacted || false,
+      type: res.data.type || null,
+    };
+  } catch (err) {
+    return { success: false, reacted: false, type: null };
+  }
+};
+
 export default api;

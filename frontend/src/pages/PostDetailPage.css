@@ -218,6 +218,45 @@
   gap: 4px;
 }
 
+/* Like Button in Post Detail */
+.post-detail-like-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 20px;
+  color: #262626;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.post-detail-like-btn:hover {
+  background: #e8e8e8;
+}
+
+.post-detail-like-btn:active {
+  transform: scale(0.95);
+}
+
+.post-detail-like-btn.liked {
+  color: #ed4956;
+  background: rgba(237, 73, 86, 0.1);
+}
+
+.post-detail-like-btn.liked i {
+  color: #ed4956;
+}
+
+.post-detail-like-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Caption */
 .post-detail-caption {
   margin-bottom: 12px;
