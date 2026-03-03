@@ -21,6 +21,11 @@ const userApi = {
   sendEmailChangeOtp: (body) =>
     api.post(`/user/me/account-settings/email-otp/send`, body),
 
+  requestDeleteAccount: () => api.post(`/user/me/delete-account/request`),
+
+  confirmDeleteAccount: (body) =>
+    api.post(`/user/me/delete-account/confirm`, body),
+
   updateMyAccountSettings: (body) => api.put(`/user/me/account-settings`, body),
 
   getMyPrivacyData: () => api.get(`/user/me/privacy-data`),

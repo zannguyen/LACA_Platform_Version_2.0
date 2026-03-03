@@ -131,6 +131,40 @@ exports.updateMyAccountSettings = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/user/me/delete-account/request
+ * (Auth required)
+ */
+exports.requestDeleteAccount = asyncHandler(async (req, res) => {
+  const data = await UserService.requestDeleteAccountOtp({
+    userId: req.user.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Đã gửi mã xác nhận xóa tài khoản qua email",
+    data,
+  });
+});
+
+/**
+ * POST /api/user/me/delete-account/confirm
+ * (Auth required)
+ */
+exports.confirmDeleteAccount = asyncHandler(async (req, res) => {
+  const data = await UserService.confirmDeleteAccount({
+    userId: req.user.id,
+    otpToken: req.body?.otpToken,
+    otpCode: req.body?.otpCode,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Tài khoản đã được xóa",
+    data,
+  });
+});
+
+/**
  * GET /api/user/me/privacy-data
  * (Auth required)
  */

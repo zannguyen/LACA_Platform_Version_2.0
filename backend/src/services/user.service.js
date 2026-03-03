@@ -5,6 +5,7 @@ const { randomUUID } = require("crypto");
 
 const User = require("../models/user.model");
 const EmailOTP = require("../models/emailOTP.model");
+const RefreshToken = require("../models/refreshToken.model");
 const Post = require("../models/post.model");
 const BlockUser = require("../models/blockUser.model");
 const Follow = require("../models/follow.model");
@@ -458,6 +459,94 @@ async function sendEmailChangeOtp({ userId, email }) {
   };
 }
 
+async function requestDeleteAccountOtp({ userId }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id).lean();
+  if (!user) throw new AppError("User not found", 404);
+  if (user.deletedAt) throw new AppError("Tài khoản đã bị xóa", 400);
+
+  await EmailOTP.deleteMany({ userId: id, purpose: "DELETE_ACCOUNT" });
+
+  const plainOtp = generateOtpCode();
+  const otpToken = randomUUID();
+
+  await EmailOTP.create({
+    otpToken,
+    userId: id,
+    targetEmail: user.email,
+    otp: await bcrypt.hash(plainOtp, SALT_ROUNDS),
+    purpose: "DELETE_ACCOUNT",
+    expiresAt: generateOtpExpiredAt(),
+    isUsed: false,
+    attempts: 0,
+  });
+
+  await emailService.sendOTP(user.email, plainOtp, "DELETE_ACCOUNT");
+
+  return {
+    otpToken,
+    email: user.email,
+    expiresInMs: Number(process.env.OTP_EXPIRED_IN || 120000),
+  };
+}
+
+async function confirmDeleteAccount({ userId, otpToken, otpCode }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id);
+  if (!user) throw new AppError("User not found", 404);
+  if (user.deletedAt) throw new AppError("Tài khoản đã bị xóa", 400);
+
+  const token = String(otpToken || "").trim();
+  const code = String(otpCode || "").trim();
+  if (!token || !code) {
+    throw new AppError("otpToken và otpCode là bắt buộc", 400);
+  }
+
+  const otpDoc = await EmailOTP.findOne({
+    otpToken: token,
+    userId: id,
+    purpose: "DELETE_ACCOUNT",
+    isUsed: false,
+  });
+
+  if (!otpDoc) throw new AppError("OTP không hợp lệ", 400);
+  if (otpDoc.expiresAt.getTime() <= Date.now()) {
+    throw new AppError("Mã OTP đã hết hạn", 400);
+  }
+  if ((otpDoc.attempts || 0) >= 5) {
+    throw new AppError("OTP bị khóa do nhập sai quá nhiều lần", 429);
+  }
+
+  const isOtpValid = await bcrypt.compare(code, otpDoc.otp);
+  if (!isOtpValid) {
+    otpDoc.attempts = (otpDoc.attempts || 0) + 1;
+    await otpDoc.save();
+    throw new AppError("Mã OTP không đúng", 400);
+  }
+
+  otpDoc.isUsed = true;
+  await otpDoc.save();
+
+  const suffix = `${Date.now()}_${String(user._id).slice(-6)}`;
+  user.fullname = "Deleted User";
+  user.username = `deleted_${suffix}`;
+  user.email = `deleted+${suffix}@laca.local`;
+  user.avatar = "";
+  user.bio = "";
+  user.phoneNumber = "";
+  user.dateOfBirth = null;
+  user.isActive = false;
+  user.isEmailVerified = false;
+  user.deletedAt = new Date();
+  user.updatedAt = new Date();
+  await user.save();
+
+  await RefreshToken.updateMany({ userId: id, isRevoked: false }, { $set: { isRevoked: true } });
+  await EmailOTP.deleteMany({ userId: id });
+
+  return { deleted: true };
+}
+
 async function updateMyAccountSettings({ userId, body }) {
   const id = safeObjectId(userId);
   const user = await User.findById(id);
@@ -874,6 +963,8 @@ module.exports = {
   changePassword,
   getMyAccountSettings,
   sendEmailChangeOtp,
+  requestDeleteAccountOtp,
+  confirmDeleteAccount,
   updateMyAccountSettings,
   getMyRecentActivities,
 

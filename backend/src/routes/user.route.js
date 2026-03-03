@@ -14,6 +14,8 @@ router.post(
 	controller.sendEmailChangeOtp,
 );
 router.put("/me/account-settings", auth, controller.updateMyAccountSettings);
+router.post("/me/delete-account/request", auth, controller.requestDeleteAccount);
+router.post("/me/delete-account/confirm", auth, controller.confirmDeleteAccount);
 router.get("/me/privacy-data", auth, controller.getMyPrivacyData);
 router.put("/me/privacy-data", auth, controller.updateMyPrivacyData);
 router.get("/me/recent-activities", auth, controller.getMyRecentActivities);
