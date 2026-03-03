@@ -520,6 +520,45 @@
   font-size: 16px;
 }
 
+/* Like Button in Profile Grid */
+.my-profile .profile-post-like-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.my-profile .profile-post-like-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.my-profile .profile-post-like-btn:active {
+  transform: scale(0.95);
+}
+
+.my-profile .profile-post-like-btn.liked {
+  color: #ed4956;
+  background: rgba(237, 73, 86, 0.2);
+}
+
+.my-profile .profile-post-like-btn.liked i {
+  color: #ed4956;
+}
+
+.my-profile .profile-post-like-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Empty State */
 .my-profile .profile-empty {
   text-align: center;
@@ -622,4 +661,43 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Load More Button */
+.my-profile .load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 32px);
+  margin: 16px auto;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.my-profile .load-more-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.my-profile .load-more-btn:active {
+  transform: translateY(0);
+}
+
+.my-profile .load-more-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.my-profile .load-more-btn i {
+  font-size: 12px;
 }

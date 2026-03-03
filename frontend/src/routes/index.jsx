@@ -15,6 +15,7 @@ import UserManagement from "../components/admin/UserManagement";
 import ContentModeration from "../components/admin/ContentModeration";
 import MapManagement from "../components/admin/MapManagement";
 import AdminAnalytics from "../components/admin/AdminAnalytics";
+import AdminAccount from "../components/admin/AdminAccount";
 import TagManagement from "../components/admin/TagManagement";
 import FeedbackManagement from "../components/admin/FeedbackManagement";
 import AdminBroadcastPage from "../pages/AdminBroadcastPage";
@@ -31,6 +32,7 @@ import PrivacyData from "../components/setting/PrivacyData";
 import InterestManagementPage from "../pages/InterestManagementPage";
 import TagPreferencePage from "../pages/TagPreferencePage";
 import PostDetailPage from "../pages/PostDetailPage";
+import RecentActivityPage from "../pages/RecentActivityPage";
 import RequireAuth from "./RequireAuth";
 export default function AppRoutes() {
   return (
@@ -92,6 +94,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/recent-activity"
+        element={
+          <RequireAuth>
+            <RecentActivityPage />
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/interests"
         element={
           <RequireAuth>
@@ -147,6 +157,7 @@ export default function AppRoutes() {
         <Route path="feedbacks" element={<FeedbackManagement />} />
         <Route path="broadcast" element={<AdminBroadcastPage />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="account" element={<AdminAccount />} />
       </Route>
 
       {/* Optional: route không tồn tại */}

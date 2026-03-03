@@ -65,6 +65,45 @@ exports.updateMyAccountSettings = asyncHandler(async (req, res) => {
     .status(200)
     .json({ success: true, message: "Account settings updated", data });
 });
+
+/**
+ * GET /api/user/me/privacy-data
+ * (Auth required)
+ */
+exports.getMyPrivacyData = asyncHandler(async (req, res) => {
+  const data = await UserService.getMyPrivacyData(req.user.id);
+  return res.status(200).json({ success: true, data });
+});
+
+/**
+ * PUT /api/user/me/privacy-data
+ * (Auth required)
+ */
+exports.updateMyPrivacyData = asyncHandler(async (req, res) => {
+  const data = await UserService.updateMyPrivacyData({
+    userId: req.user.id,
+    body: req.body,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Privacy data updated",
+    data,
+  });
+});
+
+/**
+ * GET /api/user/me/recent-activities
+ * (Auth required)
+ */
+exports.getMyRecentActivities = asyncHandler(async (req, res) => {
+  const data = await UserService.getMyRecentActivities({
+    userId: req.user.id,
+    query: req.query,
+  });
+
+  return res.status(200).json({ success: true, data });
+});
 exports.blockUser = asyncHandler(async (req, res) => {
   const blockedId = req.params.id;
   const blockerId = req.user.id;

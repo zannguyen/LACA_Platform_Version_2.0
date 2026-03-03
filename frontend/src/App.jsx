@@ -4,12 +4,19 @@ import { LocationAccessProvider, useLocationAccess } from "./context/LocationAcc
 import { SocketProvider } from "./context/SocketContext.jsx";
 import NotificationListener from "./components/NotificationListener.jsx";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import Chatbot, { ChatbotFloatingButton } from "./components/chatbot/Chatbot.jsx";
 // sẽ tự lấy routes/index.jsx
 
 function ChatbotWrapper() {
   const { location } = useLocationAccess();
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const locationRouter = useLocation();
+
+  // Only show chatbot on Home and Map pages
+  const showChatbot = locationRouter.pathname === "/home" || locationRouter.pathname === "/map";
+
+  if (!showChatbot) return null;
 
   return (
     <>

@@ -9,6 +9,12 @@ const defaultProfileVisibility = {
   dateOfBirth: false,
 };
 
+const defaultPrivacyData = {
+  allowFollowFromStrangers: true,
+  allowPeopleInteraction: true,
+  allowPeopleToSeeProfile: true,
+};
+
 const userSchema = new mongoose.Schema({
   fullname: {
     type: String,
@@ -81,6 +87,20 @@ const userSchema = new mongoose.Schema({
     dateOfBirth: {
       type: Boolean,
       default: defaultProfileVisibility.dateOfBirth,
+    },
+  },
+  privacyData: {
+    allowFollowFromStrangers: {
+      type: Boolean,
+      default: defaultPrivacyData.allowFollowFromStrangers,
+    },
+    allowPeopleInteraction: {
+      type: Boolean,
+      default: defaultPrivacyData.allowPeopleInteraction,
+    },
+    allowPeopleToSeeProfile: {
+      type: Boolean,
+      default: defaultPrivacyData.allowPeopleToSeeProfile,
     },
   },
   interests: [

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getPostDetail, deletePost } from "../api/postApi";
+import { getPostDetail, deletePost, addReaction, removeReaction } from "../api/postApi";
+import { useLocationAccess } from "../context/LocationAccessContext";
 import userApi from "../api/userApi";
 import ReportModal from "../components/report/ReportModal";
 import "./PostDetailPage.css";
@@ -8,6 +9,7 @@ import "./PostDetailPage.css";
 export default function PostDetailPage() {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const { location: userLocation } = useLocationAccess();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -15,6 +17,9 @@ export default function PostDetailPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [liking, setLiking] = useState(false);
   const menuRef = useRef(null);
 
   const token = useMemo(
@@ -50,6 +55,16 @@ export default function PostDetailPage() {
       const res = await getPostDetail(postId);
       const data = res?.data || res;
       setPost(data);
+
+      // Set like count and check if user liked
+      const reactions = data?.reactions || [];
+      const userId = currentUser?._id || currentUser?.id;
+      const liked = reactions.some(r => {
+        const rUserId = r.userId?._id || r.userId?.id || r.userId;
+        return rUserId === userId;
+      });
+      setIsLiked(liked);
+      setLikeCount(data?.likeCount || reactions.length || 0);
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Failed to load post");
     } finally {
@@ -97,6 +112,31 @@ export default function PostDetailPage() {
       navigate(-1);
     } catch (err) {
       alert(err?.response?.data?.message || err?.message || "Xóa thất bại");
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (liking) return;
+    setLiking(true);
+
+    const wasLiked = isLiked;
+    // Optimistic update
+    setIsLiked(!wasLiked);
+    setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+
+    try {
+      if (wasLiked) {
+        await removeReaction(postId);
+      } else {
+        await addReaction(postId, "like", userLocation?.latitude, userLocation?.longitude);
+      }
+    } catch (err) {
+      // Revert on error
+      setIsLiked(wasLiked);
+      setLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
+      alert(err?.response?.data?.message || "Không thể thả cảm xúc");
+    } finally {
+      setLiking(false);
     }
   };
 
@@ -282,6 +322,15 @@ export default function PostDetailPage() {
                 </span>
               )}
             </div>
+            {/* Like Button */}
+            <button
+              className={`post-detail-like-btn ${isLiked ? "liked" : ""}`}
+              onClick={handleToggleLike}
+              disabled={liking}
+            >
+              <i className={`fa-solid fa-heart ${isLiked ? "fas" : "far"}`}></i>
+              <span>{likeCount}</span>
+            </button>
           </div>
 
           {/* Caption */}

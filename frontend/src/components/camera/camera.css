@@ -18,9 +18,9 @@
   flex-direction: column;
   overflow: hidden;
 
-  margin: 20px auto; /* ✅ có khoảng hở để thấy bo góc */
-  border-radius: 30px; /* ✅ bo tròn luôn */
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* ✅ shadow luôn */
+  margin: 0 auto;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* ✅ Desktop/tablet: hiện “khung điện thoại” có bo góc + shadow */
@@ -44,6 +44,33 @@
   overflow: hidden;
 }
 
+/* Close button - top right */
+.close-btn {
+  position: absolute;
+  top: calc(20px + env(safe-area-inset-top, 0));
+  right: 20px;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  color: #333;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  z-index: 10000;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.close-btn:active {
+  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.7);
+}
+
 /* QUAN TRỌNG: chỉ áp cho video trong camera-view để tránh ảnh hưởng chỗ khác */
 .camera-view video {
   width: 100%;
@@ -61,25 +88,30 @@
   height: 120px;
   background: #000;
   display: flex;
-  justify-content: space-evenly;
+  justify-content: center;
   align-items: center;
-  padding-bottom: 20px;
+  gap: 30px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  padding-top: 10px;
   z-index: 10;
 }
 
-/* Nút icon nhỏ (Back, Rotate, Upload) */
+/* Nút icon nhỏ (Close, Rotate, Upload) */
 .btn-icon {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 22px;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  color: #333;
+  font-size: 20px;
   cursor: pointer;
-  padding: 10px;
-  transition: transform 0.2s;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-icon:active {
@@ -97,8 +129,8 @@
   height: 75px;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2bd0d0, #00cba9);
-  box-shadow: 0 0 20px rgba(43, 208, 208, 0.5);
+  background: linear-gradient(135deg, #e94057 0%, #00b4a0 100%);
+  box-shadow: 0 0 20px rgba(233, 64, 87, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,14 +149,14 @@
 .shutter-btn:active {
   transform: scale(0.85);
   filter: brightness(0.9);
-  box-shadow: 0 0 10px rgba(43, 208, 208, 0.3);
+  box-shadow: 0 0 10px rgba(233, 64, 87, 0.3);
 }
 
 /* --- HIỆU ỨNG KHI ĐANG QUAY VIDEO --- */
 .shutter-btn.recording {
   transform: scale(1.2);
-  background: #ff4b6e;
-  box-shadow: 0 0 25px rgba(255, 75, 110, 0.6);
+  background: #e94057;
+  box-shadow: 0 0 25px rgba(233, 64, 87, 0.6);
   border: 4px solid rgba(255, 255, 255, 0.5);
   animation: pulse 1s infinite;
 }
