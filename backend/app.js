@@ -37,6 +37,7 @@ app.use(cookieParser());
 app.use("/api/admin", require("./src/routes/admin.routes"));
 app.use("/api/admin/users", require("./src/routes/admin.users.routes"));
 app.use("/api/admin/reports", require("./src/routes/admin.reports.routes"));
+app.use("/api/admin/feedbacks", require("./src/routes/admin.feedback.routes"));
 app.use("/api/auth", require("./src/routes/auth.route"));
 app.use("/api/posts", require("./src/routes/post.route"));
 app.use("/api/reactions", require("./src/routes/reaction.route"));

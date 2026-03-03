@@ -23,6 +23,17 @@ const feedbackSchema = new mongoose.Schema(
       enum: ["new", "read", "resolved"],
       default: "new",
     },
+    reply: {
+      type: String,
+      default: "",
+    },
+    repliedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    repliedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true, // Tự động tạo trường createdAt và updatedAt

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { authApi } from "../../api/authApi";
 import "./AdminLayout.css";
 
 const AdminLayout = () => {
@@ -14,6 +15,7 @@ const AdminLayout = () => {
       { path: "/admin/content", icon: "🛡️", label: "Content" },
       { path: "/admin/map", icon: "🗺️", label: "Map" },
       { path: "/admin/tags", icon: "🏷️", label: "Tags/Categories" },
+      { path: "/admin/feedbacks", icon: "💬", label: "Feedbacks" },
       { path: "/admin/broadcast", icon: "📢", label: "Broadcast" },
       { path: "/admin/analytics", icon: "📈", label: "Analytics" },
     ],
@@ -28,6 +30,11 @@ const AdminLayout = () => {
   const handleNavClick = (path) => {
     navigate(path);
     setIsSidebarOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await authApi.logout();
+    navigate("/login");
   };
 
   // ✅ auto close sidebar when route changes (mobile)
@@ -84,6 +91,16 @@ const AdminLayout = () => {
               <span className="nav-label">{item.label}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className="nav-item logout-btn"
+            onClick={handleLogout}
+          >
+            <span className="nav-icon" aria-hidden="true">
+              🚪
+            </span>
+            <span className="nav-label">Logout</span>
+          </button>
         </nav>
       </aside>
 

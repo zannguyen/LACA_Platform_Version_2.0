@@ -55,6 +55,8 @@ cd frontend && npm run lint
 - **Middlewares** (`src/middlewares/`): Auth, error handling, file upload, validation
 - **Config** (`src/config/`): Database and Cloudinary setup
 - **Utils** (`src/utils/`): JWT, email, error handling, async wrappers
+- **Seeds** (`src/seeds/`): Database seeding scripts
+- **Scripts** (`src/scripts/`): Utility scripts (e.g., promote to admin)
 
 ### Frontend Structure (React/Vite)
 - **Entry**: `frontend/src/main.jsx` → `App.jsx`
@@ -63,8 +65,10 @@ cd frontend && npm run lint
 - **API** (`src/api/`): Axios client functions for backend communication
 - **Context** (`src/context/`): React Context providers (SocketContext, LocationAccessContext)
 - **Routes** (`src/routes/`): Route configuration
-- **Services** (`src/services/`): Frontend utilities (Socket.IO, storage, etc.)
+- **Services** (`src/services/`): Frontend utilities (geolocation, etc.)
 - **Utils** (`src/utils/`): Helper functions
+- **Config** (`src/config/`): Configuration (socket)
+- **Data** (`src/data/`): Static data (icons)
 
 ### Key Technologies
 - **Backend**: Express.js, MongoDB/Mongoose, Socket.IO (real-time chat), JWT auth, Cloudinary (image storage)
@@ -191,6 +195,14 @@ VITE_SOCKET_URL=http://localhost:4000
 | PUT | `/:tagId` | Update tag (admin) |
 | DELETE | `/:tagId` | Delete tag (admin) |
 
+### Category Routes (`/api/tags/categories`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/categories` | Get all categories |
+| POST | `/categories` | Create category (admin) |
+| PUT | `/categories/:categoryId` | Update category (admin) |
+| DELETE | `/categories/:categoryId` | Delete category (admin) |
+
 ### Interest Routes (`/api/interests`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -226,6 +238,16 @@ VITE_SOCKET_URL=http://localhost:4000
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/` | Upload file to Cloudinary |
+
+### Ranking Routes (`/api/ranking`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/featured` | Get featured locations and users |
+
+### Chatbot Routes (`/api/chatbot`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/message` | AI chatbot message |
 
 ### Admin Routes (`/api/admin`)
 | Method | Endpoint | Description |
@@ -298,10 +320,14 @@ VITE_SOCKET_URL=http://localhost:4000
 - `status` (pending/resolved/dismissed)
 - `actionTaken`, `handledBy`
 
-### Tag & Category (`tag.model.js`, `category.model.js`)
+### Category (`category.model.js`)
 - `name`, `description`, `icon`, `color`
 - `order`, `isActive`
-- `categoryId` (for tags)
+
+### Tag (`tag.model.js`)
+- `name`, `description`, `icon`, `color`
+- `order`, `isActive`
+- `categoryId` -> Category
 
 ### Interest (`interest.model.js`)
 - `name`, `description`
@@ -319,12 +345,20 @@ VITE_SOCKET_URL=http://localhost:4000
 - `note`, `isPublic`, `duration`
 - `photos[]`
 
+### BroadcastHistory (`broadcastHistory.model.js`)
+- `title`, `content`, `targetType`
+- `sentBy` -> User
+- `recipientCount`, `sentAt`
+
+### PostAnalysis (`postAnalysis.model.js`)
+- `sentiment`, `categories[]`
+- `keywords[]`, `toxicity`
+- `analysisComplete`
+
 ### Other Models
 - `emailOTP` - OTP verification
 - `refreshToken` - Token management
 - `feedback` - User feedback
-- `broadcastHistory` - Admin broadcasts
-- `postAnalysis` - AI analysis results
 
 ## Key Architectural Patterns
 
@@ -385,6 +419,15 @@ Content-based filtering with scoring:
 - Cloudinary stores images (`src/config/cloudinary.js`)
 - Upload route: `POST /api/upload`
 
+### AI/Chatbot Features
+- `src/services/rag.service.js` - RAG (Retrieval-Augmented Generation) service
+- `src/services/claude.service.js` - Claude AI integration
+- Chatbot endpoint: `POST /api/chatbot/message`
+
+### Queue System
+- `src/services/queue.service.js` - Queue management for notifications/broadcasts
+- Admin endpoints: `GET /api/admin/queue`, `POST /api/admin/queue/clear`
+
 ## Middlewares
 
 | File | Purpose |
@@ -407,6 +450,7 @@ Content-based filtering with scoring:
 | `Map.jsx` | `/map` | Interactive map with posts |
 | `UserProfilePage.jsx` | `/profile` | Current user profile |
 | `StrangerProfilePage.jsx` | `/profile/:userId` | Other user profiles |
+| `PostDetailPage.jsx` | `/posts/:postId` | Single post detail |
 | `CameraPage.jsx` | `/camera` | Camera capture |
 | `CameraPostPage.jsx` | `/camera-post` | Post creation with media |
 | `NotificationPage.jsx` | `/notification` | Notifications list |
@@ -416,6 +460,7 @@ Content-based filtering with scoring:
 | `FeedbackPage.jsx` | `/feedback` | Submit feedback |
 | `ReportPage.jsx` | `/report` | Report content |
 | `SettingPage.jsx` | `/setting` | App settings |
+| `EditProfileSettingPage.jsx` | `/setting/edit-profile` | Edit profile |
 | `DeleteAccountConfirmPage.jsx` | `/delete-account-confirm` | Account deletion |
 | `InterestManagementPage.jsx` | `/interests` | Manage interests |
 | `TagPreferencePage.jsx` | `/tag-preference` | Tag preferences |
@@ -435,6 +480,33 @@ Content-based filtering with scoring:
 | `TagManagement.jsx` | `/admin/tags` | Tag/category CRUD |
 | `BroadcastNotification.jsx` | - | Broadcast form |
 | `BroadcastHistory.jsx` | - | Broadcast history |
+| `BroadcastDetailsModal.jsx` | - | Broadcast details modal |
+| `IconLibrarySelector.jsx` | - | Icon selection for tags/categories |
+
+## Frontend API Modules
+
+| File | Purpose |
+|------|---------|
+| `api/client.js` | Axios instance with interceptors |
+| `api/authApi.js` | Authentication calls |
+| `api/userApi.js` | User management |
+| `api/postApi.js` | Posts CRUD |
+| `api/mapApi.js` | Map/geo queries |
+| `api/chatApi.js` | Chat/conversations |
+| `api/publicChatApi.js` | Public chat (post discussions) |
+| `api/placeApi.js` | Place suggestions |
+| `api/notificationApi.js` | Notifications |
+| `api/reactionApi.js` | Reactions |
+| `api/tagApi.js` | Tags/categories |
+| `api/interestApi.js` | Interests |
+| `api/analysisApi.js` | Post analysis |
+| `api/recommendationApi.js` | Recommendations |
+| `api/feedbackApi.js` | Feedback |
+| `api/reportApi.js` | Reports |
+| `api/adminApi.js` | Admin dashboard |
+| `api/adminReportApi.js` | Admin reports |
+| `api/broadcastApi.js` | Broadcast notifications |
+| `api/rankingApi.js` | Featured rankings |
 
 ## Important Files to Know
 
@@ -444,6 +516,9 @@ Content-based filtering with scoring:
 - `src/models/user.model.js` - User schema
 - `src/services/auth.service.js` - Auth logic
 - `src/services/recommendation.service.js` - Feed algorithm
+- `src/services/queue.service.js` - Notification queue
+- `src/services/rag.service.js` - RAG for chatbot
+- `src/services/claude.service.js` - Claude AI integration
 - `src/middlewares/auth.middleware.js` - JWT validation
 - `src/middlewares/requireAdmin.js` - Admin role check
 
@@ -455,6 +530,7 @@ Content-based filtering with scoring:
 - `frontend/src/routes/RequireAuth.jsx` - Auth guard
 - `frontend/src/components/map/` - Leaflet map components
 - `frontend/src/components/Chat/` - Real-time chat UI
+- `frontend/src/components/admin/` - Admin components
 
 ## Common Tasks
 
@@ -518,6 +594,9 @@ Follow (M-to-M through document)
 BlockUser (M-to-M)
   ├── blockerUserId -> User
   └── blockedUserId -> User
+
+Category
+  └── tags[] -> Tag
 ```
 
 ## Deployment Notes

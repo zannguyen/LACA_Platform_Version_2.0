@@ -16,6 +16,7 @@ import ContentModeration from "../components/admin/ContentModeration";
 import MapManagement from "../components/admin/MapManagement";
 import AdminAnalytics from "../components/admin/AdminAnalytics";
 import TagManagement from "../components/admin/TagManagement";
+import FeedbackManagement from "../components/admin/FeedbackManagement";
 import AdminBroadcastPage from "../pages/AdminBroadcastPage";
 import FeedbackPage from "../pages/FeedbackPage";
 import ReportPage from "../pages/ReportPage";
@@ -143,6 +144,7 @@ export default function AppRoutes() {
         <Route path="content" element={<ContentModeration />} />
         <Route path="map" element={<MapManagement />} />
         <Route path="tags" element={<TagManagement />} />
+        <Route path="feedbacks" element={<FeedbackManagement />} />
         <Route path="broadcast" element={<AdminBroadcastPage />} />
         <Route path="analytics" element={<AdminAnalytics />} />
       </Route>
