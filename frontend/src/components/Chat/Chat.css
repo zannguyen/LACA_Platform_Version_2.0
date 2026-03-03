@@ -306,6 +306,12 @@
   opacity: 1;
 }
 
+@media (hover: none), (pointer: coarse) {
+  .chat-delete-btn {
+    opacity: 1;
+  }
+}
+
 .chat-delete-btn:hover {
   color: var(--error);
   background: color-mix(in srgb, var(--error) 10%, var(--bg-card));
