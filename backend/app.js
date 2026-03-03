@@ -8,18 +8,22 @@ const app = express();
 // nếu deploy sau reverse proxy (Render/NGINX) + có dùng cookie secure thì nên bật:
 app.set("trust proxy", 1);
 
+// CORS configuration - allow all origins for production flexibility
+// In production, you can restrict this via CORS_ORIGINS env variable
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
+console.log("[CORS] Allowed origins:", allowedOrigins.length > 0 ? allowedOrigins : "All origins allowed");
+
 app.use(
   cors({
     origin: function (origin, cb) {
-      // cho phép request không có origin (Postman/cURL)
+      // cho phép request không có origin (Postman/cURL, mobile apps)
       if (!origin) return cb(null, true);
 
-      // nếu chưa set env thì fallback dev
+      // nếu chưa set env thì fallback cho phép tất cả
       if (allowedOrigins.length === 0) return cb(null, true);
 
       if (allowedOrigins.includes(origin)) return cb(null, true);
@@ -27,8 +31,15 @@ app.use(
       return cb(new Error("Not allowed by CORS: " + origin));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+    exposedHeaders: ["Content-Length", "Content-Type"],
+    optionsSuccessStatus: 204,
   }),
 );
+
+// Handle preflight requests explicitly - use regex wildcard instead of *
+app.options(/.*/, cors());
 
 app.use(express.json());
 app.use(cookieParser());

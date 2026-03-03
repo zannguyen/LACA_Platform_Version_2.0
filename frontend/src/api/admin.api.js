@@ -75,12 +75,13 @@ const computeStatus = (u) => {
 export const getAllUsers = async ({
   query = "",
   status = "all",
+  role,
   page = 1,
   limit = 10,
 } = {}) => {
   try {
     const res = await apiClient.get("/admin/users", {
-      params: { query, status, page, limit },
+      params: { query, status, role, page, limit },
     });
 
     const payload = res.data || {};

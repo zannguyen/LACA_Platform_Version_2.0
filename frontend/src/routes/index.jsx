@@ -12,6 +12,7 @@ import Notification from "../pages/NotificationPage";
 import AdminLayout from "../components/admin/AdminLayout";
 import AdminDashboard from "../components/admin/AdminDashboard";
 import UserManagement from "../components/admin/UserManagement";
+import AdminManagement from "../components/admin/AdminManagement";
 import ContentModeration from "../components/admin/ContentModeration";
 import MapManagement from "../components/admin/MapManagement";
 import AdminAnalytics from "../components/admin/AdminAnalytics";
@@ -151,6 +152,7 @@ export default function AppRoutes() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
+        <Route path="admins" element={<AdminManagement />} />
         <Route path="content" element={<ContentModeration />} />
         <Route path="map" element={<MapManagement />} />
         <Route path="tags" element={<TagManagement />} />
