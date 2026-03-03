@@ -16,6 +16,7 @@ const AdminLayout = () => {
       { path: "/admin/tags", icon: "🏷️", label: "Tags/Categories" },
       { path: "/admin/broadcast", icon: "📢", label: "Broadcast" },
       { path: "/admin/analytics", icon: "📈", label: "Analytics" },
+      { path: "/admin/account", icon: "⚙️", label: "Admin Account" },
     ],
     [],
   );
