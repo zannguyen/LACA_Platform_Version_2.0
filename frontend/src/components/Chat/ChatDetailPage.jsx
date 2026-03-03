@@ -23,7 +23,9 @@ const ChatDetailPage = () => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [toast, setToast] = useState("");
   const messageEndRef = useRef(null);
+  const previousLengthRef = useRef(0);
   const [avatarErrors, setAvatarErrors] = useState(new Set());
+  const [newMessageKey, setNewMessageKey] = useState(null);
 
   const getCurrentUserId = () => {
     const rawUser = localStorage.getItem("user");
@@ -73,6 +75,13 @@ const ChatDetailPage = () => {
 
   const handleAvatarError = (senderId) => {
     setAvatarErrors((prev) => new Set([...prev, String(senderId)]));
+  };
+
+  const getSenderKey = (message) => {
+    const sender = message?.senderId;
+    if (!sender) return "";
+    if (typeof sender === "object") return String(sender._id || "");
+    return String(sender);
   };
 
   useEffect(() => {
@@ -209,6 +218,16 @@ const ChatDetailPage = () => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (messages.length > previousLengthRef.current) {
+      const latest = messages[messages.length - 1];
+      setNewMessageKey(
+        latest?._id || latest?.createdAt || `msg-${messages.length - 1}`,
+      );
+    }
+    previousLengthRef.current = messages.length;
+  }, [messages]);
+
   const handleSendMessage = async () => {
     if (!messageText.trim() || !receiverId) return;
 
@@ -239,21 +258,15 @@ const ChatDetailPage = () => {
         </button>
 
         <div
-              className="avatar-circle"
-              style={{ width: 40, height: 40, cursor: "pointer" }}
-              onClick={() => receiverId && navigate(`/profile/${receiverId}`)}
-              title="Xem trang cá nhân"
-            >
+          className="avatar-circle chat-header-avatar"
+          onClick={() => receiverId && navigate(`/profile/${receiverId}`)}
+          title="Xem trang cá nhân"
+        >
           {receiverAvatar ? (
             <img
               src={receiverAvatar}
               alt={receiverName}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                borderRadius: "50%",
-              }}
+              className="chat-header-avatar-image"
               onError={() => setReceiverAvatar(null)}
             />
           ) : (
@@ -262,7 +275,7 @@ const ChatDetailPage = () => {
         </div>
 
         <div className="chat-header-info">
-          <span style={{ fontWeight: "bold" }}>{receiverName}</span>
+          <span className="chat-header-name">{receiverName}</span>
           <span className="status-text">
             {receiverOnline ? "Online" : "Offline"}
           </span>
@@ -271,11 +284,9 @@ const ChatDetailPage = () => {
 
       <div className="message-container">
         {loading ? (
-          <p style={{ textAlign: "center", padding: 20 }}>
-            Đang tải tin nhắn...
-          </p>
+          <p className="chat-list-state">Đang tải tin nhắn...</p>
         ) : messages.length === 0 ? (
-          <p style={{ textAlign: "center", padding: 20, color: "#999" }}>
+          <p className="chat-list-state chat-list-empty">
             Chưa có cuộc trò chuyện
           </p>
         ) : (
@@ -291,68 +302,61 @@ const ChatDetailPage = () => {
               typeof senderInfo === "object" ? senderInfo.avatar : null;
             const senderId =
               typeof senderInfo === "object" ? senderInfo._id : senderInfo;
+            const currentSenderKey = getSenderKey(msg);
+            const prevSenderKey =
+              idx > 0 ? getSenderKey(messages[idx - 1]) : "";
+            const nextSenderKey =
+              idx < messages.length - 1 ? getSenderKey(messages[idx + 1]) : "";
+            const isFirstInGroup = currentSenderKey !== prevSenderKey;
+            const isLastInGroup = currentSenderKey !== nextSenderKey;
 
             return (
               <div
                 key={msg._id || msg.createdAt || idx}
-                className={`message-row ${msg.isSent ? "me" : ""}`}
+                className={`message-row ${msg.isSent ? "me" : ""} ${!isFirstInGroup ? "grouped" : ""} ${newMessageKey === (msg._id || msg.createdAt || `msg-${idx}`) ? "is-new" : ""}`}
               >
-                {!msg.isSent && (
-                  <div
-                      className="avatar-circle"
-                      style={{ width: 30, height: 30, marginRight: 8, cursor: "pointer" }}
-                      onClick={() => senderId && navigate(`/profile/${senderId}`)}
+                {!msg.isSent &&
+                  (isLastInGroup ? (
+                    <div
+                      className="avatar-circle message-avatar-circle"
+                      onClick={() =>
+                        senderId && navigate(`/profile/${senderId}`)
+                      }
                       title="Xem trang cá nhân"
                     >
-                    {senderAvatar && !avatarErrors.has(String(senderId)) ? (
-                      <img
-                        src={senderAvatar}
-                        alt={senderName}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          borderRadius: "50%",
-                        }}
-                        onError={() => handleAvatarError(senderId)}
-                      />
-                    ) : (
-                      senderName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                )}
+                      {senderAvatar && !avatarErrors.has(String(senderId)) ? (
+                        <img
+                          src={senderAvatar}
+                          alt={senderName}
+                          className="chat-header-avatar-image"
+                          onError={() => handleAvatarError(senderId)}
+                        />
+                      ) : (
+                        senderName.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                  ) : (
+                    <div className="message-avatar-spacer" aria-hidden="true" />
+                  ))}
 
                 <div className="message-content">
-                  {!msg.isSent && (
+                  {!msg.isSent && isFirstInGroup && (
                     <button
                       className="message-sender-name"
                       onClick={() => navigate(`/profile/${senderId}`)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--text-secondary)",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                        padding: "0 var(--space-sm)",
-                        marginBottom: "4px",
-                        textAlign: "left",
-                      }}
                     >
                       {senderName}
                     </button>
                   )}
                   {msg.image ? (
-                    <div className="message-image">
-                      <img
-                        src={msg.image}
-                        alt="Message"
-                        style={{ maxWidth: 200 }}
-                      />
+                    <div
+                      className={`message-image ${isFirstInGroup ? "group-start" : ""} ${isLastInGroup ? "group-end" : ""}`}
+                    >
+                      <img src={msg.image} alt="Message" />
                     </div>
                   ) : (
                     <div
-                      className={`bubble ${msg.isSent ? "sent" : "received"}`}
+                      className={`bubble ${msg.isSent ? "sent" : "received"} ${isFirstInGroup ? "group-start" : ""} ${isLastInGroup ? "group-end" : ""}`}
                     >
                       {msg.text}
                     </div>
@@ -377,7 +381,7 @@ const ChatDetailPage = () => {
           onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
         />
         <button className="send-btn-circle" onClick={handleSendMessage}>
-          ↑
+          <i className="fa-solid fa-paper-plane"></i>
         </button>
       </div>
 

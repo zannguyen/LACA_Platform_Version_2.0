@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import "./PublicChat.css";
-import "./Chat.css";
 
 const PublicChatInput = ({ onSendMessage, loading }) => {
   const [text, setText] = useState("");
@@ -19,22 +18,26 @@ const PublicChatInput = ({ onSendMessage, loading }) => {
   };
 
   return (
-    <div className="chat-input-bar">
-      <input
-        type="text"
-        className="input-rounded"
-        placeholder="Nhập tin nhắn..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={loading}
-      />
+    <div className="public-chat-input-bar">
+      <div className="public-chat-input-shell">
+        <i className="fa-regular fa-face-smile public-chat-input-icon"></i>
+        <input
+          type="text"
+          className="public-chat-input-rounded"
+          placeholder="Nhập tin nhắn thân thiện..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={loading}
+        />
+      </div>
       <button
-        className="send-btn-circle"
+        className="public-chat-send-btn-circle"
         onClick={handleSend}
         disabled={loading || !text.trim()}
+        aria-label="Gửi tin nhắn"
       >
-        ↑
+        <i className="fa-solid fa-paper-plane"></i>
       </button>
     </div>
   );
