@@ -179,6 +179,9 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      // populate minimal fields needed by profile UIs (location/tags)
+      .populate("placeId", "name")
+      .populate("tags", "name color")
       .lean();
     pagination = {
       page,

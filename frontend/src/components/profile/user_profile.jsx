@@ -7,12 +7,15 @@ import {
   uploadMedia,
   addReaction,
   removeReaction,
+  getReactionCount,
+  getReactionStatus,
 } from "../../api/postApi";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import TagDisplay from "./TagDisplay";
 import TagSelectionModal from "./TagSelectionModal";
 import "./user_profile.css";
 import AvatarCropModal from "./AvatarCropModal";
+import ProfilePostViewerModal from "./ProfilePostViewerModal";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
 const IconMore = ({ size = 22 }) => (
@@ -133,6 +136,11 @@ export default function UserProfile() {
 
   // Reaction state - lưu trạng thái like của từng bài viết
   const [reactionStates, setReactionStates] = useState({});
+  const reactionFetchedRef = useRef(new Set());
+
+  // IG-style viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerStartIndex, setViewerStartIndex] = useState(0);
 
   const [cropOpen, setCropOpen] = useState(false);
   const [avatarPick, setAvatarPick] = useState(null); // { src: string }
@@ -443,9 +451,49 @@ export default function UserProfile() {
     await fetchMyProfile({ page: nextPage, append: true });
   };
 
+  // Init reaction states for posts (sync with Home)
+  useEffect(() => {
+    const list = Array.isArray(posts) ? posts : [];
+    const missing = list
+      .map((p) => String(p?._id || p?.id || ""))
+      .filter(Boolean)
+      .filter((id) => !reactionFetchedRef.current.has(id));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const updates = {};
+      await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const [countRes, statusRes] = await Promise.all([
+              getReactionCount(id),
+              getReactionStatus(id),
+            ]);
+            updates[id] = {
+              reacted: Boolean(statusRes?.reacted),
+              loading: false,
+              count: Number(countRes?.total ?? 0),
+            };
+          } catch {
+            updates[id] = { reacted: false, loading: false, count: 0 };
+          } finally {
+            reactionFetchedRef.current.add(id);
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      setReactionStates((prev) => ({ ...prev, ...updates }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [posts]);
+
   // Toggle like reaction on post
-  const handleToggleLike = async (e, postId) => {
-    e.stopPropagation();
+  const toggleLike = async (postId) => {
     const currentState = reactionStates[postId] || {
       reacted: false,
       loading: false,
@@ -464,14 +512,16 @@ export default function UserProfile() {
 
     try {
       if (isReacted) {
-        await removeReaction(postId);
+        const res = await removeReaction(postId);
+        if (res?.success === false) throw new Error(res?.message);
       } else {
-        await addReaction(
+        const res = await addReaction(
           postId,
           "like",
           userLocation?.latitude,
           userLocation?.longitude,
         );
+        if (res?.success === false) throw new Error(res?.message);
       }
       // Update state with success
       setReactionStates((prev) => ({
@@ -490,6 +540,16 @@ export default function UserProfile() {
       }));
       console.error("Reaction error:", err);
     }
+  };
+
+  const handleToggleLike = (e, postId) => {
+    e.stopPropagation();
+    toggleLike(postId);
+  };
+
+  const openViewerAt = (index) => {
+    setViewerStartIndex(index);
+    setViewerOpen(true);
   };
 
   const displayName = profile?.fullname || profile?.username || "User";
@@ -672,18 +732,19 @@ export default function UserProfile() {
         {/* Posts Grid - Instagram Style */}
         <div className="profile-posts">
           {posts.length > 0 ? (
-            posts.map((p) => {
+            posts.map((p, idx) => {
               const id = String(p._id || p.id);
               const media = pickFirstMedia(p);
               const isVideo = p.type === "video" || isVideoUrl(media);
               const createdAt = formatPostDate(p);
               const caption = p.content || p.caption || "";
+              const placeName = p?.placeId?.name || p?.placeName || "";
 
               return (
                 <div
                   className="profile-post-item"
                   key={id}
-                  onClick={() => navigate(`/posts/${id}`)}
+                  onClick={() => openViewerAt(idx)}
                 >
                   {media ? (
                     isVideo ? (
@@ -708,9 +769,17 @@ export default function UserProfile() {
                       No media
                     </div>
                   )}
+                  {placeName ? (
+                    <div
+                      className="profile-post-location-badge"
+                      title={placeName}
+                    >
+                      <i className="fa-solid fa-location-dot" />
+                      <span>{placeName}</span>
+                    </div>
+                  ) : null}
                   <div
                     className="profile-post-overlay"
-                    onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
@@ -802,6 +871,16 @@ export default function UserProfile() {
         busy={saving}
         onCancel={closeCropModal}
         onSaveBlob={handleSaveCroppedAvatar}
+      />
+
+      <ProfilePostViewerModal
+        open={viewerOpen}
+        posts={posts}
+        startIndex={viewerStartIndex}
+        onClose={() => setViewerOpen(false)}
+        reactionStates={reactionStates}
+        onToggleLike={toggleLike}
+        isOwnerProfile
       />
     </div>
   );
