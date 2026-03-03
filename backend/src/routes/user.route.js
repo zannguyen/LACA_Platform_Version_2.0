@@ -8,6 +8,9 @@ router.get("/me/profile", auth, controller.getMyProfile);
 router.put("/me/profile", auth, controller.updateMyProfile);
 router.get("/me/account-settings", auth, controller.getMyAccountSettings);
 router.put("/me/account-settings", auth, controller.updateMyAccountSettings);
+router.get("/me/privacy-data", auth, controller.getMyPrivacyData);
+router.put("/me/privacy-data", auth, controller.updateMyPrivacyData);
+router.get("/me/recent-activities", auth, controller.getMyRecentActivities);
 
 // Preferred tags (sở thích)
 router.get("/me/preferred-tags", auth, controller.getMyPreferredTags);

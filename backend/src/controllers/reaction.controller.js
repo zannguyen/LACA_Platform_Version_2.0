@@ -59,6 +59,15 @@ const react = async (req, res) => {
       return res.json(data);
     }
 
+    const postAuthor = await User.findById(postAuthorId)
+      .select("privacyData")
+      .lean();
+    if (postAuthor?.privacyData?.allowPeopleInteraction === false) {
+      return res
+        .status(403)
+        .json({ message: "Người dùng này đã tắt tương tác cho bài viết" });
+    }
+
     const blocked = await UserService.isBlocked(
       currentUserId,
       postAuthorId,

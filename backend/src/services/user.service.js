@@ -6,6 +6,8 @@ const User = require("../models/user.model");
 const Post = require("../models/post.model");
 const BlockUser = require("../models/blockUser.model");
 const Follow = require("../models/follow.model");
+const Reaction = require("../models/reaction.model");
+const Notification = require("../models/notification.model");
 
 const PASSWORD_LENGTH_MIN = Number(process.env.PASSWORD_LENGTH_MIN || 6);
 const PASSWORD_LENGTH_MAX = Number(process.env.PASSWORD_LENGTH_MAX || 50);
@@ -18,6 +20,12 @@ const DEFAULT_VISIBILITY = {
   email: false,
   phoneNumber: false,
   dateOfBirth: false,
+};
+
+const DEFAULT_PRIVACY_DATA = {
+  allowFollowFromStrangers: true,
+  allowPeopleInteraction: true,
+  allowPeopleToSeeProfile: true,
 };
 // ===== Helpers =====
 function parsePagination(query) {
@@ -57,8 +65,28 @@ function normalizeVisibility(raw = {}) {
   };
 }
 
+function normalizePrivacyData(raw = {}) {
+  const src = raw && typeof raw === "object" ? raw : {};
+
+  return {
+    allowFollowFromStrangers:
+      typeof src.allowFollowFromStrangers === "boolean"
+        ? src.allowFollowFromStrangers
+        : DEFAULT_PRIVACY_DATA.allowFollowFromStrangers,
+    allowPeopleInteraction:
+      typeof src.allowPeopleInteraction === "boolean"
+        ? src.allowPeopleInteraction
+        : DEFAULT_PRIVACY_DATA.allowPeopleInteraction,
+    allowPeopleToSeeProfile:
+      typeof src.allowPeopleToSeeProfile === "boolean"
+        ? src.allowPeopleToSeeProfile
+        : DEFAULT_PRIVACY_DATA.allowPeopleToSeeProfile,
+  };
+}
+
 function toPublicUser(user, isOwner = false) {
   const visibility = normalizeVisibility(user?.profileVisibility);
+  const privacyData = normalizePrivacyData(user?.privacyData);
 
   const profileUser = {
     _id: user._id,
@@ -79,6 +107,7 @@ function toPublicUser(user, isOwner = false) {
   if (isOwner) {
     profileUser.isEmailVerified = user.isEmailVerified;
     profileUser.profileVisibility = visibility;
+    profileUser.privacyData = privacyData;
   }
 
   return profileUser;
@@ -94,6 +123,11 @@ async function getProfile({ targetUserId, viewerUserId, query }) {
   const { page, limit, skip } = parsePagination(query);
 
   const isOwner = viewerId && String(viewerId) === String(targetId);
+  const privacyData = normalizePrivacyData(user?.privacyData);
+
+  if (!isOwner && privacyData.allowPeopleToSeeProfile === false) {
+    throw new AppError("This user does not allow public profile viewing", 403);
+  }
 
   const postFilter = { userId: targetId, status: "active" };
 
@@ -240,8 +274,20 @@ async function followUser(followerId, followingId) {
     throw new AppError("You cannot follow yourself", 400);
   }
 
-  const targetExists = await User.exists({ _id: following });
-  if (!targetExists) throw new AppError("User not found", 404);
+  const targetUser = await User.findById(following).select("privacyData").lean();
+  if (!targetUser) throw new AppError("User not found", 404);
+
+  const targetPrivacy = normalizePrivacyData(targetUser.privacyData);
+  if (targetPrivacy.allowFollowFromStrangers === false) {
+    const targetAlreadyFollowsMe = await Follow.exists({
+      followerUserId: following,
+      followingUserId: follower,
+    });
+
+    if (!targetAlreadyFollowsMe) {
+      throw new AppError("This user does not allow follows from strangers", 403);
+    }
+  }
 
   // If either direction is blocked, forbid follow
   const blockedEitherWay = await BlockUser.exists({
@@ -326,6 +372,7 @@ async function getMyAccountSettings(userId) {
     bio: user.bio || "",
     isEmailVerified: user.isEmailVerified,
     profileVisibility: normalizeVisibility(user.profileVisibility),
+    privacyData: normalizePrivacyData(user.privacyData),
     updatedAt: user.updatedAt,
   };
 }
@@ -408,6 +455,15 @@ async function updateMyAccountSettings({ userId, body }) {
     changed = true;
   }
 
+  if (body.privacyData && typeof body.privacyData === "object") {
+    const privacyData = normalizePrivacyData({
+      ...normalizePrivacyData(user.privacyData),
+      ...body.privacyData,
+    });
+    user.privacyData = privacyData;
+    changed = true;
+  }
+
   const passwordFieldsProvided =
     typeof body.currentPassword === "string" ||
     typeof body.newPassword === "string" ||
@@ -460,6 +516,131 @@ async function updateMyAccountSettings({ userId, body }) {
 
   return getMyAccountSettings(userId);
 }
+
+async function getMyRecentActivities({ userId, query = {} }) {
+  const id = safeObjectId(userId);
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.min(50, Math.max(1, Number(query.limit) || 20));
+  const batchSize = Math.max(20, page * limit * 2);
+
+  const [notifications, posts, reactions, follows] = await Promise.all([
+    Notification.find({ recipientId: id })
+      .populate("senderId", "fullname username avatar")
+      .sort({ createdAt: -1 })
+      .limit(batchSize)
+      .lean(),
+
+    Post.find({ userId: id })
+      .select("_id content createdAt")
+      .sort({ createdAt: -1 })
+      .limit(batchSize)
+      .lean(),
+
+    Reaction.find({ userId: id })
+      .select("_id postId type createdAt")
+      .sort({ createdAt: -1 })
+      .limit(batchSize)
+      .lean(),
+
+    Follow.find({ followerUserId: id })
+      .populate("followingUserId", "fullname username avatar")
+      .select("_id followingUserId createdAt")
+      .sort({ createdAt: -1 })
+      .limit(batchSize)
+      .lean(),
+  ]);
+
+  const notificationItems = notifications.map((n) => {
+    const sender =
+      n?.senderId && typeof n.senderId === "object" ? n.senderId : null;
+    const senderId = sender?._id ? String(sender._id) : null;
+
+    return {
+      id: String(n._id),
+      kind: "notification",
+      title: n.title || "Thông báo",
+      description: n.body || "",
+      createdAt: n.createdAt,
+      link:
+        n.link ||
+        (n.refModel === "Post" && n.refId ? `/posts/${String(n.refId)}` : ""),
+      isRead: Boolean(n.isRead),
+      actor: sender
+        ? {
+            id: senderId,
+            name: sender.fullname || sender.username || "Người dùng",
+            avatar: sender.avatar || "",
+          }
+        : null,
+    };
+  });
+
+  const postItems = posts.map((p) => ({
+    id: String(p._id),
+    kind: "post_created",
+    title: "Bạn đã đăng một bài viết",
+    description: (p.content || "").trim().slice(0, 120),
+    createdAt: p.createdAt,
+    link: `/posts/${String(p._id)}`,
+    isRead: true,
+    actor: null,
+  }));
+
+  const reactionItems = reactions.map((r) => ({
+    id: String(r._id),
+    kind: "reaction_created",
+    title: "Bạn đã thả cảm xúc cho một bài viết",
+    description: r.type ? `Loại cảm xúc: ${r.type}` : "",
+    createdAt: r.createdAt,
+    link: r.postId ? `/posts/${String(r.postId)}` : "",
+    isRead: true,
+    actor: null,
+  }));
+
+  const followItems = follows.map((f) => {
+    const target =
+      f?.followingUserId && typeof f.followingUserId === "object"
+        ? f.followingUserId
+        : null;
+    const targetId = target?._id ? String(target._id) : null;
+    const targetName = target?.fullname || target?.username || "người dùng";
+
+    return {
+      id: String(f._id),
+      kind: "follow_created",
+      title: `Bạn đã theo dõi ${targetName}`,
+      description: "",
+      createdAt: f.createdAt,
+      link: targetId ? `/profile/${targetId}` : "",
+      isRead: true,
+      actor: target
+        ? {
+            id: targetId,
+            name: targetName,
+            avatar: target.avatar || "",
+          }
+        : null,
+    };
+  });
+
+  const merged = [...notificationItems, ...postItems, ...reactionItems, ...followItems]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const total = merged.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const start = (page - 1) * limit;
+  const activities = merged.slice(start, start + limit);
+
+  return {
+    activities,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
+}
 async function getBlockedUsers(userId) {
   const rows = await BlockUser.find({ blockerUserId: userId })
     .populate({ path: "blockedUserId", select: "fullname username avatar" })
@@ -475,6 +656,43 @@ async function getBlockedUsers(userId) {
       avatar: blockedUser.avatar || "",
     };
   });
+}
+
+async function getMyPrivacyData(userId) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id).select("privacyData").lean();
+  if (!user) throw new AppError("User not found", 404);
+
+  return normalizePrivacyData(user.privacyData);
+}
+
+async function updateMyPrivacyData({ userId, body }) {
+  const id = safeObjectId(userId);
+  const user = await User.findById(id);
+  if (!user) throw new AppError("User not found", 404);
+
+  const incoming = body && typeof body === "object" ? body : {};
+  const nextPrivacyData = normalizePrivacyData({
+    ...normalizePrivacyData(user.privacyData),
+    ...incoming,
+  });
+
+  const prevPrivacyData = normalizePrivacyData(user.privacyData);
+  const changed =
+    prevPrivacyData.allowFollowFromStrangers !==
+      nextPrivacyData.allowFollowFromStrangers ||
+    prevPrivacyData.allowPeopleInteraction !==
+      nextPrivacyData.allowPeopleInteraction ||
+    prevPrivacyData.allowPeopleToSeeProfile !==
+      nextPrivacyData.allowPeopleToSeeProfile;
+
+  if (!changed) return prevPrivacyData;
+
+  user.privacyData = nextPrivacyData;
+  user.updatedAt = new Date();
+  await user.save();
+
+  return nextPrivacyData;
 }
 
 async function getBlockedUserIds(userId) {
@@ -534,6 +752,7 @@ module.exports = {
   updateMyProfile,
   getMyAccountSettings,
   updateMyAccountSettings,
+  getMyRecentActivities,
 
   // follow
   getFollowingUserIds,
@@ -551,4 +770,6 @@ module.exports = {
   getBlockedUsers,
   getBlockedUserIds,
   isBlocked,
+  getMyPrivacyData,
+  updateMyPrivacyData,
 };
