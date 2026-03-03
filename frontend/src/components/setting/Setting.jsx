@@ -270,8 +270,8 @@ export default function Setting() {
         <>
           Định vị đã tắt. Ứng dụng sẽ <b>ngừng đọc GPS</b> ngay lập tức.
           <br />
-          (Nếu muốn thu hồi quyền vị trí ở mức trình duyệt, bạn tắt trong Site
-          Settings.)
+          (Nếu muốn thu hồi quyền vị trí ở mức trình duyệt, bạn tắt trong Cài
+          đặt trang.)
         </>
       );
     }
@@ -279,8 +279,8 @@ export default function Setting() {
     if (permissionState === "denied") {
       return (
         <>
-          Bạn đã chặn quyền vị trí ở trình duyệt. Hãy bật lại trong Site
-          Settings để sử dụng Map/Home.
+          Bạn đã chặn quyền vị trí ở trình duyệt. Hãy bật lại trong Cài đặt
+          trang để sử dụng trang Bản đồ/Trang chủ.
         </>
       );
     }
@@ -302,7 +302,7 @@ export default function Setting() {
     } catch (e) {
       const msg =
         e?.code === 1
-          ? "Bạn đã chặn quyền vị trí. Hãy bật lại trong cài đặt trình duyệt (Site settings) rồi thử lại."
+          ? "Bạn đã chặn quyền vị trí. Hãy bật lại trong cài đặt trình duyệt (Cài đặt trang) rồi thử lại."
           : "Không thể lấy vị trí hiện tại. Vui lòng thử lại.";
       window.alert(msg);
     } finally {
@@ -333,29 +333,29 @@ export default function Setting() {
   return (
     <div className="setting-page">
       <div className="st-header">
-        <button className="st-back" onClick={goBack} aria-label="Back">
+        <button className="st-back" onClick={goBack} aria-label="Quay lại">
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <div className="st-title">Setting</div>
+        <div className="st-title">Cài đặt</div>
       </div>
 
       <div className="st-divider" />
 
       <div className="st-content">
         <div className="st-section">
-          <div className="st-section-title">Location</div>
+          <div className="st-section-title">Vị trí</div>
 
           <div className="st-row st-static">
             <div className="st-row-left">
               <I>
                 <IconPin />
               </I>
-              <span className="st-row-text">Allow location access</span>
+              <span className="st-row-text">Cho phép truy cập vị trí</span>
             </div>
 
             <label
               className={`st-switch ${busy ? "busy" : ""}`}
-              aria-label="Allow location"
+              aria-label="Cho phép vị trí"
             >
               <input
                 type="checkbox"
@@ -374,10 +374,10 @@ export default function Setting() {
               <I>
                 <IconRange />
               </I>
-              <span className="st-row-text">Range</span>
+              <span className="st-row-text">Phạm vi</span>
             </div>
 
-            <div className="st-range" aria-label="Range (km)">
+            <div className="st-range" aria-label="Phạm vi (km)">
               <input
                 type="range"
                 min="1"
@@ -399,53 +399,48 @@ export default function Setting() {
         </div>
 
         <div className="st-section">
-          <div className="st-section-title">Privacy and security</div>
+          <div className="st-section-title">Quyền riêng tư và bảo mật</div>
           <RowButton
             icon={<IconBlocked />}
-            label="Blocked"
+            label="Đã chặn"
             onClick={() => navigate("/blocked")}
           />
           <RowButton
             icon={<IconShield />}
-            label="Privacy and Data"
+            label="Quyền riêng tư và dữ liệu"
             onClick={() => navigate("/privacy")}
           />
         </div>
 
         <div className="st-section">
-          <div className="st-section-title">Support</div>
+          <div className="st-section-title">Hỗ trợ</div>
           <RowButton
             icon={<IconRecent />}
-            label="Recent Activities"
+            label="Hoạt động gần đây"
             onClick={() => navigate("/recent-activity")}
           />
           <RowButton
             icon={<IconMail />}
-            label="Feedback"
+            label="Góp ý"
             onClick={() => navigate("/feedback")}
-          />
-          <RowButton
-            icon={<IconWarn />}
-            label="Report issue"
-            onClick={() => navigate("/report")}
           />
         </div>
 
         <div className="st-section">
-          <div className="st-section-title">Account</div>
+          <div className="st-section-title">Tài khoản</div>
           <RowButton
             icon={<IconUser />}
-            label="Edit Profile"
+            label="Chỉnh sửa hồ sơ"
             onClick={() => navigate("/setting/edit-profile")}
           />
           <RowButton
             icon={<IconLogout />}
-            label="Log out"
+            label="Đăng xuất"
             onClick={handleLogout}
           />
           <RowButton
             icon={<IconTrash />}
-            label="Delete account"
+            label="Xóa tài khoản"
             danger
             onClick={() => navigate("/delete-account-confirm")}
           />
