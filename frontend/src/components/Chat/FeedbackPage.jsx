@@ -27,7 +27,7 @@ export default function FeedbackPage() {
   const trimmed = useMemo(() => content.trim(), [content]);
   const topicLabel = useMemo(
     () => TOPICS.find((t) => t.key === topic)?.label || "Góp ý",
-    [topic]
+    [topic],
   );
 
   const getCurrentUserId = () => {
@@ -66,10 +66,7 @@ export default function FeedbackPage() {
         content: finalContent,
         type: "feedback",
         createdAt: new Date().toISOString(),
-      };
-
-      // Gọi API
-      await feedbackApi.sendFeedback(data);
+      });
 
       // 3. Thành công
       alert("Gửi góp ý thành công! Cảm ơn bạn.");
@@ -82,7 +79,7 @@ export default function FeedbackPage() {
       setIsLoading(false);
     }
   };
-//check 
+  //check
   return (
     <div className="feedback-page">
       <div className="fb-header">
