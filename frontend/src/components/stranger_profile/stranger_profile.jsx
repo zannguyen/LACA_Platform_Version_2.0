@@ -147,9 +147,8 @@ export default function StrangerProfile() {
   const fetchTags = async () => {
     if (!targetUserId) return;
     try {
-      const res = await userApi.getUserPreferredTags(targetUserId);
-      const data = res?.data?.data || res?.data || [];
-      setUserTags(data);
+      const data = await userApi.getUserPreferredTags(targetUserId);
+      setUserTags(Array.isArray(data) ? data : []);
     } catch (e) {
       // Silent fail - tags are optional
       console.error("Failed to load user tags:", e);
@@ -253,7 +252,10 @@ export default function StrangerProfile() {
   // Toggle like reaction on post
   const handleToggleLike = async (e, postId) => {
     e.stopPropagation();
-    const currentState = reactionStates[postId] || { reacted: false, loading: false };
+    const currentState = reactionStates[postId] || {
+      reacted: false,
+      loading: false,
+    };
     if (currentState.loading) return;
 
     const isReacted = currentState.reacted;
@@ -261,25 +263,34 @@ export default function StrangerProfile() {
     const newCount = (currentState.count || 0) + (newReacted ? 1 : -1);
 
     // Optimistic update
-    setReactionStates(prev => ({
+    setReactionStates((prev) => ({
       ...prev,
-      [postId]: { reacted: newReacted, loading: true, count: newCount }
+      [postId]: { reacted: newReacted, loading: true, count: newCount },
     }));
 
     try {
       if (isReacted) {
         await removeReaction(postId);
       } else {
-        await addReaction(postId, "like", userLocation?.latitude, userLocation?.longitude);
+        await addReaction(
+          postId,
+          "like",
+          userLocation?.latitude,
+          userLocation?.longitude,
+        );
       }
-      setReactionStates(prev => ({
+      setReactionStates((prev) => ({
         ...prev,
-        [postId]: { reacted: newReacted, loading: false, count: newCount }
+        [postId]: { reacted: newReacted, loading: false, count: newCount },
       }));
     } catch (err) {
-      setReactionStates(prev => ({
+      setReactionStates((prev) => ({
         ...prev,
-        [postId]: { reacted: isReacted, loading: false, count: currentState.count }
+        [postId]: {
+          reacted: isReacted,
+          loading: false,
+          count: currentState.count,
+        },
       }));
       console.error("Reaction error:", err);
     }
@@ -481,7 +492,11 @@ export default function StrangerProfile() {
                         playsInline
                         preload="auto"
                         muted
-                        style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                        style={{
+                          objectFit: "cover",
+                          width: "100%",
+                          height: "100%",
+                        }}
                       />
                     ) : (
                       <img src={media} alt="post" />
@@ -491,14 +506,24 @@ export default function StrangerProfile() {
                       No media
                     </div>
                   )}
-                  <div className="profile-post-overlay" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="profile-post-overlay"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
                       onClick={(e) => handleToggleLike(e, id)}
                       disabled={reactionStates[id]?.loading}
                     >
-                      <i className={`fa-solid fa-heart ${reactionStates[id]?.reacted ? "fas" : "far"}`}></i>
-                      <span>{(reactionStates[id]?.count ?? p.reactionCount ?? p.likes ?? 0)}</span>
+                      <i
+                        className={`fa-solid fa-heart ${reactionStates[id]?.reacted ? "fas" : "far"}`}
+                      ></i>
+                      <span>
+                        {reactionStates[id]?.count ??
+                          p.reactionCount ??
+                          p.likes ??
+                          0}
+                      </span>
                     </button>
                   </div>
                 </div>
