@@ -2,16 +2,22 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { authApi } from "../../api/authApi";
 import "./AdminLayout.css";
+import lacalogoadmin from "../../assets/images/lacalogoadmin.jpg";
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const handleLogoClick = () => {
+    window.location.reload();
+  };
+
   const navItems = useMemo(
     () => [
       { path: "/admin", icon: "📊", label: "Dashboard", exact: true },
-      { path: "/admin/users", icon: "👥", label: "Users" },
+      { path: "/admin/users", icon: "👤", label: "User Management" },
+      { path: "/admin/admins", icon: "👑", label: "Admin Management" },
       { path: "/admin/content", icon: "🛡️", label: "Content" },
       { path: "/admin/map", icon: "🗺️", label: "Map" },
       { path: "/admin/tags", icon: "🏷️", label: "Tags/Categories" },
@@ -64,7 +70,7 @@ const AdminLayout = () => {
         >
           ☰
         </button>
-        <h1>LACA Admin</h1>
+        <img src={lacalogoadmin} alt="LACA Admin" className="mobile-logo" onClick={handleLogoClick} />
       </div>
 
       {isSidebarOpen && (
@@ -76,6 +82,21 @@ const AdminLayout = () => {
       )}
 
       <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+        {/* Sidebar Header with Logo */}
+        <div className="sidebar-header">
+          <div className="logo" onClick={handleLogoClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && handleLogoClick()}>
+            <img src={lacalogoadmin} alt="LACA Admin" className="logo-image" />
+          </div>
+          <button
+            type="button"
+            className="close-sidebar"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
+        </div>
+
         <nav className="nav-menu">
           {navItems.map((item) => (
             <button

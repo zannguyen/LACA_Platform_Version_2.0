@@ -116,6 +116,23 @@
   resize: vertical;
 }
 
+.eps-otp-btn {
+  width: 100%;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.eps-otp-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .eps-avatar-row {
   display: flex;
   align-items: center;

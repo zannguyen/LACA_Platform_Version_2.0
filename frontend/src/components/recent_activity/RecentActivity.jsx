@@ -81,11 +81,11 @@ export default function RecentActivity() {
         <button
           className="ra-back"
           onClick={() => navigate(-1)}
-          aria-label="Back"
+          aria-label="Quay lại"
         >
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <div className="ra-title">Recent Activities</div>
+        <div className="ra-title">Hoạt động gần đây</div>
       </div>
 
       <div className="ra-content">

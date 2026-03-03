@@ -2,12 +2,12 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import ReportModal from "../report/ReportModal";
 import RankingModal from "../ranking/RankingModal";
 import { getUnreadCount } from "../../api/notificationApi";
 import userApi from "../../api/userApi";
 import rankingApi from "../../api/rankingApi";
 import { getCategoriesWithTags } from "../../api/tagApi";
+import { getPostsFromFollowed } from "../../api/map.api";
 import lacaLogo from "../../assets/images/laca_logo.png";
 import "./home.css";
 
@@ -48,6 +48,12 @@ const Home = () => {
   const [reportTarget, setReportTarget] = useState(null);
   const [dropdownPostId, setDropdownPostId] = useState(null);
 
+  // block modal
+  const [blockUserId, setBlockUserId] = useState(null);
+  const [blockUserName, setBlockUserName] = useState(null);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockSuccess, setBlockSuccess] = useState(false);
+
   // Ranking modal
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingData, setRankingData] = useState({ locations: [], users: [] });
@@ -60,6 +66,8 @@ const Home = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("for-you");
+  const [followingPosts, setFollowingPosts] = useState([]); // Posts from mutual follow users
+  const [followingLoading, setFollowingLoading] = useState(false);
 
   // Filter states
   const [onlyNearby, setOnlyNearby] = useState(false);
@@ -92,17 +100,17 @@ const Home = () => {
   }, []);
 
   const toggleFilterTag = (tagId) => {
-    setFilterTags(prev =>
+    setFilterTags((prev) =>
       prev.includes(tagId)
-        ? prev.filter(id => id !== tagId)
-        : [...prev, tagId]
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
     );
   };
 
   const toggleCategory = (categoryId) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
-      [categoryId]: !prev[categoryId]
+      [categoryId]: !prev[categoryId],
     }));
   };
 
@@ -140,12 +148,6 @@ const Home = () => {
   const { enabled: locationEnabled, requestCurrentPosition } =
     useLocationAccess();
 
-  // ✅ HARD RESET report modal when Home mounts (ngăn auto-open do state rác)
-  useEffect(() => {
-    setReportOpen(false);
-    setReportTarget(null);
-  }, []);
-
   // Fetch unread notification count
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -165,12 +167,6 @@ const Home = () => {
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  // (debug, xoá cũng được)
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("reportOpen:", reportOpen, "reportTarget:", reportTarget?._id);
-  }, [reportOpen, reportTarget]);
 
   // ================== LOCATION ==================
   useEffect(() => {
@@ -358,6 +354,12 @@ const Home = () => {
     setChatPopupOpen(false);
   };
 
+  const closeSearch = () => {
+    setSearchExpanded(false);
+    setSearchResults([]);
+    setSearchLoading(false);
+  };
+
   const reactHeart = async (postId) => {
     try {
       const token = getAccessToken();
@@ -471,20 +473,13 @@ const Home = () => {
     return null;
   };
 
-  // Check if user can view location: within 5km OR mutual follow
+  // Check if user can view location: within 5km OR mutual follow (has distance calculated)
   const canViewLocation = (post) => {
     const p = getPostLatLng(post);
     if (!p) return false;
 
-    // If within 5km, can view
-    if (post.distanceKm != null && post.distanceKm <= 5) {
-      return true;
-    }
-
-    // If mutual follow (both follow each other), can view location even if outside 5km
-    // Check both isFollowing (I follow them) and isFollowed (they follow me)
-    const isMutual = post.user?.isFollowing && post.user?.isFollowed;
-    if (isMutual) {
+    // If distance is calculated (either within 5km or mutual follow), can view
+    if (post.distanceKm != null) {
       return true;
     }
 
@@ -507,9 +502,20 @@ const Home = () => {
   };
 
   // ================== REPORT DROPDOWN ==================
+  const [lastToggledId, setLastToggledId] = useState(null);
+
   const toggleReportMenu = (e, postId) => {
     e.stopPropagation();
-    setDropdownPostId(prev => prev === postId ? null : postId);
+    e.preventDefault();
+    const postIdStr = String(postId);
+
+    // Nếu click vào cùng một post thì toggle, nếu khác thì set mới
+    if (dropdownPostId === postIdStr) {
+      setDropdownPostId(null);
+    } else {
+      setDropdownPostId(postIdStr);
+      setLastToggledId(postIdStr);
+    }
   };
 
   const closeAllReportDropdowns = () => {
@@ -565,7 +571,14 @@ const Home = () => {
 
   useEffect(() => {
     const close = (e) => {
-      if (!e.target.closest(".report-dropdown")) closeAllReportDropdowns();
+      // Không đóng dropdown khi click vào nút toggle hoặc dropdown
+      if (
+        e.target.closest(".swipe-card-more-btn") ||
+        e.target.closest(".report-dropdown")
+      ) {
+        return;
+      }
+      closeAllReportDropdowns();
     };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
@@ -585,16 +598,89 @@ const Home = () => {
 
   // Check if any filter is active
   const hasActiveFilter = useMemo(() => {
-    return filterDistance !== "all" || filterTime !== "all" ||
-           filterSort !== "newest" || filterType !== "all" ||
-           onlyHasLocation || filterTags.length > 0;
-  }, [filterDistance, filterTime, filterSort, filterType, onlyHasLocation, filterTags]);
+    return (
+      filterDistance !== "all" ||
+      filterTime !== "all" ||
+      filterSort !== "newest" ||
+      filterType !== "all" ||
+      onlyHasLocation ||
+      filterTags.length > 0
+    );
+  }, [
+    filterDistance,
+    filterTime,
+    filterSort,
+    filterType,
+    onlyHasLocation,
+    filterTags,
+  ]);
+
+  // Load posts from mutual follow users when switching to "following" tab
+  useEffect(() => {
+    if (activeTab === "following") {
+      const loadFollowingPosts = async () => {
+        setFollowingLoading(true);
+        try {
+          const result = await getPostsFromFollowed(50);
+          if (result?.success) {
+            // Add isMutualFollow flag to all posts
+            const posts = (result.data?.data || []).map((p) => ({
+              ...p,
+              isMutualFollow: true,
+            }));
+            setFollowingPosts(posts);
+          } else {
+            setFollowingPosts([]);
+          }
+        } catch (e) {
+          setFollowingPosts([]);
+        } finally {
+          setFollowingLoading(false);
+        }
+      };
+
+      loadFollowingPosts();
+    } else {
+      setFollowingPosts([]);
+    }
+  }, [activeTab]);
+
+  // Reload posts when switching to "for-you" tab
+  const previousTabRef = useRef(activeTab);
+  useEffect(() => {
+    if (previousTabRef.current !== "for-you" && activeTab === "for-you") {
+      // Switched to "for-you" tab - reload posts
+      if (userLocation) {
+        fetchHomePosts(userLocation.lat, userLocation.lng);
+      }
+    }
+    previousTabRef.current = activeTab;
+  }, [activeTab, userLocation]);
 
   // ================== FRONTEND-ONLY FILTER/SEARCH ==================
   const visiblePosts = useMemo(() => {
     const q = searchText.trim().toLowerCase();
 
-    let posts = (feedPosts || [])
+    // Use followingPosts when on "following" tab, otherwise use feedPosts
+    let posts =
+      activeTab === "following" ? followingPosts || [] : feedPosts || [];
+
+    if (activeTab === "following") {
+      posts = posts.filter(
+        (p) =>
+          p?.isMutualFollow ||
+          (Boolean(p?.user?.isFollowing) && Boolean(p?.user?.isFollowed)),
+      );
+    } else {
+      posts = posts.filter((p) => {
+        const isNearby5km =
+          typeof p?.distanceKm === "number" && Number(p.distanceKm) <= 5;
+        const isMutualFollow =
+          p?.isMutualFollow ||
+          (Boolean(p?.user?.isFollowing) && Boolean(p?.user?.isFollowed));
+        return isNearby5km || isMutualFollow;
+      });
+    }
 
     // Search filter
     posts = posts.filter((p) => {
@@ -602,10 +688,10 @@ const Home = () => {
       const name = (getDisplayName(p) || "").toLowerCase();
       const content = (p?.content || "").toLowerCase();
       return name.includes(q) || content.includes(q);
-    })
+    });
 
     // Has location filter
-    posts = posts.filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)))
+    posts = posts.filter((p) => (!onlyHasLocation ? true : !!getPostLatLng(p)));
 
     // Distance filter
     posts = posts.filter((p) => {
@@ -613,7 +699,7 @@ const Home = () => {
       const d = p?.distanceKm;
       if (typeof d !== "number") return false;
       return d <= parseInt(filterDistance);
-    })
+    });
 
     // Time filter
     posts = posts.filter((p) => {
@@ -623,7 +709,11 @@ const Home = () => {
       const diffTime = now - postDate;
 
       if (filterTime === "today") {
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
         return postDate >= today;
       } else if (filterTime === "week") {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -633,29 +723,44 @@ const Home = () => {
         return postDate >= monthAgo;
       }
       return true;
-    })
+    });
 
     // Type filter (image/video)
     posts = posts.filter((p) => {
       if (filterType === "all") return true;
       const mediaType = p.type || "image";
       return mediaType === filterType;
-    })
+    });
 
     // Tags filter
     posts = posts.filter((p) => {
       if (filterTags.length === 0) return true;
-      const postTags = p.tags?.map(t => typeof t === 'string' ? t : t._id) || [];
-      return filterTags.some(tagId => postTags.includes(tagId));
-    })
+      const postTags =
+        p.tags?.map((t) => (typeof t === "string" ? t : t._id)) || [];
+      return filterTags.some((tagId) => postTags.includes(tagId));
+    });
 
     // Sort
     if (filterSort === "popular") {
-      posts = [...posts].sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+      posts = [...posts].sort(
+        (a, b) => (b.likes?.length || 0) - (a.likes?.length || 0),
+      );
     }
 
     return posts;
-  }, [feedPosts, searchText, onlyHasLocation, onlyNearby, filterDistance, filterTime, filterSort, filterType, filterTags]);
+  }, [
+    activeTab,
+    feedPosts,
+    followingPosts,
+    searchText,
+    onlyHasLocation,
+    onlyNearby,
+    filterDistance,
+    filterTime,
+    filterSort,
+    filterType,
+    filterTags,
+  ]);
 
   // Swipe handlers
   const handleTouchStart = (e) => {
@@ -679,10 +784,12 @@ const Home = () => {
     if (Math.abs(diff) > threshold) {
       if (diff > 0) {
         // Swipe right - next card
-        setCurrentCardIndex(prev => Math.min(prev + 1, visiblePosts.length - 1));
+        setCurrentCardIndex((prev) =>
+          Math.min(prev + 1, visiblePosts.length - 1),
+        );
       } else {
         // Swipe left - previous card
-        setCurrentCardIndex(prev => Math.max(prev - 1, 0));
+        setCurrentCardIndex((prev) => Math.max(prev - 1, 0));
       }
     }
 
@@ -692,25 +799,31 @@ const Home = () => {
 
   const goToNextCard = () => {
     if (currentCardIndex < visiblePosts.length - 1) {
-      setCurrentCardIndex(prev => prev + 1);
+      setCurrentCardIndex((prev) => prev + 1);
     }
   };
 
   const goToPrevCard = () => {
     if (currentCardIndex > 0) {
-      setCurrentCardIndex(prev => prev - 1);
+      setCurrentCardIndex((prev) => prev - 1);
     }
   };
 
   const currentPost = visiblePosts[currentCardIndex];
-  const cardRotation = isSwiping ? (currentX.current - startX.current) * 0.05 : 0;
+  const cardRotation = isSwiping
+    ? (currentX.current - startX.current) * 0.05
+    : 0;
   const cardTranslate = isSwiping ? currentX.current - startX.current : 0;
 
   return (
     <div className="mobile-wrapper">
       <header className="home-header">
         {/* Logo - click to refresh */}
-        <button className="home-logo" title="Trang chủ" onClick={() => window.location.reload()}>
+        <button
+          className="home-logo"
+          title="Trang chủ"
+          onClick={() => window.location.reload()}
+        >
           <img src={lacaLogo} alt="LACA" />
         </button>
 
@@ -759,7 +872,7 @@ const Home = () => {
             className="header-action-btn"
             onClick={() => setFilterOpen((v) => !v)}
             title="Lọc"
-            style={{ display: 'none' }}
+            style={{ display: "none" }}
           >
             <i className="fa-solid fa-sliders"></i>
           </button>
@@ -768,321 +881,386 @@ const Home = () => {
 
       {/* search + filter - only show when expanded */}
       {searchExpanded && (
-        <div className="home-topbar expanded">
-          <div className="home-search">
-            <input
-              type="text"
-              className="home-search-input"
-              placeholder="Tìm bạn bè bằng email hoặc username..."
-              value={searchText}
-              onChange={async (e) => {
-                const value = e.target.value;
-                setSearchText(value);
-                if (value.trim().length > 0) {
-                  setSearchLoading(true);
-                  try {
-                    const res = await userApi.searchUsers(value);
-                    setSearchResults(res.data || []);
-                  } catch (err) {
-                    console.error("Search error:", err);
-                    setSearchResults([]);
-                  } finally {
-                    setSearchLoading(false);
-                  }
-                } else {
-                  setSearchResults([]);
-                }
-              }}
-              autoFocus
-            />
-            {searchText ? (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={() => {
-                  setSearchText("");
-                  setSearchExpanded(false);
-                }}
-                aria-label="Close search"
-              >
-                <i className="fa-solid fa-arrow-left" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={() => setSearchExpanded(false)}
-                aria-label="Close search"
-              >
-                <i className="fa-solid fa-arrow-left" />
-              </button>
-            )}
-          </div>
+        <>
+          <button
+            type="button"
+            className="search-backdrop"
+            aria-label="Đóng tìm kiếm"
+            onClick={closeSearch}
+          />
 
-          {/* Search Results */}
-          {searchText.trim().length > 0 && (
-            <div className="search-results">
-              {searchLoading ? (
-                <div className="search-loading">Đang tìm...</div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((user) => (
-                  <div key={user._id} className="search-result-item">
-                    <Link
-                      to={`/profile/${user._id}`}
-                      className="search-result-link"
-                      onClick={() => {
-                        setSearchText("");
-                        setSearchExpanded(false);
-                        setSearchResults([]);
-                      }}
-                    >
-                      <div className="search-result-avatar">
-                        {user.avatar ? (
-                          <img src={user.avatar} alt={user.fullname || user.username} />
-                        ) : (
-                          <i className="fa-solid fa-user"></i>
-                        )}
-                      </div>
-                      <div className="search-result-info">
-                        <div className="search-result-name">
-                          {user.fullname || user.username}
-                        </div>
-                        <div className="search-result-username">@{user.username}</div>
-                      </div>
-                    </Link>
-                    <button
-                      className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        try {
-                          if (user.isFollowing) {
-                            await userApi.unfollowUser(user._id);
-                            setSearchResults((prev) =>
-                              prev.map((u) =>
-                                u._id === user._id ? { ...u, isFollowing: false } : u
-                              )
-                            );
-                          } else {
-                            await userApi.followUser(user._id);
-                            setSearchResults((prev) =>
-                              prev.map((u) =>
-                                u._id === user._id ? { ...u, isFollowing: true } : u
-                              )
-                            );
-                          }
-                        } catch (err) {
-                          console.error("Follow error:", err);
-                        }
-                      }}
-                    >
-                      {user.isFollowing ? "Following" : "Follow"}
-                    </button>
-                  </div>
-                ))
+          <div className="home-topbar expanded">
+            <div className="home-search">
+              <input
+                type="text"
+                className="home-search-input"
+                placeholder="Tìm bạn bè bằng email hoặc username..."
+                value={searchText}
+                onChange={async (e) => {
+                  const value = e.target.value;
+                  setSearchText(value);
+                  if (value.trim().length > 0) {
+                    setSearchLoading(true);
+                    try {
+                      const res = await userApi.searchUsers(value);
+                      setSearchResults(res.data || []);
+                    } catch (err) {
+                      console.error("Search error:", err);
+                      setSearchResults([]);
+                    } finally {
+                      setSearchLoading(false);
+                    }
+                  } else {
+                    setSearchResults([]);
+                  }
+                }}
+                autoFocus
+              />
+              {searchText ? (
+                <button
+                  type="button"
+                  className="home-search-clear"
+                  onClick={() => {
+                    setSearchText("");
+                    closeSearch();
+                  }}
+                  aria-label="Close search"
+                >
+                  <i className="fa-solid fa-arrow-left" />
+                </button>
               ) : (
-                <div className="search-no-results">Không tìm thấy người dùng</div>
+                <button
+                  type="button"
+                  className="home-search-clear"
+                  onClick={closeSearch}
+                  aria-label="Close search"
+                >
+                  <i className="fa-solid fa-arrow-left" />
+                </button>
               )}
             </div>
-          )}
-        </div>
+
+            {/* Search Results */}
+            {searchText.trim().length > 0 && (
+              <div className="search-results">
+                {searchLoading ? (
+                  <div className="search-loading">Đang tìm...</div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((user) => (
+                    <div key={user._id} className="search-result-item">
+                      <Link
+                        to={`/profile/${user._id}`}
+                        className="search-result-link"
+                        onClick={() => {
+                          setSearchText("");
+                          closeSearch();
+                        }}
+                      >
+                        <div className="search-result-avatar">
+                          {user.avatar ? (
+                            <img
+                              src={user.avatar}
+                              alt={user.fullname || user.username}
+                            />
+                          ) : (
+                            <i className="fa-solid fa-user"></i>
+                          )}
+                        </div>
+                        <div className="search-result-info">
+                          <div className="search-result-name">
+                            {user.fullname || user.username}
+                          </div>
+                          <div className="search-result-username">
+                            @{user.username}
+                          </div>
+                        </div>
+                      </Link>
+                      <button
+                        className={`search-result-follow-btn ${user.isFollowing ? "following" : ""}`}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            if (user.isFollowing) {
+                              await userApi.unfollowUser(user._id);
+                              setSearchResults((prev) =>
+                                prev.map((u) =>
+                                  u._id === user._id
+                                    ? { ...u, isFollowing: false }
+                                    : u,
+                                ),
+                              );
+                            } else {
+                              await userApi.followUser(user._id);
+                              setSearchResults((prev) =>
+                                prev.map((u) =>
+                                  u._id === user._id
+                                    ? { ...u, isFollowing: true }
+                                    : u,
+                                ),
+                              );
+                            }
+                          } catch (err) {
+                            console.error("Follow error:", err);
+                          }
+                        }}
+                      >
+                        {user.isFollowing ? "Following" : "Follow"}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="search-no-results">
+                    Không tìm thấy người dùng
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       <main className="home-main">
-        {loading && (
+        {(loading || followingLoading) && (
           <div style={{ padding: 12, textAlign: "center" }}>
             Đang tải bài đăng...
           </div>
         )}
 
-        {errMsg && !loading && (
+        {errMsg && !loading && !followingLoading && (
           <div style={{ padding: 12, textAlign: "center" }}>
             <p>{errMsg}</p>
             <button onClick={() => window.location.reload()}>Thử lại</button>
           </div>
         )}
 
-        {!loading && !errMsg && visiblePosts.length > 0 && (
-          <div className="swipe-cards-container">
-            {/* Card stack */}
-            <div
-              className="swipe-card-wrapper"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              style={{ touchAction: 'none' }}
-            >
-              {visiblePosts.map((post, idx) => {
-                const isActive = idx === currentCardIndex;
-                const isVisible = idx >= currentCardIndex && idx <= currentCardIndex + 1;
+        {!loading &&
+          !followingLoading &&
+          !errMsg &&
+          visiblePosts.length > 0 && (
+            <div className="swipe-cards-container">
+              {/* Card stack */}
+              <div
+                className="swipe-card-wrapper"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ touchAction: "none" }}
+              >
+                {visiblePosts.map((post, idx) => {
+                  const isActive = idx === currentCardIndex;
+                  const isVisible =
+                    idx >= currentCardIndex && idx <= currentCardIndex + 1;
 
-                if (!isVisible) return null;
+                  if (!isVisible) return null;
 
-                const media = getFirstMedia(post);
-                const isVideo = post.type === "video" || isVideoUrl(media);
-                const hasPlace = !!getPostLatLng(post);
+                  const media = getFirstMedia(post);
+                  const isVideo = post.type === "video" || isVideoUrl(media);
+                  const hasPlace = !!getPostLatLng(post);
 
-                return (
-                  <article
-                    key={post._id}
-                    className={`swipe-card ${isActive ? "active" : ""}`}
-                    style={{
-                      transform: isActive
-                        ? `translateX(${cardTranslate}px) rotate(${cardRotation}deg)`
-                        : `translateX(${(idx - currentCardIndex) * 20}px) translateY(${(idx - currentCardIndex) * 10}px) scale(${1 - (idx - currentCardIndex) * 0.05})`,
-                      zIndex: visiblePosts.length - idx,
-                      opacity: isVisible ? 1 : 0,
-                      pointerEvents: isActive ? 'auto' : 'none',
-                    }}
-                  >
-                    <div className="swipe-card-media">
-                      {media ? (
-                        isVideo ? (
-                          <video
-                            src={media}
-                            className="swipe-card-image"
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                          />
-                        ) : (
-                          <img src={media} alt="Post" className="swipe-card-image" />
-                        )
-                      ) : (
-                        <div className="swipe-card-no-media">{post.content}</div>
-                      )}
-
-                      {/* Location button - always show if post has location */}
-                      {hasPlace && (
-                        <button
-                          className="swipe-card-location-btn"
-                          onClick={(e) => { e.stopPropagation(); goToPostOnMap(post); }}
-                        >
-                          <i className="fa-solid fa-location-dot"></i>
-                        </button>
-                      )}
-
-                      {/* Report button */}
-                      <button
-                        className="swipe-card-more-btn"
-                        onClick={(e) => { e.stopPropagation(); toggleReportMenu(e, post._id); }}
-                      >
-                        <i className="fa-solid fa-ellipsis"></i>
-                      </button>
-                      {dropdownPostId === post._id && (
-                        <div className="report-dropdown" style={{ position: 'absolute', top: 50, right: 16, zIndex: 200 }}>
-                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); setReportTarget(post); setReportOpen(true); setDropdownPostId(null); }}>
-                            <i className="fa-solid fa-flag"></i> Báo cáo
-                          </button>
-                          <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); setDropdownPostId(null); }}>
-                            <i className="fa-solid fa-ban"></i> Chặn
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Overlay: User info, Tags, Content on image */}
-                    <div className="swipe-card-overlay">
-                      <Link to={`/profile/${post.user?._id}`} className="swipe-card-user-row">
-                        <div className="swipe-card-avatar">
-                          {post.user?.avatar ? (
-                            <img src={post.user.avatar} alt="" />
+                  return (
+                    <article
+                      key={post._id}
+                      className={`swipe-card ${isActive ? "active" : ""}`}
+                      style={{
+                        transform: isActive
+                          ? `translateX(${cardTranslate}px) rotate(${cardRotation}deg)`
+                          : `translateX(${(idx - currentCardIndex) * 20}px) translateY(${(idx - currentCardIndex) * 10}px) scale(${1 - (idx - currentCardIndex) * 0.05})`,
+                        zIndex: visiblePosts.length - idx,
+                        opacity: isVisible ? 1 : 0,
+                        pointerEvents: isActive ? "auto" : "none",
+                      }}
+                    >
+                      <div className="swipe-card-media">
+                        {media ? (
+                          isVideo ? (
+                            <video
+                              src={media}
+                              className="swipe-card-image"
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                            />
                           ) : (
-                            <i className="fa-solid fa-user"></i>
-                          )}
-                        </div>
-                        <div className="swipe-card-name">
-                          <span className="swipe-card-username">{getDisplayName(post)}</span>
-                          {post.distanceKm != null && (
-                            <span className="swipe-card-distance">
-                              {formatDistance(post.distanceKm)}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
+                            <img
+                              src={media}
+                              alt="Post"
+                              className="swipe-card-image"
+                            />
+                          )
+                        ) : (
+                          <div className="swipe-card-no-media">
+                            {post.content}
+                          </div>
+                        )}
 
-                      {/* Tags */}
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="swipe-card-tags">
-                          {post.tags.slice(0, 3).map((tag, idx) => (
-                            <span key={tag._id || idx} className="swipe-card-tag">
-                              {tag.icon} {tag.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                        {/* Location button - always show if post has location */}
+                        {hasPlace && (
+                          <button
+                            className="swipe-card-location-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              goToPostOnMap(post);
+                            }}
+                          >
+                            <i className="fa-solid fa-location-dot"></i>
+                          </button>
+                        )}
 
-                      {/* Content */}
-                      {post.content && (
-                        <div className="swipe-card-content">
-                          <p>{post.content}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bottom white bar: Actions only */}
-                    <div className="swipe-card-actions">
-                      <button
-                        className={`swipe-action-btn heart ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
-                        onClick={() => reactHeart(post._id)}
-                      >
-                        <i className="fa-solid fa-heart"></i>
-                      </button>
-
-                      {String(post.user?._id) !== String(currentUserId) && (
+                        {/* Report button */}
                         <button
-                          className="swipe-action-btn chat"
-                          onClick={() => openChatWithPostUser(post)}
+                          className="swipe-card-more-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleReportMenu(e, post._id);
+                          }}
                         >
-                          <i className="fa-regular fa-comment"></i>
+                          <i className="fa-solid fa-ellipsis"></i>
                         </button>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                        {dropdownPostId === String(post._id) && (
+                          <div className="report-dropdown">
+                            <button
+                              className="dropdown-item warning"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAction("report", post, e);
+                              }}
+                            >
+                              <i className="fa-solid fa-flag"></i> Báo cáo
+                            </button>
+                            <button
+                              className="dropdown-item"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAction("block", post, e);
+                              }}
+                            >
+                              <i className="fa-solid fa-ban"></i> Chặn người
+                              dùng
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-            {/* Navigation dots */}
-            <div className="swipe-dots">
-              {visiblePosts.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={`swipe-dot ${idx === currentCardIndex ? "active" : ""}`}
-                  onClick={() => setCurrentCardIndex(idx)}
-                />
-              ))}
-            </div>
+                      {/* Overlay: User info, Tags, Content on image */}
+                      <div className="swipe-card-overlay">
+                        <Link
+                          to={`/profile/${post.user?._id}`}
+                          className="swipe-card-user-row"
+                        >
+                          <div className="swipe-card-avatar">
+                            {post.user?.avatar ? (
+                              <img src={post.user.avatar} alt="" />
+                            ) : (
+                              <i className="fa-solid fa-user"></i>
+                            )}
+                          </div>
+                          <div className="swipe-card-name">
+                            <span className="swipe-card-username">
+                              {getDisplayName(post)}
+                            </span>
+                            {post.distanceKm != null && (
+                              <span className="swipe-card-distance">
+                                {formatDistance(post.distanceKm)}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
 
-            {/* Navigation arrows */}
-            <div className="swipe-arrows">
-              <button
-                className="swipe-arrow prev"
-                onClick={goToPrevCard}
-                disabled={currentCardIndex === 0}
-              >
-                <i className="fa-solid fa-chevron-left"></i>
-              </button>
-              <span className="swipe-counter">
-                {currentCardIndex + 1} / {visiblePosts.length}
-              </span>
-              <button
-                className="swipe-arrow next"
-                onClick={goToNextCard}
-                disabled={currentCardIndex === visiblePosts.length - 1}
-              >
-                <i className="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        )}
+                        {/* Tags */}
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="swipe-card-tags">
+                            {post.tags.slice(0, 3).map((tag, idx) => (
+                              <span
+                                key={tag._id || idx}
+                                className="swipe-card-tag"
+                              >
+                                {tag.icon} {tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
-        {!loading && !errMsg && visiblePosts.length === 0 && (
-          <div className="swipe-empty">
-            <i className="fa-solid fa-inbox"></i>
-            <p>Không có bài đăng nào</p>
-          </div>
-        )}
+                        {/* Content */}
+                        {post.content && (
+                          <div className="swipe-card-content">
+                            <p>{post.content}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bottom white bar: Actions only */}
+                      <div className="swipe-card-actions">
+                        <button
+                          className={`swipe-action-btn heart ${reactionMeta[post._id]?.reacted ? "active" : ""}`}
+                          onClick={() => reactHeart(post._id)}
+                        >
+                          <i className="fa-solid fa-heart"></i>
+                        </button>
+
+                        {String(post.user?._id) !== String(currentUserId) && (
+                          <button
+                            className="swipe-action-btn chat"
+                            onClick={() => openChatWithPostUser(post)}
+                          >
+                            <i className="fa-regular fa-comment"></i>
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Navigation dots */}
+              <div className="swipe-dots">
+                {visiblePosts.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`swipe-dot ${idx === currentCardIndex ? "active" : ""}`}
+                    onClick={() => setCurrentCardIndex(idx)}
+                  />
+                ))}
+              </div>
+
+              {/* Navigation arrows */}
+              <div className="swipe-arrows">
+                <button
+                  className="swipe-arrow prev"
+                  onClick={goToPrevCard}
+                  disabled={currentCardIndex === 0}
+                >
+                  <i className="fa-solid fa-chevron-left"></i>
+                </button>
+                <span className="swipe-counter">
+                  {currentCardIndex + 1} / {visiblePosts.length}
+                </span>
+                <button
+                  className="swipe-arrow next"
+                  onClick={goToNextCard}
+                  disabled={currentCardIndex === visiblePosts.length - 1}
+                >
+                  <i className="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          )}
+
+        {!loading &&
+          !followingLoading &&
+          !errMsg &&
+          visiblePosts.length === 0 && (
+            <div className="swipe-empty">
+              <i
+                className={`fa-solid ${activeTab === "following" ? "fa-user-plus" : "fa-inbox"}`}
+              ></i>
+              <p>
+                {activeTab === "following"
+                  ? "Không có bài viết nào từ người bạn follow"
+                  : "Không có bài đăng nào"}
+              </p>
+            </div>
+          )}
       </main>
 
       {/* TikTok-style Bottom Navigation */}
@@ -1138,17 +1316,6 @@ const Home = () => {
         </div>
       )}
 
-      <ReportModal
-        open={reportOpen}
-        targetType="post"
-        targetId={reportTarget?._id}
-        onClose={(ok) => {
-          setReportOpen(false);
-          setReportTarget(null);
-          if (ok) alert("Đã gửi report");
-        }}
-      />
-
       <RankingModal
         open={rankingOpen}
         onClose={() => setRankingOpen(false)}
@@ -1157,14 +1324,16 @@ const Home = () => {
       />
 
       {/* Floating Filter Button - Top left */}
-      <button
-        className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
-        onClick={() => setFilterOpen(true)}
-        title="Bộ lọc"
-      >
-        <i className="fa-solid fa-sliders"></i>
-        {hasActiveFilter && <span className="filter-active-dot"></span>}
-      </button>
+      {!searchExpanded && (
+        <button
+          className={`filter-floating-btn ${hasActiveFilter ? "active" : ""}`}
+          onClick={() => setFilterOpen(true)}
+          title="Bộ lọc"
+        >
+          <i className="fa-solid fa-sliders"></i>
+          {hasActiveFilter && <span className="filter-active-dot"></span>}
+        </button>
+      )}
 
       {/* Filter Modal - Floating panel */}
       {filterOpen && (
@@ -1215,33 +1384,52 @@ const Home = () => {
             <div className="filter-section">
               <label className="filter-label">Tags</label>
               {tagsLoading ? (
-                <span style={{ color: '#999', fontSize: '14px' }}>Đang tải...</span>
+                <span style={{ color: "#999", fontSize: "14px" }}>
+                  Đang tải...
+                </span>
               ) : tagCategories.length > 0 ? (
-                tagCategories.map(category => (
-                  <div key={category._id} style={{ marginBottom: '12px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                tagCategories.map((category) => (
+                  <div
+                    key={category._id}
+                    style={{
+                      marginBottom: "12px",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
                       onClick={() => toggleCategory(category._id)}
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '12px 14px',
-                        background: 'rgba(0,0,0,0.03)',
-                        cursor: 'pointer',
-                        userSelect: 'none'
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "12px 14px",
+                        background: "rgba(0,0,0,0.03)",
+                        cursor: "pointer",
+                        userSelect: "none",
                       }}
                     >
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#333' }}>
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          color: "#333",
+                        }}
+                      >
                         {category.name}
                       </span>
                       <i
-                        className={`fa-solid fa-chevron-${expandedCategories[category._id] ? 'up' : 'down'}`}
-                        style={{ fontSize: '12px', color: '#666' }}
+                        className={`fa-solid fa-chevron-${expandedCategories[category._id] ? "up" : "down"}`}
+                        style={{ fontSize: "12px", color: "#666" }}
                       ></i>
                     </div>
                     {expandedCategories[category._id] && (
-                      <div className="filter-options" style={{ padding: '12px' }}>
-                        {category.tags?.map(tag => (
+                      <div
+                        className="filter-options"
+                        style={{ padding: "12px" }}
+                      >
+                        {category.tags?.map((tag) => (
                           <button
                             key={tag._id}
                             className={`filter-option-btn ${filterTags.includes(tag._id) ? "active" : ""}`}
@@ -1255,7 +1443,9 @@ const Home = () => {
                   </div>
                 ))
               ) : (
-                <span style={{ color: '#999', fontSize: '14px' }}>Không có tags</span>
+                <span style={{ color: "#999", fontSize: "14px" }}>
+                  Không có tags
+                </span>
               )}
             </div>
 

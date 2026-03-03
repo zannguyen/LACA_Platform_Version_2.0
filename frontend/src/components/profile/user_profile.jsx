@@ -7,12 +7,15 @@ import {
   uploadMedia,
   addReaction,
   removeReaction,
+  getReactionCount,
+  getReactionStatus,
 } from "../../api/postApi";
 import { useLocationAccess } from "../../context/LocationAccessContext";
 import TagDisplay from "./TagDisplay";
 import TagSelectionModal from "./TagSelectionModal";
 import "./user_profile.css";
 import AvatarCropModal from "./AvatarCropModal";
+import ProfilePostViewerModal from "./ProfilePostViewerModal";
 
 /** ===== SVG ICONS (không phụ thuộc FontAwesome) ===== */
 const IconMore = ({ size = 22 }) => (
@@ -133,6 +136,11 @@ export default function UserProfile() {
 
   // Reaction state - lưu trạng thái like của từng bài viết
   const [reactionStates, setReactionStates] = useState({});
+  const reactionFetchedRef = useRef(new Set());
+
+  // IG-style viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerStartIndex, setViewerStartIndex] = useState(0);
 
   const [cropOpen, setCropOpen] = useState(false);
   const [avatarPick, setAvatarPick] = useState(null); // { src: string }
@@ -160,12 +168,6 @@ export default function UserProfile() {
   // Tags
   const [userTags, setUserTags] = useState([]);
   const [showTagModal, setShowTagModal] = useState(false);
-
-  // Post menu + modal delete
-  const [activeMenuId, setActiveMenuId] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
 
   const token = useMemo(
     () => localStorage.getItem("token") || localStorage.getItem("authToken"),
@@ -234,13 +236,6 @@ export default function UserProfile() {
     fetchMyProfile({ page: 1 });
     fetchTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // click outside -> đóng menu post
-  useEffect(() => {
-    const handleClickOutside = () => setActiveMenuId(null);
-    window.addEventListener("click", handleClickOutside);
-    return () => window.removeEventListener("click", handleClickOutside);
   }, []);
 
   const handleBack = () => {
@@ -377,49 +372,43 @@ export default function UserProfile() {
     // Not used in new design, kept for compatibility
   };
 
-  const togglePostMenu = (e, postId) => {
-    e.stopPropagation();
-    const sid = String(postId);
-    setActiveMenuId((prev) => (prev === sid ? null : sid));
-  };
-
-  const handlePostEditClick = (e) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    setError("Chức năng sửa bài đăng sẽ được làm sau.");
-  };
-
-  const handleDeleteClick = (e, postId) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    setPostToDelete(String(postId));
-    setShowModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setPostToDelete(null);
-  };
-
-  const confirmDelete = async () => {
-    if (!postToDelete) return;
-    setDeleting(true);
+  // Delete post (IG-style: gọi từ ProfilePostViewerModal)
+  const handleDeletePost = async (postId) => {
+    const id = String(postId);
     setError("");
 
     const prevPosts = posts;
-    setPosts((prev) =>
-      prev.filter((p) => String(p._id || p.id) !== String(postToDelete)),
-    );
+    const prevStats = stats;
+
+    // optimistic UI
+    setPosts((prev) => prev.filter((p) => String(p?._id || p?.id) !== id));
+    setStats((s) => ({
+      ...(s || {}),
+      posts: Math.max(0, Number(s?.posts ?? prevPosts.length) - 1),
+    }));
 
     try {
-      await deletePost(postToDelete);
+      await deletePost(id);
+
+      // cleanup reaction cache
+      setReactionStates((prev) => {
+        const next = { ...(prev || {}) };
+        delete next[id];
+        return next;
+      });
+      reactionFetchedRef.current.delete(id);
+
       setPagination((p) => ({
         ...(p || {}),
         total: Math.max(0, (p?.total ?? prevPosts.length) - 1),
       }));
-      closeDeleteModal();
+
+      return { success: true };
     } catch (e) {
+      // revert
       setPosts(prevPosts);
+      setStats(prevStats);
+
       const msg =
         e?.response?.data?.message || e?.message || "Xóa bài đăng thất bại";
       setError(msg);
@@ -430,8 +419,8 @@ export default function UserProfile() {
         localStorage.removeItem("user");
         navigate("/login");
       }
-    } finally {
-      setDeleting(false);
+
+      return { success: false, message: msg };
     }
   };
 
@@ -443,9 +432,49 @@ export default function UserProfile() {
     await fetchMyProfile({ page: nextPage, append: true });
   };
 
+  // Init reaction states for posts (sync with Home)
+  useEffect(() => {
+    const list = Array.isArray(posts) ? posts : [];
+    const missing = list
+      .map((p) => String(p?._id || p?.id || ""))
+      .filter(Boolean)
+      .filter((id) => !reactionFetchedRef.current.has(id));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const updates = {};
+      await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const [countRes, statusRes] = await Promise.all([
+              getReactionCount(id),
+              getReactionStatus(id),
+            ]);
+            updates[id] = {
+              reacted: Boolean(statusRes?.reacted),
+              loading: false,
+              count: Number(countRes?.total ?? 0),
+            };
+          } catch {
+            updates[id] = { reacted: false, loading: false, count: 0 };
+          } finally {
+            reactionFetchedRef.current.add(id);
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      setReactionStates((prev) => ({ ...prev, ...updates }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [posts]);
+
   // Toggle like reaction on post
-  const handleToggleLike = async (e, postId) => {
-    e.stopPropagation();
+  const toggleLike = async (postId) => {
     const currentState = reactionStates[postId] || {
       reacted: false,
       loading: false,
@@ -464,14 +493,16 @@ export default function UserProfile() {
 
     try {
       if (isReacted) {
-        await removeReaction(postId);
+        const res = await removeReaction(postId);
+        if (res?.success === false) throw new Error(res?.message);
       } else {
-        await addReaction(
+        const res = await addReaction(
           postId,
           "like",
           userLocation?.latitude,
           userLocation?.longitude,
         );
+        if (res?.success === false) throw new Error(res?.message);
       }
       // Update state with success
       setReactionStates((prev) => ({
@@ -490,6 +521,16 @@ export default function UserProfile() {
       }));
       console.error("Reaction error:", err);
     }
+  };
+
+  const handleToggleLike = (e, postId) => {
+    e.stopPropagation();
+    toggleLike(postId);
+  };
+
+  const openViewerAt = (index) => {
+    setViewerStartIndex(index);
+    setViewerOpen(true);
   };
 
   const displayName = profile?.fullname || profile?.username || "User";
@@ -643,47 +684,56 @@ export default function UserProfile() {
             onClick={handleEditToggle}
             disabled={saving}
           >
-            {saving ? "Saving..." : isEditing ? "Save Note" : "Edit Note"}
+            {saving
+              ? "Đang lưu..."
+              : isEditing
+                ? "Lưu hồ sơ"
+                : "Chỉnh sửa hồ sơ"}
           </button>
         </div>
 
         {/* Interests/Tags Section */}
-        {userTags && userTags.length > 0 && (
-          <div className="profile-interests">
-            <h4 className="profile-section-title">Sở thích</h4>
-            <div className="profile-tags-scroll">
-              {userTags.map((tag) => (
+        <div className="profile-interests">
+          <h4 className="profile-section-title">Sở thích</h4>
+          <div className="profile-tags-scroll">
+            {userTags && userTags.length > 0 ? (
+              userTags.map((tag) => (
                 <span key={tag._id || tag.id} className="profile-tag">
                   <i className="fa-solid fa-hashtag"></i>
                   {tag.name}
                 </span>
-              ))}
-              <button
-                className="profile-tag"
-                onClick={() => setShowTagModal(true)}
-                style={{ cursor: "pointer", border: "none" }}
-              >
-                <i className="fa-solid fa-plus"></i> Thêm
-              </button>
-            </div>
+              ))
+            ) : (
+              <span className="profile-tag" style={{ opacity: 0.75 }}>
+                Chưa có sở thích
+              </span>
+            )}
+            <button
+              className="profile-tag"
+              onClick={() => setShowTagModal(true)}
+              style={{ cursor: "pointer", border: "none" }}
+            >
+              <i className="fa-solid fa-plus"></i> Thêm
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Posts Grid - Instagram Style */}
         <div className="profile-posts">
           {posts.length > 0 ? (
-            posts.map((p) => {
+            posts.map((p, idx) => {
               const id = String(p._id || p.id);
               const media = pickFirstMedia(p);
               const isVideo = p.type === "video" || isVideoUrl(media);
               const createdAt = formatPostDate(p);
               const caption = p.content || p.caption || "";
+              const placeName = p?.placeId?.name || p?.placeName || "";
 
               return (
                 <div
                   className="profile-post-item"
                   key={id}
-                  onClick={() => navigate(`/posts/${id}`)}
+                  onClick={() => openViewerAt(idx)}
                 >
                   {media ? (
                     isVideo ? (
@@ -708,10 +758,16 @@ export default function UserProfile() {
                       No media
                     </div>
                   )}
-                  <div
-                    className="profile-post-overlay"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  {placeName ? (
+                    <div
+                      className="profile-post-location-badge"
+                      title={placeName}
+                    >
+                      <i className="fa-solid fa-location-dot" />
+                      <span>{placeName}</span>
+                    </div>
+                  ) : null}
+                  <div className="profile-post-overlay">
                     <button
                       className={`profile-post-like-btn ${reactionStates[id]?.reacted ? "liked" : ""}`}
                       onClick={(e) => handleToggleLike(e, id)}
@@ -757,38 +813,6 @@ export default function UserProfile() {
         )}
       </div>
 
-      {/* Modal delete (giữ nguyên) */}
-      <div
-        className="modal-overlay"
-        style={{ display: showModal ? "flex" : "none" }}
-        onClick={closeDeleteModal}
-      >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <p className="modal-text">ARE YOU SURE YOU WANT TO DELETE?</p>
-          <div className="modal-actions">
-            <button
-              className="btn-modal btn-no"
-              onClick={closeDeleteModal}
-              disabled={deleting}
-            >
-              NO
-            </button>
-            <button
-              className="btn-modal btn-yes"
-              onClick={confirmDelete}
-              disabled={deleting}
-            >
-              {deleting ? "..." : "YES"}
-            </button>
-          </div>
-          {deleting ? (
-            <div style={{ marginTop: 10, fontSize: 11, color: "#666" }}>
-              Đang xóa...
-            </div>
-          ) : null}
-        </div>
-      </div>
-
       {/* Tag Selection Modal */}
       <TagSelectionModal
         isOpen={showTagModal}
@@ -802,6 +826,17 @@ export default function UserProfile() {
         busy={saving}
         onCancel={closeCropModal}
         onSaveBlob={handleSaveCroppedAvatar}
+      />
+
+      <ProfilePostViewerModal
+        open={viewerOpen}
+        posts={posts}
+        startIndex={viewerStartIndex}
+        onClose={() => setViewerOpen(false)}
+        reactionStates={reactionStates}
+        onToggleLike={toggleLike}
+        isOwnerProfile
+        onDeletePost={handleDeletePost}
       />
     </div>
   );

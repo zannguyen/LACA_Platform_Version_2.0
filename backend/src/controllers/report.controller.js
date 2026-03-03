@@ -2,7 +2,7 @@ const reportService = require("../services/report.service");
 
 exports.createReport = async (req, res, next) => {
   try {
-    const reporterId = req.user?._id;
+    const reporterId = req.user?.id;
     const { targetId, targetType, reason, category, description } = req.body;
 
     const created = await reportService.createReport({

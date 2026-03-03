@@ -44,12 +44,76 @@ exports.updateMyProfile = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/user/me/password
+ * (Auth required)
+ */
+exports.changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide all required fields",
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "New password and confirm password do not match",
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 6 characters",
+    });
+  }
+
+  const result = await UserService.changePassword({
+    userId: req.user.id,
+    currentPassword,
+    newPassword,
+  });
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result.message,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+  });
+});
+
+/**
  * GET /api/user/me/account-settings
  * (Auth required)
  */
 exports.getMyAccountSettings = asyncHandler(async (req, res) => {
   const data = await UserService.getMyAccountSettings(req.user.id);
   return res.status(200).json({ success: true, data });
+});
+
+/**
+ * POST /api/user/me/account-settings/email-otp/send
+ * (Auth required)
+ */
+exports.sendEmailChangeOtp = asyncHandler(async (req, res) => {
+  const data = await UserService.sendEmailChangeOtp({
+    userId: req.user.id,
+    email: req.body?.email,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "OTP đã được gửi tới email mới",
+    data,
+  });
 });
 
 /**
@@ -64,6 +128,40 @@ exports.updateMyAccountSettings = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json({ success: true, message: "Account settings updated", data });
+});
+
+/**
+ * POST /api/user/me/delete-account/request
+ * (Auth required)
+ */
+exports.requestDeleteAccount = asyncHandler(async (req, res) => {
+  const data = await UserService.requestDeleteAccountOtp({
+    userId: req.user.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Đã gửi mã xác nhận xóa tài khoản qua email",
+    data,
+  });
+});
+
+/**
+ * POST /api/user/me/delete-account/confirm
+ * (Auth required)
+ */
+exports.confirmDeleteAccount = asyncHandler(async (req, res) => {
+  const data = await UserService.confirmDeleteAccount({
+    userId: req.user.id,
+    otpToken: req.body?.otpToken,
+    otpCode: req.body?.otpCode,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Tài khoản đã được xóa",
+    data,
+  });
 });
 
 /**

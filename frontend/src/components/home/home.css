@@ -196,6 +196,17 @@
   z-index: 98;
 }
 
+.mobile-wrapper .search-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  z-index: 97;
+}
+
 /* Search results */
 .mobile-wrapper .search-results {
   background: var(--bg-card);
@@ -450,13 +461,21 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .mobile-wrapper .filter-modal-content {
@@ -844,46 +863,42 @@
 }
 
 .mobile-wrapper .report-dropdown {
-  display: none;
   position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
+  right: 8px;
+  top: 30px;
   background: #fff;
-  min-width: 120px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  z-index: 50;
+  min-width: 100px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  z-index: 9999;
   overflow: hidden;
-  border: 1px solid #dbdbdb;
 }
 
 .mobile-wrapper .report-dropdown.show {
   display: block;
-  animation: homeFadeIn 0.2s ease;
+  animation: homeFadeIn 0.15s ease;
 }
 
 @keyframes homeFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 
 .mobile-wrapper .dropdown-item {
-  padding: 10px 12px;
+  padding: 8px 12px;
   font-size: 13px;
   font-weight: 500;
-  color: #262626;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: background 0.2s;
+  transition: background 0.15s;
   border: none;
   width: 100%;
   text-align: left;
@@ -1724,19 +1739,24 @@
 
 .mobile-wrapper .swipe-card-more-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.mobile-wrapper .swipe-card-more-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 /* Separator between actions and user info */

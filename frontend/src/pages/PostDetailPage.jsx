@@ -1,9 +1,13 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getPostDetail, deletePost, addReaction, removeReaction } from "../api/postApi";
+import {
+  getPostDetail,
+  deletePost,
+  addReaction,
+  removeReaction,
+} from "../api/postApi";
 import { useLocationAccess } from "../context/LocationAccessContext";
 import userApi from "../api/userApi";
-import ReportModal from "../components/report/ReportModal";
 import "./PostDetailPage.css";
 
 export default function PostDetailPage() {
@@ -16,7 +20,6 @@ export default function PostDetailPage() {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [liking, setLiking] = useState(false);
@@ -59,14 +62,16 @@ export default function PostDetailPage() {
       // Set like count and check if user liked
       const reactions = data?.reactions || [];
       const userId = currentUser?._id || currentUser?.id;
-      const liked = reactions.some(r => {
+      const liked = reactions.some((r) => {
         const rUserId = r.userId?._id || r.userId?.id || r.userId;
         return rUserId === userId;
       });
       setIsLiked(liked);
       setLikeCount(data?.likeCount || reactions.length || 0);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to load post");
+      setError(
+        err?.response?.data?.message || err?.message || "Failed to load post",
+      );
     } finally {
       setLoading(false);
     }
@@ -96,11 +101,6 @@ export default function PostDetailPage() {
     }
   };
 
-  const handleReport = () => {
-    setShowMenu(false);
-    setShowReportModal(true);
-  };
-
   const handleDelete = async () => {
     setShowMenu(false);
     if (!post?._id) return;
@@ -122,18 +122,23 @@ export default function PostDetailPage() {
     const wasLiked = isLiked;
     // Optimistic update
     setIsLiked(!wasLiked);
-    setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+    setLikeCount((prev) => (wasLiked ? prev - 1 : prev + 1));
 
     try {
       if (wasLiked) {
         await removeReaction(postId);
       } else {
-        await addReaction(postId, "like", userLocation?.latitude, userLocation?.longitude);
+        await addReaction(
+          postId,
+          "like",
+          userLocation?.latitude,
+          userLocation?.longitude,
+        );
       }
     } catch (err) {
       // Revert on error
       setIsLiked(wasLiked);
-      setLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
+      setLikeCount((prev) => (wasLiked ? prev + 1 : prev - 1));
       alert(err?.response?.data?.message || "Không thể thả cảm xúc");
     } finally {
       setLiking(false);
@@ -166,11 +171,11 @@ export default function PostDetailPage() {
 
     if (direction === "next") {
       setCurrentMediaIndex((prev) =>
-        prev === post.mediaUrl.length - 1 ? 0 : prev + 1
+        prev === post.mediaUrl.length - 1 ? 0 : prev + 1,
       );
     } else {
       setCurrentMediaIndex((prev) =>
-        prev === 0 ? post.mediaUrl.length - 1 : prev - 1
+        prev === 0 ? post.mediaUrl.length - 1 : prev - 1,
       );
     }
   };
@@ -197,9 +202,14 @@ export default function PostDetailPage() {
     );
   }
 
-  const mediaUrls = Array.isArray(post.mediaUrl) ? post.mediaUrl : post.mediaUrl ? [post.mediaUrl] : [];
+  const mediaUrls = Array.isArray(post.mediaUrl)
+    ? post.mediaUrl
+    : post.mediaUrl
+      ? [post.mediaUrl]
+      : [];
   const author = post.userId;
-  const isOwner = currentUser?._id === author?._id || currentUser?.id === author?._id;
+  const isOwner =
+    currentUser?._id === author?._id || currentUser?.id === author?._id;
 
   return (
     <div className="post-detail-page">
@@ -222,7 +232,10 @@ export default function PostDetailPage() {
           {showMenu && (
             <div className="post-menu-dropdown">
               {isOwner ? (
-                <button className="post-menu-item danger" onClick={handleDelete}>
+                <button
+                  className="post-menu-item danger"
+                  onClick={handleDelete}
+                >
                   <i className="fa-solid fa-trash"></i>
                   Xóa bài đăng
                 </button>
@@ -231,10 +244,6 @@ export default function PostDetailPage() {
                   <button className="post-menu-item" onClick={handleBlock}>
                     <i className="fa-solid fa-ban"></i>
                     Chặn người dùng
-                  </button>
-                  <button className="post-menu-item" onClick={handleReport}>
-                    <i className="fa-solid fa-flag"></i>
-                    Báo cáo
                   </button>
                 </>
               )}
@@ -297,7 +306,9 @@ export default function PostDetailPage() {
           {/* Author */}
           <div className="post-detail-author">
             <Link
-              to={isOwner ? "/profile" : `/profile/${author?._id || author?.id}`}
+              to={
+                isOwner ? "/profile" : `/profile/${author?._id || author?.id}`
+              }
               className="author-avatar"
             >
               {author?.avatar ? (
@@ -310,7 +321,9 @@ export default function PostDetailPage() {
             </Link>
             <div className="author-info">
               <Link
-                to={isOwner ? "/profile" : `/profile/${author?._id || author?.id}`}
+                to={
+                  isOwner ? "/profile" : `/profile/${author?._id || author?.id}`
+                }
                 className="author-name"
               >
                 {author?.fullname || author?.username || "Unknown"}
@@ -356,24 +369,31 @@ export default function PostDetailPage() {
           )}
 
           {/* Date */}
-          <div className="post-detail-date">
-            {formatDate(post.createdAt)}
-          </div>
+          <div className="post-detail-date">{formatDate(post.createdAt)}</div>
 
           {/* Reactions - People who liked */}
           {post.reactions && post.reactions.length > 0 && (
             <div className="post-reactions">
               <div className="reactions-header">
-                <i className="fa-solid fa-heart" style={{ color: "#ed4956" }}></i>
+                <i
+                  className="fa-solid fa-heart"
+                  style={{ color: "#ed4956" }}
+                ></i>
                 <span>{post.likeCount || post.reactions.length} likes</span>
               </div>
               <div className="reactions-list">
                 {post.reactions.slice(0, 10).map((reaction, idx) => {
                   // Handle both populated and non-populated userId
                   const userId = reaction.userId;
-                  const userIdStr = typeof userId === 'object' ? userId?._id || userId?.id : userId;
-                  const userAvatar = typeof userId === 'object' ? userId?.avatar : null;
-                  const isCurrentUser = userIdStr === currentUser?._id || userIdStr === currentUser?.id;
+                  const userIdStr =
+                    typeof userId === "object"
+                      ? userId?._id || userId?.id
+                      : userId;
+                  const userAvatar =
+                    typeof userId === "object" ? userId?.avatar : null;
+                  const isCurrentUser =
+                    userIdStr === currentUser?._id ||
+                    userIdStr === currentUser?.id;
 
                   return (
                     <Link
@@ -392,21 +412,15 @@ export default function PostDetailPage() {
                   );
                 })}
                 {post.reactions.length > 10 && (
-                  <span className="more-reactions">+{post.reactions.length - 10}</span>
+                  <span className="more-reactions">
+                    +{post.reactions.length - 10}
+                  </span>
                 )}
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Report Modal */}
-      <ReportModal
-        open={showReportModal}
-        targetType="post"
-        targetId={post?._id}
-        onClose={() => setShowReportModal(false)}
-      />
     </div>
   );
 }

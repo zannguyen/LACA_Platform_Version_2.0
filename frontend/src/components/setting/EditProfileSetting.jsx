@@ -1,63 +1,46 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import userApi from "../../api/userApi";
-import { uploadMedia } from "../../api/postApi";
 import "./EditProfileSetting.css";
 
-const defaultVisibility = {
-  fullname: true,
-  avatar: true,
-  bio: true,
-  email: false,
-  phoneNumber: false,
-  dateOfBirth: false,
-};
-
-const toDateInput = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
-};
-
 const normalizeResData = (res) => res?.data?.data || res?.data || {};
-
-const visibilityLabels = [
-  { key: "fullname", label: "Hiện tên" },
-  { key: "avatar", label: "Hiện avatar" },
-  { key: "bio", label: "Hiện note" },
-  { key: "email", label: "Hiện email" },
-  { key: "phoneNumber", label: "Hiện số điện thoại" },
-  { key: "dateOfBirth", label: "Hiện ngày sinh" },
-];
 
 export default function EditProfileSetting() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [currentEmail, setCurrentEmail] = useState("");
+  const [emailOtpToken, setEmailOtpToken] = useState("");
 
   const [form, setForm] = useState({
-    fullname: "",
     email: "",
-    phoneNumber: "",
-    dateOfBirth: "",
-    avatar: "",
-    bio: "",
+    emailOtpCode: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    profileVisibility: defaultVisibility,
   });
+
+  const normalizedCurrentEmail = String(currentEmail || "")
+    .trim()
+    .toLowerCase();
+  const normalizedFormEmail = String(form.email || "")
+    .trim()
+    .toLowerCase();
+  const isEmailChanged =
+    normalizedFormEmail.length > 0 &&
+    normalizedFormEmail !== normalizedCurrentEmail;
 
   const canSubmit = useMemo(() => {
     if (saving) return false;
-    if (!form.fullname.trim()) return false;
     if (!form.email.trim()) return false;
+    if (isEmailChanged && (!emailOtpToken || !form.emailOtpCode.trim()))
+      return false;
     return true;
-  }, [form.email, form.fullname, saving]);
+  }, [emailOtpToken, form.email, form.emailOtpCode, isEmailChanged, saving]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,20 +54,14 @@ export default function EditProfileSetting() {
 
         setForm((prev) => ({
           ...prev,
-          fullname: data.fullname || "",
           email: data.email || "",
-          phoneNumber: data.phoneNumber || "",
-          dateOfBirth: toDateInput(data.dateOfBirth),
-          avatar: data.avatar || "",
-          bio: data.bio || "",
+          emailOtpCode: "",
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
-          profileVisibility: {
-            ...defaultVisibility,
-            ...(data.profileVisibility || {}),
-          },
         }));
+        setCurrentEmail(data.email || "");
+        setEmailOtpToken("");
       } catch (e) {
         if (!mounted) return;
         setError(
@@ -105,39 +82,54 @@ export default function EditProfileSetting() {
   }, []);
 
   const onChangeField = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      if (key === "email") {
+        return { ...prev, email: value, emailOtpCode: "" };
+      }
+      return { ...prev, [key]: value };
+    });
+
+    if (key === "email") {
+      setEmailOtpToken("");
+    }
   };
 
-  const onToggleVisibility = (key) => {
-    setForm((prev) => ({
-      ...prev,
-      profileVisibility: {
-        ...prev.profileVisibility,
-        [key]: !prev.profileVisibility[key],
-      },
-    }));
-  };
+  const onSendEmailOtp = async () => {
+    setError("");
+    setSuccess("");
 
-  const onAvatarFilePick = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+    const email = String(form.email || "")
+      .trim()
+      .toLowerCase();
+    const isEmailFormatValid = /^\S+@\S+\.\S+$/.test(email);
+    if (!isEmailFormatValid) {
+      setError("Email không hợp lệ");
+      return;
+    }
+
+    if (email === normalizedCurrentEmail) {
+      setError("Email mới phải khác email hiện tại");
+      return;
+    }
 
     try {
-      setSaving(true);
-      setError("");
-      setSuccess("");
-      const uploadRes = await uploadMedia(file);
-      const avatarUrl = uploadRes?.secure_url || uploadRes?.url || "";
-      if (!avatarUrl) throw new Error("Upload avatar thất bại");
-      onChangeField("avatar", avatarUrl);
-      setSuccess("Tải avatar lên thành công");
+      setSendingOtp(true);
+      const res = await userApi.sendEmailChangeOtp({ email });
+      const data = normalizeResData(res);
+      if (!data?.otpToken) {
+        throw new Error("Không nhận được mã xác thực");
+      }
+
+      setEmailOtpToken(data.otpToken);
+      setSuccess(`Đã gửi mã xác nhận tới ${email}`);
     } catch (e) {
       setError(
-        e?.response?.data?.message || e?.message || "Không thể tải avatar lên",
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không thể gửi mã xác nhận email",
       );
     } finally {
-      setSaving(false);
+      setSendingOtp(false);
     }
   };
 
@@ -150,14 +142,13 @@ export default function EditProfileSetting() {
       setSaving(true);
 
       const payload = {
-        fullname: form.fullname,
-        email: form.email,
-        phoneNumber: form.phoneNumber,
-        dateOfBirth: form.dateOfBirth || null,
-        avatar: form.avatar,
-        bio: form.bio,
-        profileVisibility: form.profileVisibility,
+        email: normalizedFormEmail,
       };
+
+      if (isEmailChanged) {
+        payload.emailOtpToken = emailOtpToken;
+        payload.emailOtpCode = form.emailOtpCode.trim();
+      }
 
       if (form.currentPassword || form.newPassword || form.confirmPassword) {
         payload.currentPassword = form.currentPassword;
@@ -170,22 +161,17 @@ export default function EditProfileSetting() {
 
       setForm((prev) => ({
         ...prev,
-        fullname: data.fullname || prev.fullname,
         email: data.email || prev.email,
-        phoneNumber: data.phoneNumber || "",
-        dateOfBirth: toDateInput(data.dateOfBirth),
-        avatar: data.avatar || "",
-        bio: data.bio || "",
+        emailOtpCode: "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
-        profileVisibility: {
-          ...defaultVisibility,
-          ...(data.profileVisibility || prev.profileVisibility),
-        },
       }));
 
-      setSuccess("Cập nhật thông tin thành công");
+      setCurrentEmail(data.email || normalizedFormEmail);
+      setEmailOtpToken("");
+
+      setSuccess("Cập nhật Email/Mật khẩu thành công");
     } catch (e) {
       setError(
         e?.response?.data?.message ||
@@ -203,16 +189,16 @@ export default function EditProfileSetting() {
         <button
           className="eps-back"
           onClick={() => navigate(-1)}
-          aria-label="Back"
+          aria-label="Quay lại"
         >
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <div className="eps-title">Edit Profile</div>
+        <div className="eps-title">Đổi email và mật khẩu</div>
       </div>
 
       <div className="eps-content">
         {loading ? (
-          <div className="eps-loading">Loading...</div>
+          <div className="eps-loading">Đang tải...</div>
         ) : (
           <form className="eps-form" onSubmit={onSubmit}>
             {!!error && <div className="eps-alert eps-error">{error}</div>}
@@ -220,39 +206,7 @@ export default function EditProfileSetting() {
               <div className="eps-alert eps-success">{success}</div>
             )}
 
-            <div className="eps-section-title">Thông tin cơ bản</div>
-
-            <label className="eps-field">
-              <span>Avatar</span>
-              <div className="eps-avatar-row">
-                <div className="eps-avatar-preview">
-                  {form.avatar ? (
-                    <img src={form.avatar} alt="avatar" />
-                  ) : (
-                    <i className="fa-solid fa-user"></i>
-                  )}
-                </div>
-                <label className="eps-upload-btn">
-                  Chọn ảnh
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onAvatarFilePick}
-                    hidden
-                  />
-                </label>
-              </div>
-            </label>
-
-            <label className="eps-field">
-              <span>Đổi tên</span>
-              <input
-                type="text"
-                value={form.fullname}
-                onChange={(e) => onChangeField("fullname", e.target.value)}
-                maxLength={120}
-              />
-            </label>
+            <div className="eps-section-title">Đổi email</div>
 
             <label className="eps-field">
               <span>Email</span>
@@ -263,34 +217,31 @@ export default function EditProfileSetting() {
               />
             </label>
 
-            <label className="eps-field">
-              <span>Số điện thoại</span>
-              <input
-                type="text"
-                value={form.phoneNumber}
-                onChange={(e) => onChangeField("phoneNumber", e.target.value)}
-                maxLength={20}
-              />
-            </label>
+            {isEmailChanged && (
+              <>
+                <button
+                  type="button"
+                  className="eps-otp-btn"
+                  onClick={onSendEmailOtp}
+                  disabled={sendingOtp || saving}
+                >
+                  {sendingOtp ? "Đang gửi mã..." : "Gửi mã xác nhận email"}
+                </button>
 
-            <label className="eps-field">
-              <span>Ngày sinh</span>
-              <input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={(e) => onChangeField("dateOfBirth", e.target.value)}
-              />
-            </label>
-
-            <label className="eps-field">
-              <span>Note</span>
-              <textarea
-                rows={3}
-                value={form.bio}
-                onChange={(e) => onChangeField("bio", e.target.value)}
-                maxLength={200}
-              />
-            </label>
+                <label className="eps-field">
+                  <span>Mã xác nhận</span>
+                  <input
+                    type="text"
+                    value={form.emailOtpCode}
+                    onChange={(e) =>
+                      onChangeField("emailOtpCode", e.target.value)
+                    }
+                    placeholder="Nhập mã OTP gồm 6 số"
+                    maxLength={6}
+                  />
+                </label>
+              </>
+            )}
 
             <div className="eps-section-title">Đổi mật khẩu</div>
 
@@ -325,24 +276,8 @@ export default function EditProfileSetting() {
               />
             </label>
 
-            <div className="eps-section-title">
-              Hiển thị ngoài trang cá nhân
-            </div>
-            <div className="eps-visibility-list">
-              {visibilityLabels.map((item) => (
-                <label className="eps-visibility-item" key={item.key}>
-                  <span>{item.label}</span>
-                  <input
-                    type="checkbox"
-                    checked={!!form.profileVisibility[item.key]}
-                    onChange={() => onToggleVisibility(item.key)}
-                  />
-                </label>
-              ))}
-            </div>
-
             <button type="submit" className="eps-submit" disabled={!canSubmit}>
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Đang lưu..." : "Lưu"}
             </button>
           </form>
         )}

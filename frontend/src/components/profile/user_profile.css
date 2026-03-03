@@ -501,6 +501,9 @@
   gap: 20px;
   opacity: 0;
   transition: opacity 0.2s;
+  /* IMPORTANT: overlay is visually hidden on mobile (no hover)
+     so it must NOT block clicks on the post thumbnail */
+  pointer-events: none;
 }
 
 .my-profile .profile-post-item:hover .profile-post-overlay {
@@ -534,6 +537,30 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+/* Small location badge on grid (optional, non-blocking) */
+.my-profile .profile-post-location-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  max-width: calc(100% - 12px);
+}
+
+.my-profile .profile-post-location-badge span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .my-profile .profile-post-like-btn:hover {

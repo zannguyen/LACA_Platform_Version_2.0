@@ -12,6 +12,7 @@ import Notification from "../pages/NotificationPage";
 import AdminLayout from "../components/admin/AdminLayout";
 import AdminDashboard from "../components/admin/AdminDashboard";
 import UserManagement from "../components/admin/UserManagement";
+import AdminManagement from "../components/admin/AdminManagement";
 import ContentModeration from "../components/admin/ContentModeration";
 import MapManagement from "../components/admin/MapManagement";
 import AdminAnalytics from "../components/admin/AdminAnalytics";
@@ -20,7 +21,6 @@ import TagManagement from "../components/admin/TagManagement";
 import FeedbackManagement from "../components/admin/FeedbackManagement";
 import AdminBroadcastPage from "../pages/AdminBroadcastPage";
 import FeedbackPage from "../pages/FeedbackPage";
-import ReportPage from "../pages/ReportPage";
 import ChatListPage from "../pages/ChatListPage";
 import ChatDetailPage from "../pages/ChatDetailPage";
 import PublicChatPage from "../pages/PublicChatPage";
@@ -123,7 +123,6 @@ export default function AppRoutes() {
       <Route path="/stranger_profile/:id" element={<StrangerProfile />} />
       <Route path="/notification" element={<Notification />} />
       <Route path="/feedback" element={<FeedbackPage />} />
-      <Route path="/report" element={<ReportPage />} />
       <Route path="/chat" element={<ChatListPage />} />
       <Route path="/chat/detail" element={<ChatDetailPage />} />
       <Route path="/chat/public/:postId" element={<PublicChatPage />} />
@@ -151,6 +150,7 @@ export default function AppRoutes() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
+        <Route path="admins" element={<AdminManagement />} />
         <Route path="content" element={<ContentModeration />} />
         <Route path="map" element={<MapManagement />} />
         <Route path="tags" element={<TagManagement />} />
