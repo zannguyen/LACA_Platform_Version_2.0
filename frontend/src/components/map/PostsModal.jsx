@@ -56,7 +56,11 @@ const PostsModal = ({ isOpen, onClose, posts, loading, error }) => {
                 <div key={post._id} className="post-card">
                   <div className="post-user">
                     <div className="user-avatar">
-                      {post.user?.fullname?.[0]?.toUpperCase() || "U"}
+                      {post.user?.avatar ? (
+                        <img src={post.user.avatar} alt="Avatar" />
+                      ) : (
+                        post.user?.fullname?.[0]?.toUpperCase() || "U"
+                      )}
                     </div>
                     <div className="user-info">
                       <h4>{post.user?.fullname || "Unknown User"}</h4>
@@ -68,19 +72,62 @@ const PostsModal = ({ isOpen, onClose, posts, loading, error }) => {
                     <p>{post.content}</p>
                     {post.mediaUrl && (
                       <div className="post-media">
-                        {post.type === "image" ? (
-                          <img src={post.mediaUrl} alt="Post media" />
-                        ) : post.type === "video" ? (
-                          <video controls src={post.mediaUrl} />
-                        ) : null}
+                        {(() => {
+                          // Handle both array and string formats
+                          let mediaUrls = post.mediaUrl;
+                          if (typeof mediaUrls === 'string') {
+                            mediaUrls = [mediaUrls];
+                          } else if (!Array.isArray(mediaUrls)) {
+                            return null; // Invalid format
+                          }
+                          const firstUrl = mediaUrls[0];
+                          if (!firstUrl) return null;
+
+                          // Check if it's a video
+                          const isVideo = post.type === "video" ||
+                            firstUrl?.includes("/video/upload") ||
+                            firstUrl?.includes("/video/") ||
+                            firstUrl?.match(/\.(mp4|webm|mov|avi|m3u8)$/i);
+
+                          if (isVideo) {
+                            return (
+                              <video
+                                controls
+                                preload="metadata"
+                                src={firstUrl}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling?.style?.display?.('block');
+                                }}
+                              />
+                            );
+                          }
+                          return (
+                            <img
+                              src={firstUrl}
+                              alt="Post media"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
 
                   <div className="post-footer">
-                    <span className="post-distance">
-                      📍 {post.distanceKm || 0} km
-                    </span>
+                    {post.distanceKm != null && (
+                      <span className="post-distance">
+                        📍 {post.distanceKm} km
+                      </span>
+                    )}
+                    {post.place?.name && (
+                      <span className="post-place">
+                        {post.place.name}
+                      </span>
+                    )}
                     <span className="post-time">
                       {new Date(post.createdAt).toLocaleDateString("vi-VN")}
                     </span>

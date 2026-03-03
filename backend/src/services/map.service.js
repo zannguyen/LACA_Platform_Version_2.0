@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Place = require("../models/place.model");
 const Post = require("../models/post.model");
+const User = require("../models/user.model");
+const Follow = require("../models/follow.model");
 const AppError = require("../utils/appError");
 
 const normalizeObjectIds = (ids = []) =>
@@ -11,6 +13,25 @@ const normalizeObjectIds = (ids = []) =>
         ? id
         : new mongoose.Types.ObjectId(id),
     );
+
+// Helper to calculate distance between two points
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = deg2rad(Number(lat2) - Number(lat1));
+  const dLon = deg2rad(Number(lon2) - Number(lon1));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(Number(lat1))) *
+      Math.cos(deg2rad(Number(lat2))) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
 
 // ===============================
 // 1) FEED: nearby + followed
@@ -25,6 +46,7 @@ exports.getPostsInRadius = async ({
   userPreferredTagIds = [],
   userInterestNames = [],
   useRecommendation = false,
+  currentUserId = null,
 }) => {
   const blockedIds = normalizeObjectIds(blockedUserIds);
   const followedIds = normalizeObjectIds(followedUserIds);
@@ -78,9 +100,20 @@ exports.getPostsInRadius = async ({
     { $replaceRoot: { newRoot: "$posts" } },
     { $match: { status: "active" } },
 
-    ...(blockedIds.length
+    // Filter: only show posts that haven't expired
+    {
+      $match: {
+        $or: [
+          { expireAt: null },
+          { expireAt: { $gt: new Date() } }
+        ]
+      }
+    },
+
+    ...(blockedIds.length > 0
       ? [{ $match: { userId: { $nin: blockedIds } } }]
-      : []),
+      : []
+    ),
 
     {
       $lookup: {
@@ -147,9 +180,14 @@ exports.getPostsInRadius = async ({
         $match: {
           status: "active",
           userId: { $in: followedIds },
-          ...(blockedIds.length
+          ...(blockedIds.length > 0
             ? { userId: { $in: followedIds, $nin: blockedIds } }
             : {}),
+          // Filter: only show posts that haven't expired
+          $or: [
+            { expireAt: null },
+            { expireAt: { $gt: new Date() } }
+          ]
         },
       },
       {
@@ -193,7 +231,6 @@ exports.getPostsInRadius = async ({
           type: 1,
           mediaUrl: 1,
           createdAt: 1,
-          distanceKm: { $literal: null },
 
           // ✅ NEW
           placeId: 1,
@@ -216,7 +253,22 @@ exports.getPostsInRadius = async ({
   }
 
   // ===============================
-  // 3) Merge + de-dupe + sort
+  // 3) Get current user's following for isFollowing flag
+  // ===============================
+  let currentUserFollowing = new Set();
+
+  if (currentUserId) {
+    const userIdObj = new mongoose.Types.ObjectId(currentUserId);
+
+    // Get users that current user is following
+    const followingRecords = await Follow.find({ followerUserId: userIdObj }).select("followingUserId").lean();
+    followingRecords.forEach(record => {
+      currentUserFollowing.add(String(record.followingUserId));
+    });
+  }
+
+  // ===============================
+  // 4) Merge + de-dupe + sort
   // ===============================
   const merged = [];
   const seen = new Set();
@@ -250,9 +302,39 @@ exports.getPostsInRadius = async ({
     if (seen.has(key)) continue;
     seen.add(key);
 
+    // Calculate distance for followed posts (posts from followed users that are outside 5km)
+    let post = { ...p };
+
+    // Use user._id from the populated user object
+    const postUserIdStr = post.user?._id?.toString ? post.user._id.toString() : null;
+
+    // Check if this post is from a mutual follow user
+    const isMutualFollow = postUserIdStr && followedIds.length > 0 && followedIds.some(id => String(id) === postUserIdStr);
+
+    // Add isMutualFollow flag to post level
+    post.isMutualFollow = isMutualFollow;
+
+    // For mutual follow posts, calculate distance if place has location
+    if (isMutualFollow && post.place?.location?.lat && post.place?.location?.lng) {
+      const placeLat = post.place.location.lat;
+      const placeLng = post.place.location.lng;
+      const distance = calculateDistance(lat, lng, placeLat, placeLng);
+      post.distanceKm = Math.round(distance * 100) / 100;
+    }
+
+    // Add isFollowing flag for ALL posts
+    const postUserId = post.userId?.toString?.() || post.user?._id?.toString?.();
+    if (postUserId && post.user) {
+      post.user = {
+        ...post.user,
+        isFollowing: currentUserFollowing.has(postUserId),
+        isMutualFollow: isMutualFollow,
+      };
+    }
+
     // Add isRecommended flag
     const postWithRecommendation = {
-      ...p,
+      ...post,
       isRecommended: checkIsRecommended(p),
     };
     merged.push(postWithRecommendation);
@@ -340,7 +422,7 @@ exports.getPostsAtPoint = async ({
       $geoNear: {
         near: { type: "Point", coordinates: [lng, lat] },
         distanceField: "distanceMeters",
-        maxDistance: 30,
+        maxDistance: 100,
         spherical: true,
         query: { isActive: true },
       },
@@ -383,7 +465,7 @@ exports.getPostsAtPoint = async ({
     ...(remoteOnlyFollowed
       ? [{ $match: { userId: { $in: followedIds } } }]
       : []),
-    ...(blockedIds.length
+    ...(blockedIds.length > 0
       ? [{ $match: { userId: { $nin: blockedIds } } }]
       : []),
 
@@ -410,6 +492,7 @@ exports.getPostsAtPoint = async ({
           _id: "$user._id",
           fullname: "$user.fullname",
           username: "$user.username",
+          avatar: "$user.avatar",
         },
       },
     },
@@ -417,10 +500,7 @@ exports.getPostsAtPoint = async ({
 
   const posts = await Place.aggregate(pipeline);
 
-  if (!posts.length) {
-    throw new AppError("No posts found at this location", 404);
-  }
-
+  // Return empty array instead of throwing error when no posts found
   return posts;
 };
 
@@ -456,7 +536,7 @@ exports.getPostDensity = async ({
         pipeline: [
           { $match: { $expr: { $eq: ["$placeId", "$$pid"] } } },
           { $match: { status: "active", createdAt: { $gte: since } } },
-          ...(blockedIds.length
+          ...(blockedIds.length > 0
             ? [{ $match: { userId: { $nin: blockedIds } } }]
             : []),
           { $project: { _id: 1 } },
@@ -516,7 +596,7 @@ exports.getPostHotspots = async ({
         pipeline: [
           { $match: { $expr: { $eq: ["$placeId", "$$pid"] } } },
           { $match: { status: "active", createdAt: { $gte: since } } },
-          ...(blockedIds.length
+          ...(blockedIds.length > 0
             ? [{ $match: { userId: { $nin: blockedIds } } }]
             : []),
 
@@ -561,22 +641,84 @@ exports.getPostHotspots = async ({
 };
 
 // ===============================
-// Helpers
+// 5) Get all posts from mutual follow users (no radius limit)
 // ===============================
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = deg2rad(Number(lat2) - Number(lat1));
-  const dLon = deg2rad(Number(lon2) - Number(lon1));
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(Number(lat1))) *
-      Math.cos(deg2rad(Number(lat2))) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+exports.getPostsFromFollowedUsers = async ({
+  limit = 50,
+  blockedUserIds = [],
+  mutualFollowUserIds = [],
+}) => {
+  const blockedIds = normalizeObjectIds(blockedUserIds);
+  const mutualIds = normalizeObjectIds(mutualFollowUserIds);
 
-function deg2rad(deg) {
-  return deg * (Math.PI / 180);
-}
+  if (mutualIds.length === 0) {
+    return [];
+  }
+
+  const pipeline = [
+    {
+      $match: {
+        status: 'active',
+        userId: { $in: mutualIds },
+        ...(blockedIds.length > 0 ? { userId: { $nin: blockedIds } } : {}),
+        // Filter: only show posts that haven't expired
+        $or: [
+          { expireAt: null },
+          { expireAt: { $gt: new Date() } }
+        ]
+      },
+    },
+    {
+      $lookup: {
+        from: 'places',
+        localField: 'placeId',
+        foreignField: '_id',
+        as: 'placeDoc',
+      },
+    },
+    { $unwind: { path: '$placeDoc', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: '$user' },
+    {
+      $addFields: {
+        place: {
+          _id: '$placeDoc._id',
+          name: '$placeDoc.name',
+          address: '$placeDoc.address',
+          location: {
+            lng: { $arrayElemAt: ['$placeDoc.location.coordinates', 0] },
+            lat: { $arrayElemAt: ['$placeDoc.location.coordinates', 1] },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        content: 1,
+        type: 1,
+        mediaUrl: 1,
+        createdAt: 1,
+        placeId: 1,
+        place: 1,
+        user: {
+          _id: '$user._id',
+          fullname: '$user.fullname',
+          username: '$user.username',
+          avatar: '$user.avatar',
+        },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+    { $limit: limit },
+  ];
+
+  return Post.aggregate(pipeline);
+};

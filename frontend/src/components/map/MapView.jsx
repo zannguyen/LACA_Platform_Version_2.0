@@ -178,6 +178,8 @@ const MapView = () => {
   const [hotspots, setHotspots] = useState([]);
   const [hotspotMeta, setHotspotMeta] = useState({ places: 0, total: 0 });
 
+  // Posts from mutual follow users
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalPosts, setModalPosts] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
@@ -376,7 +378,7 @@ const MapView = () => {
           <button className="back-btn" onClick={() => navigate(-1)}>
             <i className="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 className="page-title">Maps</h2>
+          <h2 className="page-title">Bản đồ</h2>
         </div>
 
         <div className="map-loading">
@@ -393,13 +395,20 @@ const MapView = () => {
         <button className="back-btn" onClick={() => navigate(-1)}>
           <i className="fa-solid fa-arrow-left"></i>
         </button>
-        <h2 className="page-title">Maps</h2>
+        <h2 className="page-title">Bản đồ</h2>
       </div>
 
       <div className="map-info-bar">
-        <div className="checkin-count">
-          {hotspotMeta.places} điểm • {hotspotMeta.total} bài viết trong bán
-          kính {radiusKm}km
+        <div className="map-stats">
+          <div className="stat-item">
+            <span className="stat-value">{hotspotMeta.places}</span>
+            <span className="stat-label">Điểm</span>
+          </div>
+          <div className="stat-divider"></div>
+          <div className="stat-item">
+            <span className="stat-value">{hotspotMeta.total}</span>
+            <span className="stat-label">Bài viết</span>
+          </div>
         </div>
 
         <div className="map-info-controls">

@@ -226,11 +226,12 @@ VITE_GEMINI_API_KEY=AIzaSy...
 | DELETE | `/:tagId` | Delete tag (admin)      |
 
 ### Category Routes (`/api/tags/categories`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/categories` | Get all categories |
-| POST | `/categories` | Create category (admin) |
-| PUT | `/categories/:categoryId` | Update category (admin) |
+
+| Method | Endpoint                  | Description             |
+| ------ | ------------------------- | ----------------------- |
+| GET    | `/categories`             | Get all categories      |
+| POST   | `/categories`             | Create category (admin) |
+| PUT    | `/categories/:categoryId` | Update category (admin) |
 | DELETE | `/categories/:categoryId` | Delete category (admin) |
 
 ### Interest Routes (`/api/interests`)
@@ -288,14 +289,16 @@ VITE_GEMINI_API_KEY=AIzaSy...
 | POST   | `/message` | AI chatbot message (Groq/OpenAI with RAG) |
 
 ### Ranking Routes (`/api/ranking`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/featured` | Get featured locations and users |
+
+| Method | Endpoint    | Description                      |
+| ------ | ----------- | -------------------------------- |
+| GET    | `/featured` | Get featured locations and users |
 
 ### Chatbot Routes (`/api/chatbot`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/message` | AI chatbot message |
+
+| Method | Endpoint   | Description        |
+| ------ | ---------- | ------------------ |
+| POST   | `/message` | AI chatbot message |
 
 ### Admin Routes (`/api/admin`)
 
@@ -383,6 +386,7 @@ VITE_GEMINI_API_KEY=AIzaSy...
 - `order`, `isActive`
 
 ### Tag (`tag.model.js`)
+
 - `name`, `description`, `icon`, `color`
 - `order`, `isActive`
 - `categoryId` -> Category
@@ -408,11 +412,13 @@ VITE_GEMINI_API_KEY=AIzaSy...
 - `photos[]`
 
 ### BroadcastHistory (`broadcastHistory.model.js`)
+
 - `title`, `content`, `targetType`
 - `sentBy` -> User
 - `recipientCount`, `sentAt`
 
 ### PostAnalysis (`postAnalysis.model.js`)
+
 - `sentiment`, `categories[]`
 - `keywords[]`, `toxicity`
 - `analysisComplete`
@@ -491,11 +497,13 @@ Content-based filtering with scoring:
 - Upload route: `POST /api/upload`
 
 ### AI/Chatbot Features
+
 - `src/services/rag.service.js` - RAG (Retrieval-Augmented Generation) service
 - `src/services/claude.service.js` - Claude AI integration
 - Chatbot endpoint: `POST /api/chatbot/message`
 
 ### Queue System
+
 - `src/services/queue.service.js` - Queue management for notifications/broadcasts
 - Admin endpoints: `GET /api/admin/queue`, `POST /api/admin/queue/clear`
 
