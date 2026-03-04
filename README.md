@@ -1,7 +1,5 @@
 # LACA PLATFORM
 
-This file provides guidance to Claude Opus (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 LACA (Location-Based Social Network) is a full-stack social media platform using Node.js/Express backend with MongoDB and React frontend with Vite. The platform allows users to share posts, check-in at places, interact with others, and discover content around their location.
