@@ -1,4 +1,4 @@
-# CLAUDE.md
+# LACA PLATFORM
 
 This file provides guidance to Claude Opus (claude.ai/code) when working with code in this repository.
 
