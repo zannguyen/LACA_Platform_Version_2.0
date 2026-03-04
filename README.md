@@ -1,557 +1,684 @@
-# LACA Platform - Version 2.0
+# CLAUDE.md
 
-LACA là một nền tảng mạng xã hội dựa trên vị trí địa lý (Location-Based Social Network), cho phép người dùng chia sẻ bài đăng, check-in tại các địa điểm, tương tác với nhau và khám phá nội dung xung quanh vị trí của họ.
+This file provides guidance to Claude Opus (claude.ai/code) when working with code in this repository.
 
-## 📋 Mục lục
+## Project Overview
 
-- [Tổng quan](#tổng-quan)
-- [Tính năng chính](#tính-năng-chính)
-- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-- [Cấu trúc dự án](#cấu-trúc-dự-án)
-- [Cài đặt và thiết lập](#cài-đặt-và-thiết-lập)
-- [Biến môi trường](#biến-môi-trường)
-- [Chạy ứng dụng](#chạy-ứng-dụng)
-- [API Endpoints](#api-endpoints)
-- [Mô hình dữ liệu](#mô-hình-dữ-liệu)
-- [Tính năng Admin](#tính-năng-admin)
-- [Triển khai](#triển-khai)
-- [Đóng góp](#đóng-góp)
-- [Giấy phép](#giấy-phép)
+LACA (Location-Based Social Network) is a full-stack social media platform using Node.js/Express backend with MongoDB and React frontend with Vite. The platform allows users to share posts, check-in at places, interact with others, and discover content around their location.
 
-## 🎯 Tổng quan
+**AI Features:**
 
-LACA Platform là một ứng dụng web full-stack cho phép người dùng:
+- Chatbot AI assistant with Groq (Llama 3.3) or OpenAI integration
+- RAG (Retrieval-Augmented Generation) for context-aware responses
+- Content analysis for posts
 
-- **Chia sẻ bài đăng** kèm hình ảnh tại các địa điểm cụ thể
-- **Check-in** tại các địa điểm và chia sẻ trải nghiệm
-- **Tương tác** với bài đăng thông qua reactions
-- **Chat** trực tiếp với người dùng khác
-- **Khám phá** nội dung trên bản đồ dựa trên vị trí địa lý
-- **Theo dõi** người dùng khác và xem feed của họ
-- **Báo cáo** nội dung không phù hợp
-- **Quản lý** nội dung và người dùng (Admin)
+## Common Development Commands
 
-## ✨ Tính năng chính
+### Setup
 
-### 👤 Xác thực và Quản lý người dùng
-- Đăng ký tài khoản với xác minh email qua OTP
-- Đăng nhập/Đăng xuất
-- Quên mật khẩu với xác minh OTP
-- Quản lý hồ sơ cá nhân (avatar, bio)
-- Xóa tài khoản
-- Block/Unblock người dùng
-- Follow/Unfollow người dùng
-
-### 📍 Bản đồ và Địa điểm
-- Hiển thị bản đồ tương tác với Leaflet
-- Hiển thị các hotspot (điểm nóng) có nhiều bài đăng
-- Check-in tại địa điểm với ghi chú và hình ảnh
-- Tìm kiếm và quản lý địa điểm
-- Phân loại địa điểm (cafe, restaurant, bar, shop, park, museum, hotel, other)
-- Heatmap hiển thị mật độ bài đăng
-
-### 📸 Bài đăng và Nội dung
-- Tạo bài đăng với hình ảnh và nội dung
-- Upload nhiều hình ảnh cho mỗi bài đăng
-- Gắn bài đăng với địa điểm cụ thể
-- Xem bài đăng trên bản đồ và feed
-- Lọc bài đăng theo khoảng cách
-- Bài đăng tự động hết hạn sau một khoảng thời gian
-
-### ❤️ Tương tác
-- Reactions (like, love, haha, wow, sad, angry)
-- Xem số lượng reactions trên mỗi bài đăng
-- Thông báo khi có reaction mới
-
-### 💬 Chat và Tin nhắn
-- Chat trực tiếp giữa các người dùng
-- Gửi tin nhắn văn bản và hình ảnh
-- Xem danh sách cuộc trò chuyện
-- Đánh dấu tin nhắn đã đọc
-- Trạng thái online/offline với Socket.IO
-- Thông báo tin nhắn mới
-
-### 🔔 Thông báo
-- Thông báo bài đăng mới từ người đang follow
-- Thông báo tin nhắn mới
-- Thông báo người dùng mới follow
-- Thông báo reaction mới
-- Thông báo từ admin
-- Thông báo hệ thống
-- Đánh dấu đã đọc/chưa đọc
-
-### 🚨 Báo cáo và Kiểm duyệt
-- Báo cáo bài đăng không phù hợp
-- Báo cáo người dùng
-- Báo cáo địa điểm
-- Phân loại báo cáo (spam, harassment, inappropriate, false_info, other)
-- Admin xem xét và xử lý báo cáo
-
-### 👨‍💼 Admin Panel
-- Dashboard với thống kê tổng quan
-- Quản lý người dùng (xem, suspend, ban, xóa)
-- Kiểm duyệt nội dung (bài đăng, báo cáo)
-- Quản lý địa điểm
-- Phân tích và báo cáo (analytics)
-- Xem hoạt động gần đây
-
-### 📝 Feedback
-- Gửi phản hồi cho hệ thống
-- Admin xem và xử lý feedback
-
-## 🛠️ Công nghệ sử dụng
-
-### Backend
-- **Node.js** - Runtime environment
-- **Express.js** - Web framework
-- **MongoDB** - Database (với Mongoose ODM)
-- **Socket.IO** - Real-time communication
-- **JWT** - Authentication
-- **bcryptjs** - Password hashing
-- **Cloudinary** - Image storage và upload
-- **Multer** - File upload handling
-- **Nodemailer** - Email service (OTP, notifications)
-- **dotenv** - Environment variables
-
-### Frontend
-- **React 18** - UI library
-- **Vite** - Build tool và dev server
-- **React Router DOM** - Routing
-- **Axios** - HTTP client
-- **Leaflet** - Interactive maps
-- **React Leaflet** - React wrapper cho Leaflet
-- **Socket.IO Client** - Real-time client
-- **Swiper** - Carousel/Slider component
-- **React Spring** - Animations
-
-### Development Tools
-- **Nodemon** - Auto-restart server
-- **ESLint** - Code linting
-
-## 📁 Cấu trúc dự án
-
-```
-LACA_Platform_Version_2.0/
-├── backend/
-│   ├── src/
-│   │   ├── config/          # Cấu hình (database, cloudinary)
-│   │   ├── controllers/     # Controllers xử lý logic
-│   │   ├── middlewares/     # Middleware (auth, error, upload)
-│   │   ├── models/          # Mongoose models
-│   │   ├── routes/          # API routes
-│   │   ├── services/        # Business logic services
-│   │   └── utils/           # Utilities (JWT, email, seed data)
-│   ├── app.js               # Express app configuration
-│   └── server.js            # Server entry point với Socket.IO
-│
-├── frontend/
-│   ├── src/
-│   │   ├── api/             # API client functions
-│   │   ├── assets/         # Static assets (images)
-│   │   ├── components/     # React components
-│   │   │   ├── admin/      # Admin components
-│   │   │   ├── auth/       # Authentication components
-│   │   │   ├── camera/     # Camera components
-│   │   │   ├── Chat/       # Chat components
-│   │   │   ├── home/       # Home feed components
-│   │   │   ├── map/        # Map components
-│   │   │   ├── notification/ # Notification components
-│   │   │   ├── profile/    # Profile components
-│   │   │   ├── report/     # Report components
-│   │   │   ├── setting/    # Settings components
-│   │   │   └── ui/         # UI components
-│   │   ├── context/        # React Context providers
-│   │   ├── pages/          # Page components
-│   │   ├── routes/         # Route configuration
-│   │   ├── services/       # Frontend services
-│   │   ├── utils/          # Utility functions
-│   │   ├── App.jsx         # Main App component
-│   │   └── main.jsx        # Entry point
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js      # Vite configuration
-│
-├── package.json            # Root package.json
-└── README.md               # File này
-```
-
-## 🚀 Cài đặt và thiết lập
-
-### Yêu cầu hệ thống
-
-- **Node.js** >= 16.x
-- **MongoDB** >= 4.x (hoặc MongoDB Atlas)
-- **npm** hoặc **yarn**
-
-### Cài đặt
-
-1. **Clone repository**
 ```bash
-git clone https://github.com/FelixLe2210/LACA.git
-cd LACA_Platform_Version_2.0
-```
-
-2. **Cài đặt dependencies cho root và backend**
-```bash
+# Install all dependencies (root + frontend)
 npm install
+cd frontend && npm install && cd ..
 ```
 
-3. **Cài đặt dependencies cho frontend**
+### Development
+
 ```bash
-cd frontend
-npm install
-cd ..
-```
-
-## 🔐 Biến môi trường
-
-Tạo file `.env` trong thư mục `backend/` với các biến sau:
-
-### Backend (.env)
-
-```env
-# Server
-PORT=4000
-NODE_ENV=development
-
-# Database
-MONGO_URI=mongodb://localhost:27017/laca
-# Hoặc MongoDB Atlas:
-# MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/laca
-
-# JWT
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRE_IN=7d
-REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
-REFRESH_TOKEN_EXPIRE_IN=30d
-
-# Password hashing
-SALT_ROUNDS=10
-
-# Email (Nodemailer)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USERNAME=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-
-# OTP
-OTP_EXPIRED_IN=300000  # 5 phút (milliseconds)
-
-# Cloudinary (Image storage)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# CORS
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173
-SOCKET_ORIGINS=http://localhost:3000,http://localhost:5173
-```
-
-### Frontend (.env hoặc .env.local)
-
-Tạo file `.env` trong thư mục `frontend/`:
-
-```env
-VITE_API_URL=http://localhost:4000/api
-# Socket.IO (chat realtime) — tự lấy từ VITE_API_URL nếu không set
-# Khi deploy: set URL backend (không có /api), VD: https://api.mysite.com
-VITE_SOCKET_URL=
-```
-
-## ▶️ Chạy ứng dụng
-
-### Development Mode
-
-1. **Chạy backend server**
-```bash
-# Từ thư mục root
+# Run backend (from root) - watches for changes with nodemon
 npm run dev
-# Hoặc
-cd backend
-nodemon server.js
+
+# Run frontend (from frontend directory)
+cd frontend && npm run dev
+
+# Both should run in separate terminals
+# Backend: http://localhost:4000
+# Frontend: http://localhost:5173 or http://localhost:3000
 ```
 
-Backend sẽ chạy tại: `http://localhost:4000`
+### Production
 
-2. **Chạy frontend (terminal mới)**
 ```bash
-cd frontend
-npm run dev
-```
+# Build frontend
+cd frontend && npm run build
 
-Frontend sẽ chạy tại: `http://localhost:3000`
-
-### Production Mode
-
-1. **Build frontend**
-```bash
-cd frontend
-npm run build
-```
-
-2. **Chạy backend**
-```bash
+# Start backend (production mode)
 npm start
 ```
 
-## 📡 API Endpoints
+### Linting
 
-### Authentication (`/api/auth`)
-- `POST /api/auth/register` - Đăng ký tài khoản mới
-- `POST /api/auth/verify-otp` - Xác minh OTP
-- `POST /api/auth/login` - Đăng nhập
-- `POST /api/auth/forgot-password` - Yêu cầu reset mật khẩu
-- `POST /api/auth/forgot-password/verify-otp` - Xác minh OTP reset mật khẩu
-- `POST /api/auth/reset-password` - Đặt lại mật khẩu mới
+```bash
+# Lint frontend code
+cd frontend && npm run lint
+```
 
-### User (`/api/user`)
-- `GET /api/user/me/profile` - Lấy thông tin profile của user hiện tại (Auth)
-- `PUT /api/user/me/profile` - Cập nhật profile (Auth)
-- `GET /api/user/:userId/profile` - Lấy thông tin profile công khai
+## Architecture Overview
 
-### Posts (`/api/posts`)
-- `POST /api/posts` - Tạo bài đăng mới (Auth)
-- `GET /api/posts` - Lấy danh sách bài đăng
-- `GET /api/posts/:postId` - Lấy chi tiết bài đăng
-- `PUT /api/posts/:postId` - Cập nhật bài đăng (Auth)
-- `DELETE /api/posts/:postId` - Xóa bài đăng (Auth)
+### Backend Structure (Node.js/Express)
 
-### Reactions (`/api/reactions`)
-- `POST /api/reactions` - Thêm reaction (Auth)
-- `DELETE /api/reactions/:reactionId` - Xóa reaction (Auth)
-- `GET /api/reactions/post/:postId` - Lấy reactions của bài đăng
+- **Entry point**: `backend/server.js` - HTTP server with Socket.IO setup
+- **App config**: `backend/app.js` - Express middleware and route registration
+- **Controllers** (`src/controllers/`): Handle request logic, organized by feature
+- **Services** (`src/services/`): Business logic layer, separated from controllers
+- **Models** (`src/models/`): Mongoose schemas for MongoDB collections
+- **Routes** (`src/routes/`): API endpoint definitions
+- **Middlewares** (`src/middlewares/`): Auth, error handling, file upload, validation
+- **Config** (`src/config/`): Database and Cloudinary setup
+- **Utils** (`src/utils/`): JWT, email, error handling, async wrappers
+- **Seeds** (`src/seeds/`): Database seeding scripts
+- **Scripts** (`src/scripts/`): Utility scripts (e.g., promote to admin)
 
-### Map (`/api/map`)
-- `GET /api/map/hotspots` - Lấy các hotspot trên bản đồ
-- `GET /api/map/posts` - Lấy bài đăng tại một điểm cụ thể
-- `GET /api/map/nearby` - Lấy bài đăng gần vị trí
+### Frontend Structure (React/Vite)
 
-### Places (`/api/places`)
-- `GET /api/places` - Lấy danh sách địa điểm
-- `GET /api/places/:placeId` - Lấy chi tiết địa điểm
-- `POST /api/places` - Tạo địa điểm mới (Auth)
-- `PUT /api/places/:placeId` - Cập nhật địa điểm (Auth)
+- **Entry**: `frontend/src/main.jsx` → `App.jsx`
+- **Pages** (`src/pages/`): Full page components
+- **Components** (`src/components/`): Reusable UI components organized by feature
+- **API** (`src/api/`): Axios client functions for backend communication
+- **Context** (`src/context/`): React Context providers (SocketContext, LocationAccessContext)
+- **Routes** (`src/routes/`): Route configuration
+- **Services** (`src/services/`): Frontend utilities (geolocation, etc.)
+- **Utils** (`src/utils/`): Helper functions
+- **Config** (`src/config/`): Configuration (socket)
+- **Data** (`src/data/`): Static data (icons)
 
-### Check-ins (`/api/checkins`)
-- `POST /api/checkins` - Check-in tại địa điểm (Auth)
-- `GET /api/checkins` - Lấy lịch sử check-in
+### Key Technologies
 
-### Chat (`/api/chat`)
-- `POST /api/chat/send` - Gửi tin nhắn (Auth)
-- `GET /api/chat/conversations` - Lấy danh sách cuộc trò chuyện (Auth)
-- `GET /api/chat/messages/:conversationId` - Lấy tin nhắn (Auth)
-- `POST /api/chat/read/:receiverId` - Đánh dấu đã đọc (Auth)
-- `GET /api/chat/search` - Tìm kiếm người dùng để chat (Auth)
-- `POST /api/chat/conversation` - Tạo hoặc lấy cuộc trò chuyện (Auth)
+- **Backend**: Express.js, MongoDB/Mongoose, Socket.IO (real-time chat), JWT auth, Cloudinary (image storage)
+- **Frontend**: React 18, Vite, React Router, Leaflet (maps), Socket.IO client, Axios
+- **Real-time**: Socket.IO for chat and online status
+- **Authentication**: JWT tokens with refresh token rotation
+- **AI**: Groq (Llama 3.3), OpenAI (GPT-3.5), Google Gemini for chatbot and content analysis
 
-### Notifications (`/api/notifications`)
-- `GET /api/notifications` - Lấy thông báo (Auth)
-- `PUT /api/notifications/:notificationId/read` - Đánh dấu đã đọc (Auth)
-- `GET /api/notifications/unread-count` - Lấy số thông báo chưa đọc (Auth)
+## Environment Setup
 
-### Reports (`/api/reports`)
-- `POST /api/reports` - Tạo báo cáo (Auth)
+### Backend (.env in root)
 
-### Feedback (`/api/feedbacks`)
-- `POST /api/feedbacks` - Gửi feedback (Auth)
-- `GET /api/feedbacks` - Lấy danh sách feedback (Admin)
+```env
+PORT=4000
+MONGO_URI=mongodb+srv://<user>:<password>@laca.gm9ln1j.mongodb.net/social_local_db
+JWT_ACCESS_SECRET=access0002
+JWT_REFRESH_SECRET=refresh0003
+JWT_OTP_SECRET=otp0001
+JWT_ACCESS_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
+SALT_ROUNDS=10
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+SOCKET_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173
+USERNAME_LENGTH_MIN=6
+USERNAME_LENGTH_MAX=20
+PASSWORD_LENGTH_MIN=8
+PASSWORD_LENGTH_MAX=30
+OTP_EXPIRED_IN=120000
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USERNAME=le0063020@gmail.com
+EMAIL_PASSWORD=<app_password>
+CLOUDINARY_CLOUD_NAME=dtjhqvafy
+CLOUDINARY_API_KEY=492383661879689
+CLOUDINARY_API_SECRET=<secret>
+# AI APIs (at least one required for chatbot)
+GROQ_API_KEY=gsk_...
+OPENAI_API_KEY=sk-...
+VITE_GEMINI_API_KEY=AIzaSy...
+```
 
-### Upload (`/api/upload`)
-- `POST /api/upload` - Upload hình ảnh (Auth)
+### Frontend (.env in frontend/)
 
-### Admin (`/api/admin`)
-- `GET /api/admin/dashboard` - Dashboard stats (Admin)
-- `GET /api/admin/recent-activity` - Hoạt động gần đây (Admin)
-- `GET /api/admin/analytics` - Phân tích (Admin)
-- `GET /api/admin/locations` - Quản lý địa điểm (Admin)
+```env
+VITE_API_URL=http://localhost:4000/api
+VITE_SOCKET_URL=http://localhost:4000
+VITE_GEMINI_API_KEY=AIzaSy...
+```
 
-### Admin Users (`/api/admin/users`)
-- `GET /api/admin/users` - Danh sách người dùng (Admin)
-- `GET /api/admin/users/:userId` - Chi tiết người dùng (Admin)
-- `PUT /api/admin/users/:userId/suspend` - Suspend người dùng (Admin)
-- `PUT /api/admin/users/:userId/ban` - Ban người dùng (Admin)
-- `DELETE /api/admin/users/:userId` - Xóa người dùng (Admin)
+## API Routes
 
-### Admin Reports (`/api/admin/reports`)
-- `GET /api/admin/reports` - Danh sách báo cáo (Admin)
-- `PUT /api/admin/reports/:reportId/review` - Xem xét báo cáo (Admin)
+### Authentication Routes (`/api/auth`)
 
-## 🗄️ Mô hình dữ liệu
+| Method | Endpoint                      | Description            |
+| ------ | ----------------------------- | ---------------------- |
+| POST   | `/register`                   | Register new user      |
+| POST   | `/login`                      | User login             |
+| POST   | `/verify-otp`                 | Verify email OTP       |
+| POST   | `/forgot-password`            | Request password reset |
+| POST   | `/forgot-password/verify-otp` | Verify reset OTP       |
+| POST   | `/reset-password`             | Set new password       |
+| POST   | `/refresh-token`              | Refresh access token   |
+| POST   | `/logout`                     | User logout            |
 
-### User
+### User Routes (`/api/user`)
+
+| Method | Endpoint             | Description                 |
+| ------ | -------------------- | --------------------------- |
+| GET    | `/profile/:userId`   | Get user profile            |
+| PUT    | `/profile`           | Update current user profile |
+| PUT    | `/avatar`            | Update avatar               |
+| POST   | `/follow/:userId`    | Follow user                 |
+| DELETE | `/follow/:userId`    | Unfollow user               |
+| POST   | `/block/:userId`     | Block user                  |
+| DELETE | `/block/:userId`     | Unblock user                |
+| GET    | `/followers/:userId` | Get user followers          |
+| GET    | `/following/:userId` | Get user following          |
+| PUT    | `/interests`         | Update user interests       |
+| PUT    | `/preferred-tags`    | Update preferred tags       |
+
+### Post Routes (`/api/posts`)
+
+| Method | Endpoint        | Description                     |
+| ------ | --------------- | ------------------------------- |
+| POST   | `/`             | Create new post                 |
+| GET    | `/home`         | Get home feed (recommendations) |
+| GET    | `/:postId`      | Get single post                 |
+| DELETE | `/:postId`      | Delete post                     |
+| GET    | `/user/:userId` | Get user posts                  |
+
+### Map Routes (`/api/map`)
+
+| Method | Endpoint          | Description                    |
+| ------ | ----------------- | ------------------------------ |
+| GET    | `/posts/nearby`   | Get nearby posts within radius |
+| GET    | `/posts/at-point` | Get posts at specific point    |
+| GET    | `/posts/density`  | Get post density heatmap       |
+| GET    | `/posts/hotspots` | Get popular areas              |
+
+### Chat Routes (`/api/chat`)
+
+| Method | Endpoint                         | Description               |
+| ------ | -------------------------------- | ------------------------- |
+| GET    | `/conversations`                 | Get user conversations    |
+| GET    | `/conversations/:conversationId` | Get conversation messages |
+| POST   | `/messages`                      | Send direct message       |
+| PUT    | `/messages/read/:conversationId` | Mark messages as read     |
+
+### Place Routes (`/api/places`)
+
+| Method | Endpoint           | Description                 |
+| ------ | ------------------ | --------------------------- |
+| GET    | `/suggestions`     | Get place suggestions       |
+| GET    | `/reverse-geocode` | Reverse geocode coordinates |
+| GET    | `/:placeId`        | Get place details           |
+
+### Notification Routes (`/api/notifications`)
+
+| Method | Endpoint                | Description                    |
+| ------ | ----------------------- | ------------------------------ |
+| GET    | `/`                     | Get user notifications         |
+| PUT    | `/:notificationId/read` | Mark as read                   |
+| DELETE | `/:notificationId`      | Delete notification            |
+| POST   | `/system/broadcast`     | Admin broadcast (admin)        |
+| POST   | `/admin/broadcast-all`  | Broadcast to all users (admin) |
+
+### Reaction Routes (`/api/reactions`)
+
+| Method | Endpoint   | Description        |
+| ------ | ---------- | ------------------ |
+| POST   | `/:postId` | Add reaction       |
+| DELETE | `/:postId` | Remove reaction    |
+| GET    | `/:postId` | Get post reactions |
+
+### Tag Routes (`/api/tags`)
+
+| Method | Endpoint  | Description             |
+| ------ | --------- | ----------------------- |
+| GET    | `/`       | Get all tags/categories |
+| POST   | `/`       | Create tag (admin)      |
+| PUT    | `/:tagId` | Update tag (admin)      |
+| DELETE | `/:tagId` | Delete tag (admin)      |
+
+### Category Routes (`/api/tags/categories`)
+
+| Method | Endpoint                  | Description             |
+| ------ | ------------------------- | ----------------------- |
+| GET    | `/categories`             | Get all categories      |
+| POST   | `/categories`             | Create category (admin) |
+| PUT    | `/categories/:categoryId` | Update category (admin) |
+| DELETE | `/categories/:categoryId` | Delete category (admin) |
+
+### Interest Routes (`/api/interests`)
+
+| Method | Endpoint       | Description             |
+| ------ | -------------- | ----------------------- |
+| GET    | `/`            | Get all interests       |
+| POST   | `/`            | Create interest (admin) |
+| PUT    | `/:interestId` | Update interest (admin) |
+| DELETE | `/:interestId` | Delete interest (admin) |
+
+### Analysis Routes (`/api/analysis`)
+
+| Method | Endpoint    | Description          |
+| ------ | ----------- | -------------------- |
+| POST   | `/analyze`  | Analyze post content |
+| GET    | `/trending` | Get trending topics  |
+
+### Recommendation Routes (`/api/recommendations`)
+
+| Method | Endpoint    | Description           |
+| ------ | ----------- | --------------------- |
+| GET    | `/feed`     | Get personalized feed |
+| GET    | `/trending` | Get trending posts    |
+
+### Feedback Routes (`/api/feedbacks`)
+
+| Method | Endpoint | Description     |
+| ------ | -------- | --------------- |
+| POST   | `/`      | Submit feedback |
+
+### Report Routes (`/api/reports`)
+
+| Method | Endpoint      | Description        |
+| ------ | ------------- | ------------------ |
+| POST   | `/`           | Create report      |
+| GET    | `/my-reports` | Get user's reports |
+
+### Upload Routes (`/api/upload`)
+
+| Method | Endpoint | Description               |
+| ------ | -------- | ------------------------- |
+| POST   | `/`      | Upload file to Cloudinary |
+
+### Ranking Routes (`/api/ranking`)
+
+| Method | Endpoint    | Description                              |
+| ------ | ----------- | ---------------------------------------- |
+| GET    | `/featured` | Get featured locations and users ranking |
+
+### Chatbot Routes (`/api/chatbot`)
+
+| Method | Endpoint   | Description                               |
+| ------ | ---------- | ----------------------------------------- |
+| POST   | `/message` | AI chatbot message (Groq/OpenAI with RAG) |
+
+### Ranking Routes (`/api/ranking`)
+
+| Method | Endpoint    | Description                      |
+| ------ | ----------- | -------------------------------- |
+| GET    | `/featured` | Get featured locations and users |
+
+### Chatbot Routes (`/api/chatbot`)
+
+| Method | Endpoint   | Description        |
+| ------ | ---------- | ------------------ |
+| POST   | `/message` | AI chatbot message |
+
+### Admin Routes (`/api/admin`)
+
+| Method | Endpoint             | Description          |
+| ------ | -------------------- | -------------------- |
+| GET    | `/dashboard`         | Dashboard stats      |
+| GET    | `/analytics`         | Analytics data       |
+| GET    | `/users`             | User management list |
+| PUT    | `/users/:userId`     | Update user          |
+| DELETE | `/users/:userId`     | Delete user          |
+| GET    | `/reports`           | Report list          |
+| PUT    | `/reports/:reportId` | Handle report        |
+| GET    | `/locations`         | Location management  |
+| POST   | `/broadcast`         | Send broadcast       |
+| GET    | `/broadcast-history` | Broadcast history    |
+| GET    | `/queue`             | Queue stats          |
+| POST   | `/queue/clear`       | Clear queue          |
+
+## Database Models
+
+### User (`user.model.js`)
+
 - `fullname`, `username`, `email`, `password`
-- `avatar`, `bio`
-- `isActive`, `isEmailVerified`
-- `role` (user/admin)
-- `suspendUntil`, `deletedAt`
-- `createdAt`, `updatedAt`
+- `isActive`, `isEmailVerified`, `role` (user/admin)
+- `avatar`, `bio`, `coverImage`
+- `interests[]` -> Interest
+- `preferredTags[]` -> Tag
+- `followers[]`, `following[]`
+- `deletedAt`, `suspendUntil`
 
-### Post
-- `userId` (ref: User)
-- `placeId` (ref: Place)
+### Post (`post.model.js`)
+
+- `userId` -> User
+- `placeId` -> Place
 - `content`, `type`, `status`
-- `mediaUrl` (array)
-- `reportCount`
-- `expireAt`
-- `createdAt`, `updatedAt`
+- `mediaUrl[]`, `tags[]`
+- `reportCount`, `expireAt`
+- `analysisId` -> PostAnalysis
 
-### Place
-- `googlePlaceId`, `name`, `address`
-- `category` (cafe, restaurant, bar, shop, park, museum, hotel, other)
-- `location` (GeoJSON Point với coordinates [lng, lat])
-- `isActive`
-- `createdAt`, `updatedAt`
+### Conversation (`conversation.model.js`)
 
-### Checkin
-- `userId` (ref: User)
-- `placeId` (ref: Place)
-- `note`, `isPublic`
-- `duration` (phút)
-- `photos` (array URLs)
-- `createdAt`
+- `type` (direct/public)
+- `participants[]` -> User
+- `postId` -> Post (for public chats)
+- `lastMessage`, `createdBy`
 
-### Reaction
-- `postId` (ref: Post)
-- `userId` (ref: User)
-- `type` (like, love, haha, wow, sad, angry)
-- `createdAt`, `updatedAt`
+### Message (`message.model.js`)
 
-### Conversation
-- `participants` (array User IDs)
-- `lastMessage` (text, image, sender, isRead, createdAt)
-- `createdAt`, `updatedAt`
+- `conversationId` -> Conversation
+- `senderId` -> User
+- `postId` -> Post
+- `text`, `image`, `isRead`
 
-### Message
-- `conversationId` (ref: Conversation)
-- `senderId` (ref: User)
-- `text`, `image`
-- `isRead`
-- `createdAt`, `updatedAt`
+### Notification (`notification.model.js`)
 
-### Notification
-- `recipientId` (ref: User)
-- `senderId` (ref: User, nullable)
-- `type` (new_post, new_message, new_follower, new_reaction, new_comment, admin_broadcast, system)
+- `recipientId`, `senderId` -> User
+- `type` (new_post, new_follower, new_reaction, system)
 - `title`, `body`, `link`
-- `refId`, `refModel`
+- `refId`, `refModel` (polymorphic)
 - `isRead`
-- `expireAt`
-- `createdAt`, `updatedAt`
 
-### Report
-- `reporterId` (ref: User)
-- `targetId`, `targetType` (post/user/place)
-- `reason`, `category` (spam, harassment, inappropriate, false_info, other)
-- `description`
-- `status` (pending/reviewed/dismissed)
-- `actionTaken` (none/warned/post_hidden/post_deleted/user_banned/place_hidden)
-- `handledBy` (ref: User), `handledAt`, `note`
-- `createdAt`
+### Place (`place.model.js`)
 
-### Feedback
-- `userId` (ref: User)
-- `content`, `type`
-- `status`
-- `createdAt`, `updatedAt`
+- `googlePlaceId`, `name`, `address`
+- `category`
+- `location` (GeoJSON Point)
 
-## 👨‍💼 Tính năng Admin
+### Reaction (`reaction.model.js`)
 
-Admin panel cung cấp các công cụ quản lý:
+- `postId` -> Post
+- `userId` -> User
+- `type` (like, love, etc.)
 
-### Dashboard
-- Thống kê tổng quan: số người dùng, địa điểm, bài đăng, báo cáo đang chờ
-- Hoạt động gần đây
-- Biểu đồ và phân tích
+### Report (`report.model.js`)
 
-### Quản lý người dùng
-- Xem danh sách tất cả người dùng
-- Tìm kiếm và lọc người dùng
-- Suspend/Ban người dùng
-- Xóa tài khoản
-- Xem chi tiết profile
+- `reporterId`, `targetId` -> User
+- `targetType` (user/post)
+- `reason`, `category`
+- `status` (pending/resolved/dismissed)
+- `actionTaken`, `handledBy`
 
-### Kiểm duyệt nội dung
-- Xem danh sách báo cáo
-- Xem xét và xử lý báo cáo
-- Ẩn/Xóa bài đăng
-- Quản lý địa điểm
+### Tag & Category (`tag.model.js`, `category.model.js`)
 
-### Quản lý bản đồ
-- Xem và quản lý tất cả địa điểm
-- Phê duyệt/Từ chối địa điểm mới
-- Cập nhật thông tin địa điểm
+- `name`, `description`, `icon`, `color`
+- `order`, `isActive`
 
-### Analytics
-- Thống kê người dùng
-- Phân tích tăng trưởng
-- Phân tích theo khu vực
-- Báo cáo hoạt động
+### Tag (`tag.model.js`)
 
-## 🚢 Triển khai
+- `name`, `description`, `icon`, `color`
+- `order`, `isActive`
+- `categoryId` -> Category
 
-### Backend Deployment
+### Interest (`interest.model.js`)
 
-1. **Chuẩn bị môi trường**
-   - Thiết lập MongoDB Atlas hoặc MongoDB server
-   - Thiết lập Cloudinary account
-   - Cấu hình email service
+- `name`, `description`
+- `icon` (emoji/image)
+- `isActive`
 
-2. **Deploy lên hosting (Render, Heroku, VPS, etc.)**
-   ```bash
-   # Set environment variables trên hosting
-   # Build và start
-   npm start
-   ```
+### Follow (`follow.model.js`)
 
-### Frontend Deployment
+- `followerUserId`, `followingUserId` -> User
 
-1. **Build production**
-   ```bash
-   cd frontend
-   npm run build
-   ```
+### BlockUser (`blockUser.model.js`)
 
-2. **Deploy lên Vercel, Netlify, hoặc hosting tĩnh**
-   - Upload thư mục `dist/` sau khi build
-   - Cấu hình biến môi trường `VITE_API_URL` (và `VITE_SOCKET_URL` nếu backend khác domain)
+- `blockerUserId`, `blockedUserId` -> User
 
-### Lưu ý khi triển khai
+### Checkin (`checkin.model.js`)
 
-- Đảm bảo `CORS_ORIGINS` và `SOCKET_ORIGINS` (backend) bao gồm URL frontend production (VD: `https://myapp.vercel.app`)
-- Socket.IO cần WebSocket: backend phải chạy trên platform hỗ trợ WebSocket (Render, Railway, Heroku, VPS), không dùng Vercel serverless cho backend
-- Sử dụng HTTPS trong production
-- Thiết lập secure cookies
-- Backup database thường xuyên
-- Monitor logs và errors
+- `userId`, `placeId` -> User, Place
+- `note`, `isPublic`, `duration`
+- `photos[]`
 
-## 🤝 Đóng góp
+### BroadcastHistory (`broadcastHistory.model.js`)
 
-Mọi đóng góp đều được chào đón! Vui lòng:
+- `title`, `content`, `targetType`
+- `sentBy` -> User
+- `recipientCount`, `sentAt`
 
-1. Fork repository
-2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Mở Pull Request
+### PostAnalysis (`postAnalysis.model.js`)
 
-## 📄 Giấy phép
+- `sentiment`, `categories[]`
+- `keywords[]`, `toxicity`
+- `analysisComplete`
 
-ISC License
+### Other Models
 
-## 👤 Tác giả
+- `emailOTP` - OTP verification
+- `refreshToken` - Token management
+- `feedback` - User feedback
 
-- GitHub: [@FelixLe2210](https://github.com/FelixLe2210)
-- Repository: [LACA](https://github.com/FelixLe2210/LACA)
+## Key Architectural Patterns
 
-## 📞 Liên hệ và Hỗ trợ
+### Request Flow
 
-- **Issues**: [GitHub Issues](https://github.com/FelixLe2210/LACA/issues)
-- **Email**: (Thêm email liên hệ nếu có)
+1. Frontend makes API call via Axios (`src/api/`)
+2. Backend route receives request (`src/routes/`)
+3. Middleware validates auth/input (`src/middlewares/`)
+4. Controller handles request logic (`src/controllers/`)
+5. Service layer executes business logic (`src/services/`)
+6. Model interacts with MongoDB (`src/models/`)
+7. Response sent back to frontend
 
-## 🙏 Lời cảm ơn
+### Authentication Flow
 
-Cảm ơn tất cả những người đã đóng góp cho dự án này!
+1. **Register**: `POST /api/auth/register` → create user (inactive)
+2. **Verify OTP**: `POST /api/auth/verify-otp` → activate user
+3. **Login**: `POST /api/auth/login` → return tokens
+4. Tokens: access token in localStorage, refresh token in httpOnly cookie
+5. Middleware validates Bearer token from Authorization header
+6. Checks: deletedAt, suspendUntil, isActive, isEmailVerified
 
----
+### Real-time Communication (Socket.IO)
 
-**Lưu ý**: Đây là phiên bản 2.0 của LACA Platform. Đảm bảo bạn đã đọc kỹ tài liệu và cấu hình đúng các biến môi trường trước khi chạy ứng dụng.
+- Backend: `server.js` initializes Socket.IO server with CORS
+- Frontend: `src/context/SocketContext.jsx` manages Socket.IO client
+
+**Server Events:**
+| Event | Purpose |
+|-------|---------|
+| `setup` | Join user to personal room |
+| `connected` | Confirm connection |
+| `online_users` | List online users |
+| `user_status` | User online/offline |
+| `receive_message` | New chat message |
+| `messages_read` | Messages marked read |
+| `user_left` | User left public chat |
+| `notification` | New notification |
+
+**Public Chat (Post Discussions):**
+
+- `join_post_chat(postId)` - Join room
+- `leave_post_chat(postId)` - Leave room
+- Room: `post_{postId}`
+
+### Recommendation Algorithm (`recommendation.service.js`)
+
+Content-based filtering with scoring:
+
+- Tag match: 50%
+- Interest match: 25%
+- Location: 15%
+- Recency: 7%
+- Engagement: 3%
+
+### Geo Queries (`map.route.js`)
+
+- `/api/map/posts/nearby` - Posts within radius (default 5km)
+- `/api/map/posts/at-point` - Posts at specific point
+- `/api/map/posts/density` - Post density heatmap
+- `/api/map/posts/hotspots` - Popular areas with thumbnails
+
+### File Upload
+
+- Multer handles file uploads (`src/middlewares/upload.middleware.js`)
+- Cloudinary stores images (`src/config/cloudinary.js`)
+- Upload route: `POST /api/upload`
+
+### AI/Chatbot Features
+
+- `src/services/rag.service.js` - RAG (Retrieval-Augmented Generation) service
+- `src/services/claude.service.js` - Claude AI integration
+- Chatbot endpoint: `POST /api/chatbot/message`
+
+### Queue System
+
+- `src/services/queue.service.js` - Queue management for notifications/broadcasts
+- Admin endpoints: `GET /api/admin/queue`, `POST /api/admin/queue/clear`
+
+## Middlewares
+
+| File                         | Purpose                            |
+| ---------------------------- | ---------------------------------- |
+| `auth.middleware.js`         | JWT validation, user status checks |
+| `optionalAuth.middleware.js` | Optional authentication            |
+| `requireAdmin.js`            | Admin role check                   |
+| `error.middleware.js`        | Global error handler               |
+| `upload.middleware.js`       | Multer file upload                 |
+| `geoValidator.middleware.js` | Validate geo coordinates           |
+
+## Frontend Pages
+
+| Page                           | Path                      | Description                    |
+| ------------------------------ | ------------------------- | ------------------------------ |
+| `LoginPage.jsx`                | `/login`                  | Login form                     |
+| `RegisterPage.jsx`             | `/register`               | Registration with OTP          |
+| `ForgotPasswordPage.jsx`       | `/forgot-password`        | Password reset flow            |
+| `HomePage.jsx`                 | `/home`                   | Home feed with recommendations |
+| `Map.jsx`                      | `/map`                    | Interactive map with posts     |
+| `UserProfilePage.jsx`          | `/profile`                | Current user profile           |
+| `StrangerProfilePage.jsx`      | `/profile/:userId`        | Other user profiles            |
+| `CameraPage.jsx`               | `/camera`                 | Camera capture                 |
+| `CameraPostPage.jsx`           | `/camera-post`            | Post creation with media       |
+| `PostDetailPage.jsx`           | `/post/:postId`           | Single post detail             |
+| `NotificationPage.jsx`         | `/notification`           | Notifications list             |
+| `ChatListPage.jsx`             | `/chat`                   | Conversation list              |
+| `ChatDetailPage.jsx`           | `/chat/detail`            | Direct message chat            |
+| `PublicChatPage.jsx`           | `/chat/public/:postId`    | Post discussion chat           |
+| `FeedbackPage.jsx`             | `/feedback`               | Submit feedback                |
+| `ReportPage.jsx`               | `/report`                 | Report content                 |
+| `SettingPage.jsx`              | `/setting`                | App settings                   |
+| `EditProfileSettingPage.jsx`   | `/edit-profile`           | Edit profile                   |
+| `DeleteAccountConfirmPage.jsx` | `/delete-account-confirm` | Account deletion               |
+| `InterestManagementPage.jsx`   | `/interests`              | Manage interests               |
+| `TagPreferencePage.jsx`        | `/tag-preference`         | Tag preferences                |
+| `AdminBroadcastPage.jsx`       | `/admin/broadcast`        | Admin broadcast                |
+
+## Frontend Chatbot
+
+| Component     | File                             | Description                                       |
+| ------------- | -------------------------------- | ------------------------------------------------- |
+| `Chatbot.jsx` | `components/chatbot/Chatbot.jsx` | AI chatbot floating button (Groq/OpenAI with RAG) |
+
+## Frontend Admin Components
+
+| Component                   | Path               | Purpose                                  |
+| --------------------------- | ------------------ | ---------------------------------------- |
+| `AdminLayout.jsx`           | `/admin`           | Admin wrapper layout                     |
+| `AdminDashboard.jsx`        | `/admin`           | Dashboard overview                       |
+| `UserManagement.jsx`        | `/admin/users`     | User CRUD                                |
+| `ContentModeration.jsx`     | `/admin/content`   | Post/report moderation                   |
+| `MapManagement.jsx`         | `/admin/map`       | Location management                      |
+| `AdminAnalytics.jsx`        | `/admin/analytics` | Analytics charts                         |
+| `InterestManagement.jsx`    | `/admin/interests` | Interest CRUD                            |
+| `TagManagement.jsx`         | `/admin/tags`      | Tag/category CRUD                        |
+| `BroadcastNotification.jsx` | -                  | Broadcast form                           |
+| `BroadcastHistory.jsx`      | -                  | Broadcast history                        |
+| `RankingModal.jsx`          | -                  | Featured ranking modal (locations/users) |
+
+## Important Files to Know
+
+### Backend
+
+- `backend/server.js` - Main entry with Socket.IO
+- `backend/app.js` - Express app setup
+- `src/models/user.model.js` - User schema
+- `src/services/auth.service.js` - Auth logic
+- `src/services/recommendation.service.js` - Feed algorithm
+- `src/services/queue.service.js` - Notification queue
+- `src/services/rag.service.js` - RAG for chatbot
+- `src/services/claude.service.js` - Claude AI integration
+- `src/middlewares/auth.middleware.js` - JWT validation
+- `src/middlewares/requireAdmin.js` - Admin role check
+- `src/controllers/chatbot.controller.js` - AI chatbot logic (Groq/OpenAI)
+- `src/services/rag.service.js` - RAG (Retrieval-Augmented Generation) for context
+
+### Frontend
+
+- `frontend/src/context/SocketContext.jsx` - Socket provider
+- `frontend/src/context/LocationAccessContext.jsx` - Location access context
+- `frontend/src/api/client.js` - Axios config with interceptors
+- `frontend/src/routes/index.jsx` - Route definitions
+- `frontend/src/routes/RequireAuth.jsx` - Auth guard
+- `frontend/src/components/map/` - Leaflet map components
+- `frontend/src/components/Chat/` - Real-time chat UI
+- `frontend/src/components/admin/` - Admin components
+- `frontend/src/components/chatbot/Chatbot.jsx` - AI chatbot UI
+
+## Common Tasks
+
+### Adding a New API Endpoint
+
+1. Create/update model in `src/models/`
+2. Create service in `src/services/` with business logic
+3. Create controller in `src/controllers/` that calls service
+4. Add route in `src/routes/`
+5. Add frontend API call in `frontend/src/api/`
+6. Create frontend component/page to use it
+
+### Adding Authentication to a Route
+
+- Use `auth.middleware.js` in route: `router.post('/path', auth, controller)`
+- Controller receives `req.user` with user ID and data
+
+### Real-time Features
+
+- Emit from backend: `req.app.get('io').to(userId).emit('event', data)`
+- Listen on frontend: `socket.on('event', (data) => {})`
+- Always join user to their ID room on connection
+
+### Admin Features
+
+- Use `requireAdmin.js` middleware to protect admin routes
+- Admin routes in `src/routes/admin*.routes.js`
+- Admin controllers in `src/controllers/admin*.controller.js`
+
+### AI/Chatbot Features
+
+- Chatbot uses RAG (Retrieval-Augmented Generation) to query database context
+- AI providers: Groq (Llama 3.3) first, fallback to OpenAI (GPT-3.5)
+- `src/services/rag.service.js` - Query database for relevant context (places, users, posts, stats)
+- `src/controllers/chatbot.controller.js` - Main chatbot logic with fallback responses
+
+## Database Relationships
+
+```
+User
+  ├── posts[] (Post.userId)
+  ├── interests[] (Interest)
+  ├── preferredTags[] (Tag)
+  ├── followers[] (Follow.followingUserId)
+  ├── following[] (Follow.followerUserId)
+  └── notifications[] (Notification.recipientId)
+
+Post
+  ├── userId -> User
+  ├── placeId -> Place
+  ├── tags[] -> Tag
+  └── analysisId -> PostAnalysis
+
+Conversation
+  ├── participants[] -> User
+  └── postId -> Post (for public chats)
+
+Message
+  ├── conversationId -> Conversation
+  ├── senderId -> User
+  └── postId -> Post
+
+Notification
+  ├── recipientId -> User
+  ├── senderId -> User
+  └── refId -> Post/User (polymorphic)
+
+Follow (M-to-M through document)
+  ├── followerUserId -> User
+  └── followingUserId -> User
+
+BlockUser (M-to-M)
+  ├── blockerUserId -> User
+  └── blockedUserId -> User
+
+Category
+  └── tags[] -> Tag
+```
+
+## Deployment Notes
+
+- Backend needs WebSocket support (Render, Railway, VPS) - not Vercel serverless
+- Frontend builds to `dist/` folder
+- Set `CORS_ORIGINS` and `SOCKET_ORIGINS` to include production frontend URL
+- Use HTTPS in production
+- MongoDB Atlas recommended for cloud database
+- Cloudinary for image storage in production
